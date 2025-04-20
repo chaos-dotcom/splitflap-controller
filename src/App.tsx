@@ -254,12 +254,29 @@ function App() {
 
       {/* Split Flap Display - Now Interactive */}
       <SplitFlapDisplay
-        text={draftText} // Show the draft text being edited
-        caretPosition={caretPosition}
-        onKeyDown={handleDisplayKeyDown} // Pass the key handler
+        // Show draft text only when in text mode, otherwise show last published text
+        text={currentMode === 'text' ? draftText : displayText}
+        caretPosition={caretPosition} // Caret position is only relevant in text mode
+        onKeyDown={handleDisplayKeyDown} // Handler checks for mode internally
         isConnected={isConnected} // To enable/disable interaction style
-        onClick={handleDisplayClick} // Pass the click handler
+        onClick={handleDisplayClick} // Handler checks for mode internally
+        isInteractive={currentMode === 'text'} // Explicitly pass if display should be interactive
       />
+
+      {/* Mode Selector */}
+      <div className="mode-selector">
+          <button onClick={() => setCurrentMode('text')} disabled={currentMode === 'text'}>Text Input Mode</button>
+          <button onClick={() => setCurrentMode('train')} disabled={currentMode === 'train'}>Train Timetable Mode</button>
+      </div>
+
+      {/* Mode Specific Controls */}
+      <div className="mode-controls">
+          {currentMode === 'train' && (
+              <TrainTimetableMode isConnected={isConnected} onSendMessage={publishMessage} />
+          )}
+          {/* Add other mode components here later */}
+      </div>
+
       {!isConnected && (
          <p style={{ textAlign: 'center', marginTop: '10px', color: '#555' }}>
            Connect to MQTT to enable display input.
