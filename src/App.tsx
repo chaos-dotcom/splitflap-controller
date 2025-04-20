@@ -1,14 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Import useEffect
 import './App.css';
 import SplitFlapDisplay from './components/SplitFlapDisplay';
 import SettingsPanel from './components/SettingsPanel'; // Import SettingsPanel
 import { DISPLAY_LENGTH } from './constants';
+import { mqttService } from './services/mqttService'; // Import mqttService
+import { Buffer } from 'buffer'; // Import Buffer for message handling
+window.Buffer = Buffer; // Polyfill Buffer for the mqtt library in browser if needed
 
 // Define the settings type inline or import from types/index.ts later
 interface MqttSettings {
   brokerUrl: string;
   publishTopic: string;
   subscribeTopic: string;
+  username?: string;
+  password?: string;
 }
 
 function App() {
@@ -19,24 +24,55 @@ function App() {
     brokerUrl: 'ws://broker.hivemq.com:8000/mqtt', // Public test broker
     publishTopic: 'splitflap/test/set_text',     // Example topic
     subscribeTopic: 'splitflap/test/status',   // Example topic
+    username: '',
+    password: '',
   });
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
-  // Placeholder connection logic
+  // MQTT Connection Logic
   const handleConnect = (settings: MqttSettings) => {
     console.log('Connecting with settings:', settings);
-    // TODO: Implement actual MQTT connection using mqttService
-    setMqttSettings(settings); // Update settings state
-    // Simulate connection success for UI testing
-    setIsConnected(true);
-    console.log('Simulated connection success');
+    setConnectionError(null); // Clear previous errors
+    setMqttSettings(settings); // Store the settings used for connection attempt
+
+    mqttService.connect({
+      brokerUrl: settings.brokerUrl,
+      subscribeTopic: settings.subscribeTopic,
+      username: settings.username,
+      password: settings.password,
+      onConnectCallback: () => {
+        setIsConnected(true);
+        setConnectionError(null);
+      },
+      onErrorCallback: (error) => {
+        setIsConnected(false);
+        setConnectionError(typeof error === 'string' ? error : error.message);
+        console.error("Connection Error:", error);
+      },
+      onMessageCallback: (topic, message) => {
+        // console.log(`App received message on ${topic}: ${message.toString()}`); // Reduce noise
+        // Example: Update display if message is on subscribe topic
+        if (settings.subscribeTopic && topic === settings.subscribeTopic) { // Check subscribeTopic exists
+          const receivedText = message.toString();
+          // Optionally validate/sanitize receivedText against ALLOWED_CHARS
+          const formattedMessage = receivedText.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
+          setDisplayText(formattedMessage);
+        }
+      },
+      onCloseCallback: () => {
+        // Handle unexpected disconnects
+        if (isConnected) { // Only show error if we thought we were connected
+            setIsConnected(false);
+            setConnectionError("Connection closed unexpectedly.");
+        }
+      }
+    });
   };
 
-  // Placeholder disconnection logic
   const handleDisconnect = () => {
-    console.log('Disconnecting...');
-    // TODO: Implement actual MQTT disconnection using mqttService
+    mqttService.disconnect();
     setIsConnected(false);
-    console.log('Simulated disconnection');
+    setConnectionError(null); // Clear error on manual disconnect
   };
 
   // Function to update display text (will later also publish via MQTT)
@@ -45,9 +81,8 @@ function App() {
     const formattedMessage = message.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
     setDisplayText(formattedMessage);
     // TODO: Add MQTT publish logic here if connected
-    if (isConnected) {
-      console.log(`Publishing "${formattedMessage}" to topic "${mqttSettings.publishTopic}" (not implemented yet)`);
-      // mqttService.publish(mqttSettings.publishTopic, formattedMessage);
+    if (isConnected && mqttSettings.publishTopic) {
+      mqttService.publish(mqttSettings.publishTopic, formattedMessage);
     }
   };
 
@@ -55,6 +90,15 @@ function App() {
   const handleSettingsChange = (newSettings: MqttSettings) => {
     setMqttSettings(newSettings);
   };
+
+  // Effect for cleanup on component unmount
+  useEffect(() => {
+    // Return a cleanup function
+    return () => {
+      mqttService.disconnect();
+    };
+  }, []); // Empty dependency array means this runs only on mount and unmount
+
 
   return (
     <div className="app-container">
@@ -68,6 +112,11 @@ function App() {
         onDisconnect={handleDisconnect}
         onSettingsChange={handleSettingsChange} // Pass the handler
       />
+      {/* Display connection error */}
+      {connectionError && (
+        <p style={{ color: 'red', textAlign: 'center' }}>Error: {connectionError}</p>
+      )}
+
 
       {/* Split Flap Display */}
       <SplitFlapDisplay text={displayText} />

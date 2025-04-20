@@ -4,7 +4,9 @@ import './SettingsPanel.css';
 interface MqttSettings {
   brokerUrl: string;
   publishTopic: string;
-  subscribeTopic: string; // Added subscribe topic
+  subscribeTopic: string;
+  username?: string; // Optional username
+  password?: string; // Optional password
 }
 
 interface SettingsPanelProps {
@@ -81,6 +83,29 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           onChange={handleChange}
           disabled={isConnected}
           placeholder="e.g., splitflap/status (optional)"
+        />
+      </div>
+      <div className="form-group">
+        <label htmlFor="username">Username:</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          value={settings.username || ''}
+          onChange={handleChange}
+          disabled={isConnected}
+          placeholder="(Optional)"
+        />
+      </div>
+      <div className="form-group">
+        <label htmlFor="password">Password:</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          value={settings.password || ''}
+          onChange={handleChange}
+          disabled={isConnected}
         />
       </div>
       <div className="button-group">
