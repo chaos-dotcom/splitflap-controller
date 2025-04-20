@@ -125,14 +125,15 @@ function App() {
     setConnectionError(null); // Clear error on manual disconnect
   };
 
-  // Function to send the draft text via MQTT
-  const sendDraftMessage = () => {
+  // Function to publish a message via MQTT
+  const publishMessage = (message: string) => {
     if (!isConnected || !mqttSettings.publishTopic) return;
 
-    console.log(`Sending draft message: ${draftText}`);
-    // The draftText should already be DISPLAY_LENGTH
-    setDisplayText(draftText); // Update the "official" display state
-    mqttService.publish(mqttSettings.publishTopic, draftText);
+    // Ensure message is correct length before publishing
+    const formattedMessage = message.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
+    console.log(`Publishing message: ${formattedMessage}`);
+    setDisplayText(formattedMessage); // Update the "official" display state
+    mqttService.publish(mqttSettings.publishTopic, formattedMessage);
     // Consider resetting caret after sending, or leave it
     // setCaretPosition(0);
   };
@@ -152,7 +153,8 @@ function App() {
 
   // --- Handlers for Interactive Display ---
   const handleDisplayKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!isConnected) return; // Only allow input when connected
+    // Only handle keys if connected AND in text mode
+    if (!isConnected || currentMode !== 'text') return;
 
     // Allow basic navigation/selection even if we don't handle the key
     // event.preventDefault(); // Prevent default browser actions ONLY for keys we explicitly handle
@@ -219,7 +221,8 @@ function App() {
 
   // Basic click handler to set caret position (can be improved)
   const handleDisplayClick = (event: React.MouseEvent<HTMLDivElement>) => {
-      if (!isConnected) return;
+      // Only handle clicks if connected AND in text mode
+      if (!isConnected || currentMode !== 'text') return;
       // Very basic: try to guess character index based on click position
       // This needs refinement for accuracy based on actual element positions/widths
       const displayRect = event.currentTarget.getBoundingClientRect();
