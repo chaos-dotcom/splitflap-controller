@@ -44,47 +44,9 @@ function App() {
       setIsConnected(false); // Ensure status reflects failure
       return; // Prevent connection attempt
     }
-
-   /* src/App.css */
-   /* ... existing styles ... */
-
-   .mode-selector {
-     margin-top: 20px;
-     text-align: center;
-     padding-bottom: 15px;
-     border-bottom: 1px solid #eee;
-   }
-
-   .mode-selector button {
-     padding: 8px 16px;
-     margin: 0 10px;
-     font-size: 1rem;
-     cursor: pointer;
-     border: 1px solid #ccc;
-     background-color: #f0f0f0;
-     border-radius: 4px;
-   }
-
-   .mode-selector button:disabled {
-     background-color: #4a90e2; /* Highlight active mode */
-     color: white;
-     border-color: #4a90e2;
-     cursor: default;
-   }
-
-   .mode-controls {
-     margin-top: 15px;
-     width: 90%;
-     max-width: 600px; /* Or match settings panel width */
-     /* Center the controls container */
-     margin-left: auto;
-     margin-right: auto;
-     display: flex; /* Use flexbox to help center content if needed */
-     justify-content: center;
-   }
-
+ 
     setMqttSettings(settings); // Store the settings used for connection attempt
-
+ 
     mqttService.connect({
       brokerUrl: settings.brokerUrl,
       subscribeTopic: settings.subscribeTopic,
