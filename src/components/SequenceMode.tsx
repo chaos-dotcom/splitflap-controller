@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Scene, SceneLine } from '../types';
 import { DISPLAY_LENGTH } from '../constants';
 import './SequenceMode.css';
+import InteractiveTextInput from './InteractiveTextInput'; // Import the new component
 
 interface SequenceModeProps {
     isConnected: boolean;
@@ -162,15 +163,15 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
             <div className="scene-editor">
                 <h5>Edit Scene Lines ({currentLines.length})</h5>
                 <div className="add-line-form">
-                    <input
-                        type="text"
+                    {/* Replace input with InteractiveTextInput */}
+                    <InteractiveTextInput
                         value={newLineText}
-                        onChange={(e) => setNewLineText(e.target.value.toUpperCase())}
+                        onChange={setNewLineText} // Pass the state setter directly
+                        onEnter={handleAddLine} // Trigger add line on Enter
                         maxLength={DISPLAY_LENGTH}
                         placeholder={`Enter line (max ${DISPLAY_LENGTH} chars)`}
                         disabled={isPlaying}
                     />
-                    <button onClick={handleAddLine} disabled={isPlaying}>Add Line</button>
                 </div>
                 <ul className="line-list">
                     {currentLines.map((line, index) => (

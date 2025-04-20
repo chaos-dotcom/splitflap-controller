@@ -55,13 +55,11 @@
   margin-bottom: 10px;
 }
 
-.add-line-form input {
-  flex-grow: 1;
-  padding: 8px;
-  margin-right: 10px;
-  font-family: 'Roboto Mono', monospace;
-  text-transform: uppercase;
+/* Ensure the interactive input takes full width */
+.add-line-form .interactive-text-input {
+    flex-grow: 1;
 }
+
 
 .line-list {
   list-style: none;

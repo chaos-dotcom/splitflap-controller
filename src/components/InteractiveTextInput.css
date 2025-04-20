@@ -1,0 +1,51 @@
+/* src/components/InteractiveTextInput.css */
+.interactive-text-input {
+  display: flex;
+  align-items: center; /* Vertically center if needed */
+  padding: 5px; /* Reduced padding compared to main display */
+  background-color: #e9ecef; /* Slightly different background */
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  cursor: text;
+  outline: none;
+  position: relative; /* For placeholder positioning */
+  min-height: 72px; /* Match SplitFlapChar height + padding + border */
+  box-sizing: border-box;
+  width: 100%; /* Make it take available width */
+}
+
+.interactive-text-input.focused {
+  border-color: dodgerblue;
+  box-shadow: 0 0 3px 1px rgba(30, 144, 255, 0.5);
+}
+
+.interactive-text-input.disabled {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Adjust SplitFlapChar margin/size if needed within this context */
+.interactive-text-input .split-flap-char {
+  /* Example: Reduce margin if needed */
+   margin: 1px; /* Slightly reduce margin */
+}
+
+.interactive-text-input .placeholder-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    /* Use padding to align placeholder text similarly to flap characters */
+    padding-left: 7px; /* Adjust based on char margin/padding */
+    color: #6c757d;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 1.5rem; /* Match input style */
+    pointer-events: none; /* Allow clicks to pass through */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
