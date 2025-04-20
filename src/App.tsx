@@ -131,21 +131,12 @@ function App() {
       {/* Split Flap Display */}
       <SplitFlapDisplay text={displayText} />
 
-      {/* Remove the separate status paragraph */}
-      {/* <p>MQTT Status: {isConnected ? 'Connected' : 'Disconnected'}</p> */}
-
-      {/* Split Flap Display */}
-      <SplitFlapDisplay text={displayText} />
-
-      {/* Control Panel - TextInputMode */}
+      {/* Control Panel Area - Use TextInputMode */}
       <TextInputMode
         onSendText={sendMessage}
         maxLength={DISPLAY_LENGTH}
         disabled={!isConnected} // Disable input if not connected
       />
-
-      {/* Remove the separate status paragraph */}
-      {/* <p>MQTT Status: {isConnected ? 'Connected' : 'Disconnected'}</p> */}
 
     </div>
   );

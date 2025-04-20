@@ -1,93 +1,39 @@
 /* src/components/TextInputMode.css */
 .text-input-mode {
-  padding: 15px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  margin: 20px 0;
-  background-color: #f9f9f9;
-  width: 90%;
-  max-width: 600px; /* Match App's max-width */
-  box-sizing: border-box; /* Include padding and border in the element's total width and height */
-}
-
-.text-input-mode h4 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  text-align: center;
-  color: #333;
-}
-
-.text-input-mode .input-group {
   display: flex;
   align-items: center;
-  gap: 10px; /* Space between elements */
-}
-
-.text-input-mode input[type="text"] {
-  flex-grow: 1; /* Take up available space */
-  padding: 8px 10px;
+  justify-content: center; /* Center input and count */
+  padding: 10px;
+  margin-top: 10px; /* Space below the display */
+  width: 90%;
+  /* Optional: Try to match display width. Adjust multiplier/pixels as needed based on SplitFlapChar size */
+  max-width: calc(12 * 40px + 12 * 4px + 20px + 60px); /* Approx: 12 chars + margins + padding + count */
+  margin-left: auto;
+  margin-right: auto;
   border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-family: 'Roboto Mono', monospace; /* Match display font */
-  text-transform: uppercase; /* Ensure input visually matches display */
+  border-radius: 5px;
+  background-color: #f0f0f0; /* Similar background to display chars */
+  box-sizing: border-box;
 }
 
-.text-input-mode input[type="text"]:disabled {
-  background-color: #eee;
+.text-input-field {
+  flex-grow: 1; /* Take available space */
+  padding: 10px;
+  font-size: 1.5rem; /* Slightly smaller than display */
+  text-transform: uppercase; /* Match display style */
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  margin-right: 10px; /* Space before char count */
+}
+
+.text-input-field:disabled {
+  background-color: #e0e0e0;
   cursor: not-allowed;
 }
 
-.text-input-mode .char-count {
-  font-size: 0.9em;
-  color: #666;
-  white-space: nowrap; /* Prevent wrapping */
-}
-
-.text-input-mode button {
-  padding: 8px 15px;
-  border: none;
-  border-radius: 4px;
-  background-color: #007bff;
-  color: white;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.2s ease;
-}
-
-.text-input-mode button:hover:not(:disabled) {
-  background-color: #0056b3;
-}
-
-.text-input-mode button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.text-input-mode .error-message {
-  color: red;
-  font-size: 0.9em;
-  margin-top: 5px;
-  text-align: center;
-}
-
-.text-input-mode .allowed-chars {
+.char-count {
   font-family: 'Roboto Mono', monospace;
-  font-size: 0.8em;
+  font-size: 0.9rem;
   color: #555;
-  word-wrap: break-word;
-  margin-top: 10px;
-  background-color: #eee;
-  padding: 5px;
-  border-radius: 3px;
-}
-
-.text-input-mode details {
-  margin-top: 10px;
-}
-
-.text-input-mode summary {
-  cursor: pointer;
-  font-size: 0.9em;
-  color: #007bff;
+  white-space: nowrap; /* Prevent wrapping */
 }

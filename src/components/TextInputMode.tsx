@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { DISPLAY_LENGTH, ALLOWED_CHARS } from '../constants'; // Import constants
-import './TextInputMode.css'; // We'll create this CSS file next
+import React, { useState, KeyboardEvent } from 'react';
+import './TextInputMode.css'; // We will update this CSS next
+import { ALLOWED_CHARS, DISPLAY_LENGTH } from '../constants'; // Import constants
 
 interface TextInputModeProps {
   onSendText: (text: string) => void;
@@ -10,75 +10,53 @@ interface TextInputModeProps {
 
 const TextInputMode: React.FC<TextInputModeProps> = ({ onSendText, maxLength, disabled }) => {
   const [inputText, setInputText] = useState<string>('');
-  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    let value = event.target.value.toUpperCase(); // Convert to uppercase immediately
-    setValidationError(null); // Clear error on change
+    let value = event.target.value;
 
-    // Basic validation (can be enhanced)
-    // Check if all characters are allowed (optional, can be strict)
-    // const invalidChars = value.split('').filter(char => !ALLOWED_CHARS.includes(char));
-    // if (invalidChars.length > 0) {
-    //   setValidationError(`Invalid characters: ${invalidChars.join(', ')}`);
-    //   // Optionally prevent setting state or trim invalid chars
-    // }
+    // Optional: Convert to uppercase immediately for visual feedback
+    value = value.toUpperCase();
 
-    // Enforce max length
-    if (value.length > maxLength) {
-      value = value.substring(0, maxLength);
-      setValidationError(`Maximum length is ${maxLength} characters.`);
+    // Optional: Filter out characters not allowed by the physical display
+    // value = value.split('').filter(char => ALLOWED_CHARS.includes(char) || ALLOWED_CHARS.includes(char.toLowerCase())).join('');
+    // Note: The above filter might be too restrictive if users want to type lowercase colors directly.
+    // A simpler approach is just length limiting here and letting the parent `sendMessage` handle final formatting/validation.
+
+    // Limit length
+    if (value.length <= maxLength) {
+      setInputText(value);
     }
-
-    setInputText(value);
   };
 
-  const handleSend = () => {
-    // Optional: Add final validation before sending if needed
-    if (inputText.trim() === '') {
-        setValidationError('Input cannot be empty.');
-        return;
-    }
-    // Clear error before sending
-    setValidationError(null);
-    onSendText(inputText);
-    // Optionally clear input after sending:
-    // setInputText('');
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter' && !disabled) {
-      handleSend();
+        // Send current input (padded) if Enter is pressed, even if empty
+        const textToSend = inputText.padEnd(maxLength);
+        onSendText(textToSend);
+        setInputText(''); // Clear input after sending
     }
+    // Removed specific check for empty input sending blank, as padEnd handles it.
   };
 
   return (
     <div className="text-input-mode">
-      <h4>Enter Text to Display:</h4>
-      <div className="input-group">
-        <input
-          type="text"
-          value={inputText}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown} // Allow sending with Enter key
-          maxLength={maxLength} // HTML5 max length attribute
-          disabled={disabled}
-          placeholder={`Enter up to ${maxLength} characters`}
-          aria-label="Text to display"
-        />
-        <span className="char-count">
-          {inputText.length}/{maxLength}
-        </span>
-        <button onClick={handleSend} disabled={disabled || !!validationError}>
-          Send
-        </button>
-      </div>
-      {validationError && <p className="error-message">{validationError}</p>}
-       {/* Optional: Display allowed characters */}
-       {/* <details>
-         <summary>Allowed Characters</summary>
-         <p className="allowed-chars">{ALLOWED_CHARS.join(' ')}</p>
-       </details> */}
+      <input
+        type="text"
+        value={inputText}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown} // Use onKeyDown for Enter key
+        maxLength={maxLength} // HTML5 length limit
+        disabled={disabled}
+        placeholder={disabled ? 'Connect MQTT to enable input' : `Type up to ${maxLength} chars & press Enter`}
+        className="text-input-field" // Use a specific class for the input
+        // Use monospace font similar to the display
+        style={{ fontFamily: 'Roboto Mono, monospace' }}
+      />
+       {/* Optional: Display character count */}
+       <span className="char-count">
+         {inputText.length} / {maxLength}
+       </span>
+       {/* Removed the Send button and error message display */}
     </div>
   );
 };
