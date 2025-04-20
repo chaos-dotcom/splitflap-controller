@@ -89,15 +89,10 @@
     font-size: 0.9em;
 }
 
-.line-list li .line-text {
-  font-family: 'Roboto Mono', monospace;
-  background-color: #e9ecef;
-  padding: 2px 6px;
-  border-radius: 3px;
-  margin: 0 10px;
-  flex-grow: 1; /* Take available space */
-  white-space: pre; /* Preserve spaces */
-  letter-spacing: 0.1em; /* Match display spacing */
+/* Ensure the small display takes up appropriate space */
+.line-list li .split-flap-display.small {
+    flex-grow: 1; /* Allow it to take available space */
+    margin: 0 10px; /* Adjust spacing */
 }
 
 .line-list li .line-duration-input {

@@ -5,9 +5,10 @@ import { COLOR_MAP } from '../constants';
 interface SplitFlapCharProps {
   char: string;
   isCaret?: boolean; // Optional prop to indicate cursor position
+  size?: 'large' | 'small'; // Add size prop
 }
 
-const SplitFlapChar: React.FC<SplitFlapCharProps> = ({ char, isCaret = false }) => {
+const SplitFlapChar: React.FC<SplitFlapCharProps> = ({ char, isCaret = false, size = 'large' }) => {
   // Basic validation/fallback
   const displayChar = char && char.length === 1 ? char : ' ';
 
@@ -23,7 +24,7 @@ const SplitFlapChar: React.FC<SplitFlapCharProps> = ({ char, isCaret = false }) 
 
   return (
     <div
-      className={`split-flap-char ${isCaret ? 'caret' : ''}`} // Add caret class if active
+      className={`split-flap-char ${size} ${isCaret ? 'caret' : ''}`} // Add size class and caret class
       style={charStyle}
       // Add aria-hidden if it's just a color block? Or maybe not needed.
     >

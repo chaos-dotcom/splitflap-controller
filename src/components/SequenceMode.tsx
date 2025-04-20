@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Scene, SceneLine } from '../types';
 import { DISPLAY_LENGTH } from '../constants';
 import './SequenceMode.css';
+import SplitFlapDisplay from './SplitFlapDisplay'; // Import the display component
 import InteractiveTextInput from './InteractiveTextInput'; // Import the new component
 
 interface SequenceModeProps {
@@ -196,7 +198,8 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
                     {currentLines.map((line, index) => (
                         <li key={line.id}>
                             <span className="line-number">{index + 1}:</span>
-                            <code className="line-text">{line.text.replace(/ /g, '\u00A0')}</code> {/* Show spaces */}
+                            {/* Replace code with small SplitFlapDisplay */}
+                            <SplitFlapDisplay size="small" text={line.text} />
                             <input
                                 type="number"
                                 className="line-duration-input"

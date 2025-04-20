@@ -1,6 +1,6 @@
 /* src/components/SplitFlapDisplay.css */
-.split-flap-display {
-  display: flex; /* Arrange characters horizontally */
+.split-flap-display.large { /* Default/Large size */
+  display: inline-flex; /* Arrange characters horizontally, allow centering */
   justify-content: center; /* Center the characters */
   padding: 10px;
   background-color: #e0e0e0; /* Optional background for the whole display */
@@ -12,8 +12,18 @@
   position: relative; /* Needed for potential explicit caret positioning */
 }
 
+/* Small size for lists */
+.split-flap-display.small {
+  display: inline-flex; /* Use flex */
+  padding: 2px; /* Reduced padding */
+  background-color: #e9ecef; /* Match list item background */
+  border-radius: 3px; /* Smaller radius */
+  margin: 0 5px; /* Adjust margin as needed */
+  vertical-align: middle; /* Align with text/inputs in list */
+}
+
 /* Style when the display is interactive (connected) */
-.split-flap-display.interactive {
+.split-flap-display.large.interactive { /* Only apply interactive styles to large version */
   cursor: text; /* Indicate text input possibility */
   border-color: #ccc; /* Give it a subtle border when interactive */
 }

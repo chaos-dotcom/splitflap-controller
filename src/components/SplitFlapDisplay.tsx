@@ -8,6 +8,7 @@ interface SplitFlapDisplayProps {
   caretPosition: number; // Only relevant when interactive
   isConnected: boolean; // To visually indicate active/inactive state and enable focus
   isInteractive: boolean; // NEW: Determines if the display accepts input
+  size?: 'large' | 'small'; // Add size prop
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
   onClick: (event: MouseEvent<HTMLDivElement>) => void; // Pass the event for position calculation
 }
@@ -18,6 +19,7 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
   caretPosition,
   isConnected,
   isInteractive,
+  size = 'large', // Default to large
   onKeyDown,
   onClick,
 }) => {
@@ -28,7 +30,7 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
 
   return (
     <div
-      className={`split-flap-display ${isInteractive && isConnected ? 'interactive' : ''}`}
+      className={`split-flap-display ${size} ${isInteractive && isConnected ? 'interactive' : ''}`} // Add size class
       tabIndex={isInteractive && isConnected ? 0 : -1} // Focusable only when interactive & connected
       onKeyDown={isInteractive && isConnected ? onKeyDown : undefined} // Attach handler only when interactive & connected
       onClick={isInteractive && isConnected ? onClick : undefined} // Attach handler only when interactive & connected
@@ -42,6 +44,7 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
           key={index}
           char={char}
           // Highlight the character *at* the caret position only if interactive
+          size={size} // Pass size down
           isCaret={isInteractive && isConnected && index === caretPosition}
         />
       ))}

@@ -1,6 +1,6 @@
 /* src/components/SplitFlapChar.css */
-.split-flap-char {
-  display: inline-block;
+.split-flap-char.large { /* Default/Large size */
+  display: inline-flex; /* Use flex for centering */
   position: relative; /* Keep for potential future animations */
   width: 40px; /* Adjusted size */
   height: 60px; /* Adjusted size */
@@ -14,8 +14,31 @@
   border: 1px solid #ccc;
   border-radius: 4px;
   margin: 2px;
-  overflow: hidden; /* Keep for potential future animations */
+  overflow: hidden;
   vertical-align: middle; /* Align chars nicely in a row */
+  justify-content: center; /* Center content horizontally */
+  align-items: center; /* Center content vertically */
+}
+
+.split-flap-char.small { /* Small size for lists */
+  display: inline-flex; /* Use flex for centering */
+  position: relative;
+  width: 18px; /* Significantly smaller */
+  height: 26px; /* Significantly smaller */
+  line-height: 26px; /* Match height */
+  text-align: center;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 1rem; /* Smaller font */
+  font-weight: bold;
+  color: #333;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 2px; /* Smaller radius */
+  margin: 1px; /* Smaller margin */
+  overflow: hidden;
+  vertical-align: middle;
+  justify-content: center; /* Center content horizontally */
+  align-items: center; /* Center content vertically */
 }
 
 /* Simple span for the character text */
@@ -26,7 +49,7 @@
 /* Remove the old .char-top, .char-bottom styles as they are not used in the simplified component */
 
 /* Style for the character currently under the caret */
-.split-flap-char.caret {
+.split-flap-char.large.caret { /* Only apply caret styles to large version for now */
   /* Using outline is often better than border as it doesn't affect layout */
   outline: 2px solid dodgerblue; /* Or another distinct color */
   outline-offset: -2px; /* Adjust to be inside or outside */
@@ -35,6 +58,6 @@
 }
 
 /* Ensure transparent color blocks still show caret outline */
-.split-flap-char.caret[style*="color: transparent"] {
+.split-flap-char.large.caret[style*="color: transparent"] {
     outline-color: rgba(30, 144, 255, 0.7); /* Make outline slightly transparent if over a color block */
 }
