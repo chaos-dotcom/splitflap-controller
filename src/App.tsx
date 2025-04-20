@@ -2,24 +2,18 @@ import { useState, useEffect, KeyboardEvent } from 'react'; // Import useEffect,
 import './App.css';
 import SplitFlapDisplay from './components/SplitFlapDisplay';
 import SettingsPanel from './components/SettingsPanel';
+import TrainTimetableMode from './components/TrainTimetableMode'; // Import placeholder
 import { DISPLAY_LENGTH, ALLOWED_CHARS } from './constants'; // Import ALLOWED_CHARS
 import { mqttService } from './services/mqttService';
+import { ControlMode, MqttSettings } from './types'; // Import types
 import { Buffer } from 'buffer';
 window.Buffer = Buffer; // Polyfill Buffer for the mqtt library in browser if needed
-
-// Define the settings type inline or import from types/index.ts later
-interface MqttSettings {
-  brokerUrl: string;
-  publishTopic: string;
-  subscribeTopic: string;
-  username?: string;
-  password?: string;
-}
 
 function App() {
   const [displayText, setDisplayText] = useState<string>(' '.repeat(DISPLAY_LENGTH));
   const [draftText, setDraftText] = useState<string>(' '.repeat(DISPLAY_LENGTH)); // State for inline editing
   const [caretPosition, setCaretPosition] = useState<number>(0); // State for cursor position
+  const [currentMode, setCurrentMode] = useState<ControlMode>('text'); // State for current control mode
   const [isConnected, setIsConnected] = useState<boolean>(false);
   // Add subscribeTopic to state
   const [mqttSettings, setMqttSettings] = useState<MqttSettings>({
@@ -50,6 +44,44 @@ function App() {
       setIsConnected(false); // Ensure status reflects failure
       return; // Prevent connection attempt
     }
+
+   /* src/App.css */
+   /* ... existing styles ... */
+
+   .mode-selector {
+     margin-top: 20px;
+     text-align: center;
+     padding-bottom: 15px;
+     border-bottom: 1px solid #eee;
+   }
+
+   .mode-selector button {
+     padding: 8px 16px;
+     margin: 0 10px;
+     font-size: 1rem;
+     cursor: pointer;
+     border: 1px solid #ccc;
+     background-color: #f0f0f0;
+     border-radius: 4px;
+   }
+
+   .mode-selector button:disabled {
+     background-color: #4a90e2; /* Highlight active mode */
+     color: white;
+     border-color: #4a90e2;
+     cursor: default;
+   }
+
+   .mode-controls {
+     margin-top: 15px;
+     width: 90%;
+     max-width: 600px; /* Or match settings panel width */
+     /* Center the controls container */
+     margin-left: auto;
+     margin-right: auto;
+     display: flex; /* Use flexbox to help center content if needed */
+     justify-content: center;
+   }
 
     setMqttSettings(settings); // Store the settings used for connection attempt
 
@@ -131,7 +163,7 @@ function App() {
     let handled = false; // Flag to track if we processed the key
 
     if (key === 'Enter') {
-      sendDraftMessage();
+      publishMessage(draftText); // Send the current draft text
       handled = true;
     } else if (key === 'Backspace') {
       if (newCaretPos > 0) {

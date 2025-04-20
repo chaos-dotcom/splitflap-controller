@@ -5,8 +5,9 @@ import './SplitFlapDisplay.css';
 
 interface SplitFlapDisplayProps {
   text: string; // This will now be the draftText from App
-  caretPosition: number;
+  caretPosition: number; // Only relevant when interactive
   isConnected: boolean; // To visually indicate active/inactive state and enable focus
+  isInteractive: boolean; // NEW: Determines if the display accepts input
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
   onClick: (event: MouseEvent<HTMLDivElement>) => void; // Pass the event for position calculation
 }
@@ -16,6 +17,7 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
   text,
   caretPosition,
   isConnected,
+  isInteractive,
   onKeyDown,
   onClick,
 }) => {
@@ -26,10 +28,10 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
 
   return (
     <div
-      className={`split-flap-display ${isConnected ? 'interactive' : ''}`}
-      tabIndex={isConnected ? 0 : -1} // Make it focusable only when connected
-      onKeyDown={isConnected ? onKeyDown : undefined} // Attach handler only when connected
-      onClick={isConnected ? onClick : undefined} // Attach handler only when connected
+      className={`split-flap-display ${isInteractive && isConnected ? 'interactive' : ''}`}
+      tabIndex={isInteractive && isConnected ? 0 : -1} // Focusable only when interactive & connected
+      onKeyDown={isInteractive && isConnected ? onKeyDown : undefined} // Attach handler only when interactive & connected
+      onClick={isInteractive && isConnected ? onClick : undefined} // Attach handler only when interactive & connected
       role="textbox" // Accessibility hint
       aria-label="Split flap display input"
       aria-readonly={!isConnected}
@@ -39,8 +41,8 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
         <SplitFlapChar
           key={index}
           char={char}
-          // Highlight the character *at* the caret position
-          isCaret={index === caretPosition && isConnected}
+          // Highlight the character *at* the caret position only if interactive
+          isCaret={isInteractive && isConnected && index === caretPosition}
         />
       ))}
       {/* Optional: Render a visual caret element explicitly if needed,

@@ -1,0 +1,32 @@
+/* src/components/TrainTimetableMode.css */
+.train-timetable-mode {
+  border: 1px dashed orange;
+  padding: 15px;
+  margin-top: 15px;
+  border-radius: 5px;
+  background-color: #fff9f0;
+  text-align: center;
+}
+
+.train-timetable-mode h4 {
+  margin-top: 0;
+  color: #cc8400;
+}
+
+.train-timetable-mode div {
+    margin-bottom: 10px;
+}
+
+.train-timetable-mode label {
+    margin-right: 5px;
+    min-width: 40px;
+    display: inline-block;
+}
+.train-timetable-mode input {
+    padding: 5px;
+}
+
+.train-timetable-mode button {
+    padding: 8px 15px;
+    margin-top: 10px;
+}
