@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'; // Import useEffect
-import { useState, useEffect } from 'react'; // Import useEffect
 import './App.css';
 import SplitFlapDisplay from './components/SplitFlapDisplay';
 import SettingsPanel from './components/SettingsPanel';
