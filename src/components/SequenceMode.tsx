@@ -14,7 +14,7 @@ const LOCAL_STORAGE_KEY = 'splitFlapScenes';
 const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage }) => {
     const [currentLines, setCurrentLines] = useState<SceneLine[]>([]);
     const [newLineText, setNewLineText] = useState<string>('');
-    const [delayMs, setDelayMs] = useState<number>(1000); // Default 1 second
+    // Removed top-level delayMs state
     const [savedScenes, setSavedScenes] = useState<{ [name: string]: Scene }>({});
     const [selectedSceneName, setSelectedSceneName] = useState<string>('');
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -45,10 +45,12 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
 
     const handleAddLine = () => {
         if (newLineText.trim() === '') return;
-        const formattedText = newLineText.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
+        // Use the exact text from the interactive input
+        const textToAdd = newLineText; // Already managed by InteractiveTextInput
         const newLine: SceneLine = {
             id: Date.now().toString() + Math.random(), // Simple unique ID
-            text: formattedText,
+            text: textToAdd.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH), // Ensure padding/length
+            durationMs: 1000, // Default duration for new lines
         };
         setCurrentLines([...currentLines, newLine]);
         setNewLineText(''); // Clear input
@@ -58,6 +60,17 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
         setCurrentLines(currentLines.filter(line => line.id !== idToDelete));
     };
 
+    const handleDurationChange = (idToUpdate: string, newDuration: number) => {
+        setCurrentLines(currentLines.map(line => {
+            if (line.id === idToUpdate) {
+                // Ensure duration is a positive number, default to 100ms if invalid
+                const validDuration = Math.max(100, parseInt(String(newDuration), 10) || 100);
+                return { ...line, durationMs: validDuration };
+            }
+            return line;
+        }));
+    };
+
     const handleSaveScene = () => {
         const sceneName = prompt("Enter a name for this scene:", selectedSceneName || "New Scene");
         if (!sceneName || sceneName.trim() === '') return;
@@ -65,7 +78,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
         const newScene: Scene = {
             name: sceneName.trim(),
             lines: currentLines,
-            delayMs: delayMs,
+            // delayMs removed from Scene
         };
         const updatedScenes = { ...savedScenes, [newScene.name]: newScene };
         setSavedScenes(updatedScenes);
@@ -80,12 +93,12 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
             const scene = savedScenes[sceneName];
             setSelectedSceneName(scene.name);
             setCurrentLines(scene.lines);
-            setDelayMs(scene.delayMs);
+            // delayMs removed
         } else {
             // Handle "New Scene" selection or error
             setSelectedSceneName('');
             setCurrentLines([]);
-            setDelayMs(1000);
+            // delayMs removed
         }
     };
 
@@ -101,7 +114,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
             // Reset editor to new scene state
             setSelectedSceneName('');
             setCurrentLines([]);
-            setDelayMs(1000);
+            // delayMs removed
             alert(`Scene "${selectedSceneName}" deleted.`);
         }
     };
@@ -113,18 +126,24 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
         let lineIndex = 0;
 
         const playNextLine = () => {
-            if (lineIndex >= currentLines.length) {
+            // Get the line that was *just* displayed (or starting condition)
+            const previousLineIndex = lineIndex - 1;
+            const currentLineDuration = previousLineIndex >= 0
+                ? currentLines[previousLineIndex].durationMs ?? 1000 // Use duration of the line just shown
+                : 0; // No delay before the first line
+
+            if (lineIndex >= currentLines.length) { // Check if we've processed all lines
                 setIsPlaying(false); // Finished playing
                 timeoutRef.current = null;
                 return;
             }
 
             const line = currentLines[lineIndex];
-            onSendMessage(line.text); // Send the current line
-            lineIndex++;
+            onSendMessage(line.text); // Send the line to be displayed now
+            lineIndex++; // Move to the next line index for the *next* iteration
 
-            // Schedule the next line
-            timeoutRef.current = setTimeout(playNextLine, delayMs);
+            // Schedule the *next* call to playNextLine after the current line's duration
+            timeoutRef.current = setTimeout(playNextLine, currentLineDuration);
         };
 
         playNextLine(); // Start the sequence

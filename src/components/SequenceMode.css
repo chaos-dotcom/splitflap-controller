@@ -83,7 +83,7 @@
   border-bottom: none;
 }
 
-.line-list li span {
+.line-list li .line-number {
     min-width: 25px;
     color: #666;
     font-size: 0.9em;
