@@ -1,65 +1,26 @@
+/* src/components/SplitFlapChar.css */
 .split-flap-char {
-    width: 60px; /* Adjust width as needed */
-    height: 100px; /* Adjust height as needed */
-    background-color: #333; /* Dark background for the flap */
-    color: #fff; /* White text */
-    font-family: 'Courier New', Courier, monospace; /* Monospaced font */
-    font-size: 4em; /* Large font size */
-    line-height: 100px; /* Center text vertically */
-    text-align: center;
-    margin: 5px; /* Spacing between characters */
-    position: relative; /* Needed for positioning flaps later */
-    overflow: hidden; /* Hide parts of the character for the split effect */
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  display: inline-block;
+  position: relative; /* Keep for potential future animations */
+  width: 40px; /* Adjusted size */
+  height: 60px; /* Adjusted size */
+  line-height: 60px; /* Vertically center text */
+  text-align: center;
+  font-family: 'Roboto Mono', monospace; /* Use a clear monospace font - ensure it's loaded */
+  font-size: 2.5rem; /* Adjusted size */
+  font-weight: bold;
+  color: #333; /* Text color for normal characters */
+  background-color: #f0f0f0; /* Default background */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin: 2px;
+  overflow: hidden; /* Keep for potential future animations */
+  vertical-align: middle; /* Align chars nicely in a row */
 }
 
-/* Basic styling for top/bottom halves - will be refined for animation */
-.char-top,
-.char-bottom {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 50%;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* Simple span for the character text */
+.char-text {
+  display: block;
 }
 
-.char-top {
-    top: 0;
-    align-items: flex-end; /* Align text to bottom of top half */
-    border-bottom: 1px solid #444; /* Line representing the split */
-    border-radius: 5px 5px 0 0;
-}
-
-.char-bottom {
-    bottom: 0;
-    align-items: flex-start; /* Align text to top of bottom half */
-    border-radius: 0 0 5px 5px;
-}
-
-/* Ensure text is positioned correctly within each half */
-.char-top::before,
-.char-bottom::before {
-    content: attr(data-char); /* We'll use data-char later if needed */
-    display: block;
-}
-
-.char-top::before {
-    transform: translateY(50%);
-}
-
-.char-bottom::before {
-    transform: translateY(-50%);
-}
-
-/* Apply the character directly for now */
-.char-top {
-    line-height: 100px; /* Adjust based on height */
-}
-
-.char-bottom {
-    line-height: 0; /* Adjust based on height */
-}
+/* Remove the old .char-top, .char-bottom styles as they are not used in the simplified component */

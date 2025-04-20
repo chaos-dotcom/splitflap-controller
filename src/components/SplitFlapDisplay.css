@@ -1,0 +1,9 @@
+/* src/components/SplitFlapDisplay.css */
+.split-flap-display {
+  display: flex; /* Arrange characters horizontally */
+  justify-content: center; /* Center the characters */
+  padding: 10px;
+  background-color: #e0e0e0; /* Optional background for the whole display */
+  border-radius: 5px;
+  margin: 20px 0;
+}

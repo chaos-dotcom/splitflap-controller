@@ -1,25 +1,23 @@
 import React from 'react';
-// We will create SplitFlapChar next
-// import SplitFlapChar from './SplitFlapChar';
-import './SplitFlapDisplay.css'; // We'll create this CSS file later
+import SplitFlapChar from './SplitFlapChar'; // Import the actual char component
+import { DISPLAY_LENGTH } from '../constants'; // Import constants
+import './SplitFlapDisplay.css'; // Import the CSS for this component
 
 interface SplitFlapDisplayProps {
   text: string;
-  numChars: number;
+  // numChars prop is removed, using DISPLAY_LENGTH from constants instead
 }
 
-const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({ text, numChars }) => {
-  // Pad or truncate the text to match numChars
-  const displayText = text.padEnd(numChars, ' ').slice(0, numChars);
+const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({ text }) => {
+  // Ensure text is exactly DISPLAY_LENGTH characters long, padding with spaces
+  const displayText = text.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
+  const chars = displayText.split('');
 
   return (
     <div className="split-flap-display">
-      {displayText.split('').map((char, index) => (
-        // Replace div with SplitFlapChar once it's created
-        <div key={index} className="split-flap-char-placeholder">
-          {char}
-        </div>
-        // <SplitFlapChar key={index} targetChar={char} />
+      {chars.map((char, index) => (
+        // Use the actual SplitFlapChar component
+        <SplitFlapChar key={index} char={char} />
       ))}
     </div>
   );
