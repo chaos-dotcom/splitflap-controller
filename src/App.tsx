@@ -1,7 +1,5 @@
 import { useState, useEffect, KeyboardEvent } from 'react'; // Import useEffect, KeyboardEvent
 import './App.css';
-import { useState, useEffect, KeyboardEvent } from 'react'; // Import useEffect, KeyboardEvent
-import './App.css';
 import SplitFlapDisplay from './components/SplitFlapDisplay';
 import SettingsPanel from './components/SettingsPanel';
 import { DISPLAY_LENGTH, ALLOWED_CHARS } from './constants'; // Import ALLOWED_CHARS
