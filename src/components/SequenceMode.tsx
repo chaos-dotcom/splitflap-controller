@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import React, { useState, useEffect, useRef } from 'react';
 import { Scene, SceneLine } from '../types';
 import { DISPLAY_LENGTH } from '../constants';
 import './SequenceMode.css';
