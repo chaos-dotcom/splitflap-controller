@@ -1,43 +1,82 @@
 import { useState } from 'react';
-import './App.css'; // Keep default App CSS for now
-import SplitFlapDisplay from './components/SplitFlapDisplay'; // Import the display component
-import { DISPLAY_LENGTH } from './constants'; // Import constants
+import './App.css';
+import SplitFlapDisplay from './components/SplitFlapDisplay';
+import SettingsPanel from './components/SettingsPanel'; // Import SettingsPanel
+import { DISPLAY_LENGTH } from './constants';
+
+// Define the settings type inline or import from types/index.ts later
+interface MqttSettings {
+  brokerUrl: string;
+  publishTopic: string;
+  subscribeTopic: string;
+}
 
 function App() {
-  // State to hold the text for the display
   const [displayText, setDisplayText] = useState<string>(' '.repeat(DISPLAY_LENGTH));
-  // Placeholder state for MQTT connection (not functional yet)
   const [isConnected, setIsConnected] = useState<boolean>(false);
-  // Placeholder state for MQTT settings (not functional yet)
-  const [mqttSettings, setMqttSettings] = useState({
-    brokerUrl: 'ws://localhost:9001', // Example default
-    topic: 'splitflap/set_text',     // Example default
+  // Add subscribeTopic to state
+  const [mqttSettings, setMqttSettings] = useState<MqttSettings>({
+    brokerUrl: 'ws://broker.hivemq.com:8000/mqtt', // Public test broker
+    publishTopic: 'splitflap/test/set_text',     // Example topic
+    subscribeTopic: 'splitflap/test/status',   // Example topic
   });
 
-  // Function to update the display text state
+  // Placeholder connection logic
+  const handleConnect = (settings: MqttSettings) => {
+    console.log('Connecting with settings:', settings);
+    // TODO: Implement actual MQTT connection using mqttService
+    setMqttSettings(settings); // Update settings state
+    // Simulate connection success for UI testing
+    setIsConnected(true);
+    console.log('Simulated connection success');
+  };
+
+  // Placeholder disconnection logic
+  const handleDisconnect = () => {
+    console.log('Disconnecting...');
+    // TODO: Implement actual MQTT disconnection using mqttService
+    setIsConnected(false);
+    console.log('Simulated disconnection');
+  };
+
+  // Function to update display text (will later also publish via MQTT)
   const sendMessage = (message: string) => {
     console.log(`Updating display to: ${message}`);
-    // Ensure message is padded/truncated to DISPLAY_LENGTH
     const formattedMessage = message.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
-    setDisplayText(formattedMessage); // Update state, React re-renders SplitFlapDisplay
+    setDisplayText(formattedMessage);
+    // TODO: Add MQTT publish logic here if connected
+    if (isConnected) {
+      console.log(`Publishing "${formattedMessage}" to topic "${mqttSettings.publishTopic}" (not implemented yet)`);
+      // mqttService.publish(mqttSettings.publishTopic, formattedMessage);
+    }
+  };
+
+  // Handler for settings changes from the panel
+  const handleSettingsChange = (newSettings: MqttSettings) => {
+    setMqttSettings(newSettings);
   };
 
   return (
     <div className="app-container">
       <h1>Split-Flap Controller</h1>
 
-      {/* Render the actual SplitFlapDisplay component */}
+      {/* Settings Panel */}
+      <SettingsPanel
+        initialSettings={mqttSettings}
+        isConnected={isConnected}
+        onConnect={handleConnect}
+        onDisconnect={handleDisconnect}
+        onSettingsChange={handleSettingsChange} // Pass the handler
+      />
+
+      {/* Split Flap Display */}
       <SplitFlapDisplay text={displayText} />
 
-      <p>MQTT Status: {isConnected ? 'Connected' : 'Disconnected'}</p>
+      {/* Remove the separate status paragraph */}
+      {/* <p>MQTT Status: {isConnected ? 'Connected' : 'Disconnected'}</p> */}
 
-      {/* Placeholder for settings panel */}
-      <div className="settings-placeholder" style={{ border: '1px dashed blue', padding: '10px', margin: '10px 0', width: '90%' }}>
-        Settings Panel Placeholder (Broker: {mqttSettings.brokerUrl}, Topic: {mqttSettings.topic})
-      </div>
-
-      {/* Placeholder for control panel with test buttons */}
-      <div className="control-placeholder" style={{ border: '1px dashed green', padding: '10px', margin: '10px 0', width: '90%' }}>
+      {/* Control Panel Placeholder */}
+      <div className="control-placeholder" style={{ border: '1px dashed green', padding: '10px', margin: '10px 0', width: '90%', maxWidth: '600px' }}>
         Control Panel Placeholder
         {/* Button to send a test message */}
         <button onClick={() => sendMessage('HELLO WORLD?')}>Send Test</button>
