@@ -6,4 +6,36 @@
   background-color: #e0e0e0; /* Optional background for the whole display */
   border-radius: 5px;
   margin: 20px 0;
+  border: 1px solid transparent; /* Add transparent border to prevent layout shift on focus */
+  cursor: default; /* Default cursor */
+  outline: none; /* Remove default browser focus outline */
+  position: relative; /* Needed for potential explicit caret positioning */
 }
+
+/* Style when the display is interactive (connected) */
+.split-flap-display.interactive {
+  cursor: text; /* Indicate text input possibility */
+  border-color: #ccc; /* Give it a subtle border when interactive */
+}
+
+/* Style when the display is interactive AND focused */
+.split-flap-display.interactive:focus {
+   /* Use a more prominent outline or shadow for focus */
+   border-color: dodgerblue;
+   box-shadow: 0 0 3px 1px rgba(30, 144, 255, 0.5);
+}
+
+/* Optional: Explicit caret styling if needed */
+/* .explicit-caret {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  background-color: dodgerblue;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  from, to { background-color: transparent; }
+  50% { background-color: dodgerblue; }
+} */

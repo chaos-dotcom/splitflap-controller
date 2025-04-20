@@ -1,12 +1,14 @@
 import React from 'react';
-import './SplitFlapChar.css'; // Uses the CSS file
-import { COLOR_MAP } from '../constants'; // Import constants
+import React from 'react';
+import './SplitFlapChar.css';
+import { COLOR_MAP } from '../constants';
 
 interface SplitFlapCharProps {
   char: string;
+  isCaret?: boolean; // Optional prop to indicate cursor position
 }
 
-const SplitFlapChar: React.FC<SplitFlapCharProps> = ({ char }) => {
+const SplitFlapChar: React.FC<SplitFlapCharProps> = ({ char, isCaret = false }) => {
   // Basic validation/fallback
   const displayChar = char && char.length === 1 ? char : ' ';
 
@@ -21,11 +23,16 @@ const SplitFlapChar: React.FC<SplitFlapCharProps> = ({ char }) => {
   }
 
   return (
-    // Simplified structure: just one div for the character background/display
-    <div className="split-flap-char" style={charStyle}>
+    <div
+      className={`split-flap-char ${isCaret ? 'caret' : ''}`} // Add caret class if active
+      style={charStyle}
+      // Add aria-hidden if it's just a color block? Or maybe not needed.
+    >
       {/* Only display the character text if it's NOT a color code */}
       {!isColorCode && (
-        <span className="char-text">{displayChar.toUpperCase()}</span>
+        <span className="char-text" aria-hidden={isColorCode}> {/* Hide text visually and from SR if color */}
+            {displayChar.toUpperCase()}
+        </span>
       )}
     </div>
   );

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'; // Import useEffect
+import { useState, useEffect, KeyboardEvent } from 'react'; // Import useEffect, KeyboardEvent
 import './App.css';
 import SplitFlapDisplay from './components/SplitFlapDisplay';
 import SettingsPanel from './components/SettingsPanel';
-import TextInputMode from './components/TextInputMode'; // Import TextInputMode
-import { DISPLAY_LENGTH } from './constants';
+// Remove TextInputMode import
+import { DISPLAY_LENGTH, ALLOWED_CHARS } from './constants'; // Import ALLOWED_CHARS
 import { mqttService } from './services/mqttService';
 import { Buffer } from 'buffer';
 window.Buffer = Buffer; // Polyfill Buffer for the mqtt library in browser if needed
@@ -19,6 +20,8 @@ interface MqttSettings {
 
 function App() {
   const [displayText, setDisplayText] = useState<string>(' '.repeat(DISPLAY_LENGTH));
+  const [draftText, setDraftText] = useState<string>(' '.repeat(DISPLAY_LENGTH)); // State for inline editing
+  const [caretPosition, setCaretPosition] = useState<number>(0); // State for cursor position
   const [isConnected, setIsConnected] = useState<boolean>(false);
   // Add subscribeTopic to state
   const [mqttSettings, setMqttSettings] = useState<MqttSettings>({
@@ -29,6 +32,14 @@ function App() {
     password: '',
   });
   const [connectionError, setConnectionError] = useState<string | null>(null);
+
+  // Update draft text when display text changes (e.g., from MQTT message or initial load)
+  useEffect(() => {
+    setDraftText(displayText);
+    // Optionally reset caret, or try to maintain position if practical
+    // setCaretPosition(0); // Reset caret when display updates externally for simplicity
+  }, [displayText]);
+
 
   // MQTT Connection Logic
   const handleConnect = (settings: MqttSettings) => {
@@ -84,15 +95,16 @@ function App() {
     setConnectionError(null); // Clear error on manual disconnect
   };
 
-  // Function to update display text (will later also publish via MQTT)
-  const sendMessage = (message: string) => {
-    console.log(`Updating display to: ${message}`);
-    const formattedMessage = message.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
-    setDisplayText(formattedMessage);
-    // TODO: Add MQTT publish logic here if connected
-    if (isConnected && mqttSettings.publishTopic) {
-      mqttService.publish(mqttSettings.publishTopic, formattedMessage);
-    }
+  // Function to send the draft text via MQTT
+  const sendDraftMessage = () => {
+    if (!isConnected || !mqttSettings.publishTopic) return;
+
+    console.log(`Sending draft message: ${draftText}`);
+    // The draftText should already be DISPLAY_LENGTH
+    setDisplayText(draftText); // Update the "official" display state
+    mqttService.publish(mqttSettings.publishTopic, draftText);
+    // Consider resetting caret after sending, or leave it
+    // setCaretPosition(0);
   };
 
   // Handler for settings changes from the panel
@@ -107,6 +119,80 @@ function App() {
       mqttService.disconnect();
     };
   }, []); // Empty dependency array means this runs only on mount and unmount
+
+  // --- Handlers for Interactive Display ---
+  const handleDisplayKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!isConnected) return; // Only allow input when connected
+
+    // Allow basic navigation/selection even if we don't handle the key
+    // event.preventDefault(); // Prevent default browser actions ONLY for keys we explicitly handle
+
+    const key = event.key;
+    let newDraft = draftText.split('');
+    let newCaretPos = caretPosition;
+    let handled = false; // Flag to track if we processed the key
+
+    if (key === 'Enter') {
+      sendDraftMessage();
+      handled = true;
+    } else if (key === 'Backspace') {
+      if (newCaretPos > 0) {
+        newDraft[newCaretPos - 1] = ' '; // Replace char before caret with space
+        newCaretPos--;
+        handled = true;
+      }
+    } else if (key === 'Delete') {
+       if (newCaretPos < DISPLAY_LENGTH) {
+           newDraft[newCaretPos] = ' '; // Replace char at caret with space
+           // Caret position doesn't move on delete
+           handled = true;
+       }
+    } else if (key === 'ArrowLeft') {
+      if (newCaretPos > 0) {
+          newCaretPos--;
+          handled = true;
+      }
+    } else if (key === 'ArrowRight') {
+      // Allow moving caret up to the position *after* the last character
+      if (newCaretPos < DISPLAY_LENGTH) {
+          newCaretPos++;
+          handled = true;
+      }
+    } else if (key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) { // Handle character input, ignore modifiers
+      const upperKey = key.toUpperCase();
+      // Check if the typed character (or its lowercase version for colors) is allowed
+      const isValidChar = ALLOWED_CHARS.includes(upperKey) || ALLOWED_CHARS.includes(key.toLowerCase());
+
+      if (isValidChar && newCaretPos < DISPLAY_LENGTH) {
+         // Prefer lowercase if it's in ALLOWED_CHARS (for colors), otherwise use uppercase
+         const charToInsert = ALLOWED_CHARS.includes(key.toLowerCase()) ? key.toLowerCase() : upperKey;
+         newDraft[newCaretPos] = charToInsert;
+         if (newCaretPos < DISPLAY_LENGTH) { // Move caret forward after typing if not at the very end
+           newCaretPos++;
+         }
+         handled = true;
+      }
+    }
+
+    if (handled) {
+        event.preventDefault(); // Prevent default action only if we handled the key
+        setDraftText(newDraft.join(''));
+        setCaretPosition(newCaretPos);
+    }
+  };
+
+  // Basic click handler to set caret position (can be improved)
+  const handleDisplayClick = (event: React.MouseEvent<HTMLDivElement>) => {
+      if (!isConnected) return;
+      // Very basic: try to guess character index based on click position
+      // This needs refinement for accuracy based on actual element positions/widths
+      const displayRect = event.currentTarget.getBoundingClientRect();
+      const clickX = event.clientX - displayRect.left;
+      const approxCharWidth = displayRect.width / DISPLAY_LENGTH;
+      const clickedIndex = Math.floor(clickX / approxCharWidth);
+      setCaretPosition(Math.max(0, Math.min(DISPLAY_LENGTH, clickedIndex))); // Clamp index
+      event.currentTarget.focus(); // Ensure display gets focus on click
+  };
 
 
   return (
@@ -127,15 +213,20 @@ function App() {
       )}
 
 
-      {/* Split Flap Display */}
-      <SplitFlapDisplay text={displayText} />
-
-      {/* Control Panel Area - Use TextInputMode */}
-      <TextInputMode
-        onSendText={sendMessage}
-        maxLength={DISPLAY_LENGTH}
-        disabled={!isConnected} // Disable input if not connected
+      {/* Split Flap Display - Now Interactive */}
+      <SplitFlapDisplay
+        text={draftText} // Show the draft text being edited
+        caretPosition={caretPosition}
+        onKeyDown={handleDisplayKeyDown} // Pass the key handler
+        isConnected={isConnected} // To enable/disable interaction style
+        onClick={handleDisplayClick} // Pass the click handler
       />
+      {/* Removed TextInputMode component */}
+      {!isConnected && (
+         <p style={{ textAlign: 'center', marginTop: '10px', color: '#555' }}>
+           Connect to MQTT to enable display input.
+         </p>
+      )}
 
     </div>
   );

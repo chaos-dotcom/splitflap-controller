@@ -24,3 +24,17 @@
 }
 
 /* Remove the old .char-top, .char-bottom styles as they are not used in the simplified component */
+
+/* Style for the character currently under the caret */
+.split-flap-char.caret {
+  /* Using outline is often better than border as it doesn't affect layout */
+  outline: 2px solid dodgerblue; /* Or another distinct color */
+  outline-offset: -2px; /* Adjust to be inside or outside */
+  /* Alternatively, use box-shadow for a softer effect */
+  /* box-shadow: inset 0 0 0 2px dodgerblue; */
+}
+
+/* Ensure transparent color blocks still show caret outline */
+.split-flap-char.caret[style*="color: transparent"] {
+    outline-color: rgba(30, 144, 255, 0.7); /* Make outline slightly transparent if over a color block */
+}
