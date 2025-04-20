@@ -19,6 +19,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
     const [savedScenes, setSavedScenes] = useState<{ [name: string]: Scene }>({});
     const [selectedSceneName, setSelectedSceneName] = useState<string>('');
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
+    const [editingLineId, setEditingLineId] = useState<string | null>(null); // State to track which line is being edited
     const timeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref to store timeout ID
 
     // Load saved scenes from localStorage on mount
@@ -55,10 +56,14 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
         };
         setCurrentLines([...currentLines, newLine]);
         setNewLineText(''); // Clear input
+        setEditingLineId(null); // Ensure no line is being edited after adding
     };
 
     const handleDeleteLine = (idToDelete: string) => {
         setCurrentLines(currentLines.filter(line => line.id !== idToDelete));
+        if (editingLineId === idToDelete) {
+            setEditingLineId(null); // Stop editing if the deleted line was being edited
+        }
     };
 
     const handleDurationChange = (idToUpdate: string, newDuration: number) => {
@@ -72,7 +77,33 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
         }));
     };
 
+    // --- In-place Editing Handlers ---
+    const handleLineClick = (lineId: string) => {
+        if (isPlaying) return; // Don't allow editing while playing
+        setEditingLineId(lineId);
+    };
+
+    const handleLineTextChange = (idToUpdate: string, newText: string) => {
+        // Ensure text is always padded/truncated correctly during edit
+        const formattedText = newText.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
+        setCurrentLines(currentLines.map(line =>
+            line.id === idToUpdate ? { ...line, text: formattedText } : line
+        ));
+    };
+
+    const handleLineBlur = () => {
+        // Optional: Validate text on blur? For now, just stop editing.
+        setEditingLineId(null); // Stop editing when the input loses focus
+    };
+
+    const handleLineEnter = () => {
+        setEditingLineId(null); // Stop editing when Enter is pressed
+    };
+    // --- End In-place Editing Handlers ---
+
+
     const handleSaveScene = () => {
+        setEditingLineId(null); // Ensure editing stops before saving
         const sceneName = prompt("Enter a name for this scene:", selectedSceneName || "New Scene");
         if (!sceneName || sceneName.trim() === '') return;
 
@@ -195,10 +226,31 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
                 </div>
                 <ul className="line-list">
                     {currentLines.map((line, index) => (
-                        <li key={line.id}>
+                        <li key={line.id} className={editingLineId === line.id ? 'editing' : ''}>
                             <span className="line-number">{index + 1}:</span>
-                            {/* Replace code with small SplitFlapDisplay */}
-                            <SplitFlapDisplay size="small" text={line.text} />
+                            {/* Conditionally render Display or Input */}
+                            {editingLineId === line.id ? (
+                                <InteractiveTextInput
+                                    value={line.text}
+                                    onChange={(newText) => handleLineTextChange(line.id, newText)}
+                                    onEnter={handleLineEnter}
+                                    onBlur={handleLineBlur} // Stop editing on blur
+                                    maxLength={DISPLAY_LENGTH}
+                                    disabled={isPlaying}
+                                    autoFocus // Focus when the input appears
+                                />
+                            ) : (
+                                <div className="line-display-clickable" onClick={() => handleLineClick(line.id)} title="Click to edit text">
+                                    {/* Pass minimal props for static display */}
+                                    <SplitFlapDisplay
+                                        size="small"
+                                        text={line.text}
+                                        isInteractive={false}
+                                        isConnected={false} // Not relevant for static display
+                                        caretPosition={-1} // Not relevant
+                                    />
+                                </div>
+                            )}
                             <input
                                 type="number"
                                 className="line-duration-input"

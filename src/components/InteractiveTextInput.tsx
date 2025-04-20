@@ -10,6 +10,8 @@ interface InteractiveTextInputProps {
     maxLength: number;
     placeholder?: string; // Optional placeholder text
     disabled?: boolean;
+    autoFocus?: boolean; // Add autoFocus prop
+    onBlur?: () => void; // Add onBlur prop
 }
 
 const InteractiveTextInput: React.FC<InteractiveTextInputProps> = ({
@@ -19,6 +21,8 @@ const InteractiveTextInput: React.FC<InteractiveTextInputProps> = ({
     maxLength,
     placeholder = '',
     disabled = false,
+    autoFocus = false, // Default autoFocus to false
+    onBlur, // Destructure onBlur prop
 }) => {
     const [caretPosition, setCaretPosition] = useState<number>(0);
     const [isFocused, setIsFocused] = useState<boolean>(false);
@@ -33,6 +37,13 @@ const InteractiveTextInput: React.FC<InteractiveTextInputProps> = ({
         setCaretPosition(pos => Math.min(pos, value.length));
 
     }, [value]);
+
+    // Effect for autoFocus
+    useEffect(() => {
+        if (autoFocus && containerRef.current) {
+            containerRef.current.focus();
+        }
+    }, [autoFocus]); // Run only when autoFocus prop changes (or on mount if initially true)
 
     // Ensure value doesn't exceed maxLength (might happen if prop changes)
     // Pad with spaces to ensure full display length for visual consistency
@@ -121,7 +132,12 @@ const InteractiveTextInput: React.FC<InteractiveTextInputProps> = ({
     };
 
     const handleFocus = () => setIsFocused(true);
-    const handleBlur = () => setIsFocused(false);
+    const handleBlur = () => {
+        setIsFocused(false);
+        if (onBlur) { // Call the parent's onBlur handler if provided
+            onBlur();
+        }
+    };
 
     // Show placeholder only if value is empty and component is not focused
     const showPlaceholder = value === '' && placeholder && !isFocused;

@@ -78,9 +78,15 @@
   align-items: center;
   padding: 5px 8px;
   border-bottom: 1px solid #eee;
+  /* Ensure consistent height whether displaying text or input */
+  min-height: 36px; /* Adjust based on small display/input height + padding */
 }
 .line-list li:last-child {
   border-bottom: none;
+}
+/* Optional: Highlight the row being edited */
+.line-list li.editing {
+   background-color: #e6f0ff; /* Lighter blue background for editing */
 }
 
 .line-list li .line-number {
@@ -93,8 +99,51 @@
 .line-list li .split-flap-display.small {
     flex-grow: 1; /* Allow it to take available space */
     margin: 0 10px; /* Adjust spacing */
+    /* Removed flex-grow: 1; as the clickable div will handle it */
 }
-
+ 
+/* Style for the clickable display area */
+.line-list li .line-display-clickable {
+    flex-grow: 1; /* Allow it to take available space */
+    margin: 0 10px; /* Adjust spacing */
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 0 2px; /* Small padding to show hover */
+    /* Ensure it aligns vertically like the input would */
+    display: flex;
+    align-items: center;
+    min-height: 28px; /* Match approx height of small display */
+}
+.line-list li .line-display-clickable:hover {
+    background-color: #e2e6ea; /* Subtle hover effect */
+}
+ 
+/* Style for the interactive input when editing */
+.line-list li .interactive-text-input {
+    flex-grow: 1; /* Take up the space */
+    margin: 0 10px; /* Match spacing */
+    /* Override default interactive input padding/border if needed */
+    padding: 0;
+    border: none;
+    background-color: transparent; /* Blend in */
+    outline: none; /* Remove focus outline within the list */
+    min-height: 28px; /* Match clickable area height */
+}
+/* Ensure small chars inside the input look right */
+.line-list li .interactive-text-input .split-flap-char.small {
+    width: 18px;
+    height: 26px;
+    line-height: 26px;
+    font-size: 1rem;
+    margin: 0 1px; /* Minimal margin */
+    vertical-align: middle; /* Align chars vertically */
+}
+/* Style the caret within the input */
+.line-list li .interactive-text-input .split-flap-char.small.caret {
+   outline: 1px solid dodgerblue;
+   outline-offset: -1px;
+}
+ 
 .line-list li .line-duration-input {
     width: 70px; /* Fixed width for duration */
     padding: 3px 6px;

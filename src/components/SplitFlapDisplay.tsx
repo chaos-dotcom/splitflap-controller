@@ -7,10 +7,11 @@ interface SplitFlapDisplayProps {
   text: string; // This will now be the draftText from App
   caretPosition: number; // Only relevant when interactive
   isConnected: boolean; // To visually indicate active/inactive state and enable focus
-  isInteractive: boolean; // NEW: Determines if the display accepts input
+  isInteractive: boolean; // Determines if the display accepts input
   size?: 'large' | 'small'; // Add size prop
-  onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
-  onClick: (event: MouseEvent<HTMLDivElement>) => void; // Pass the event for position calculation
+  // Make onKeyDown and onClick optional, only needed for interactive mode
+  onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void;
+  onClick?: (event: MouseEvent<HTMLDivElement>) => void; // Pass the event for position calculation
 }
 
 
@@ -20,8 +21,8 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
   isConnected,
   isInteractive,
   size = 'large', // Default to large
-  onKeyDown,
-  onClick,
+  onKeyDown, // Can be undefined now
+  onClick,   // Can be undefined now
 }) => {
   // Ensure text is exactly DISPLAY_LENGTH characters long, padding with spaces if needed
   // This should ideally be handled by the parent state management (draftText)
@@ -31,20 +32,22 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
   return (
     <div
       className={`split-flap-display ${size} ${isInteractive && isConnected ? 'interactive' : ''}`} // Add size class
-      tabIndex={isInteractive && isConnected ? 0 : -1} // Focusable only when interactive & connected
-      onKeyDown={isInteractive && isConnected ? onKeyDown : undefined} // Attach handler only when interactive & connected
-      onClick={isInteractive && isConnected ? onClick : undefined} // Attach handler only when interactive & connected
-      role="textbox" // Accessibility hint
-      aria-label="Split flap display input"
-      aria-readonly={!isConnected}
+      // Only make focusable and attach handlers if interactive, connected, AND handlers are provided
+      tabIndex={isInteractive && isConnected && onKeyDown ? 0 : -1}
+      onKeyDown={isInteractive && isConnected && onKeyDown ? onKeyDown : undefined}
+      onClick={isInteractive && isConnected && onClick ? onClick : undefined}
+      // Role and aria attributes might only make sense when truly interactive
+      role={isInteractive ? "textbox" : undefined}
+      aria-label={isInteractive ? "Split flap display input" : "Split flap display"}
+      aria-readonly={!isInteractive || !isConnected}
       // Consider aria-activedescendant for better screen reader support if needed
     >
       {chars.map((char, index) => (
         <SplitFlapChar
           key={index}
           char={char}
-          // Highlight the character *at* the caret position only if interactive
           size={size} // Pass size down
+          // Show caret only if interactive, connected, and caret position matches
           isCaret={isInteractive && isConnected && index === caretPosition}
         />
       ))}
