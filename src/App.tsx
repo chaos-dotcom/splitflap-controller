@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'; // Import useEffect
 import { useState, useEffect, KeyboardEvent } from 'react'; // Import useEffect, KeyboardEvent
 import './App.css';
 import SplitFlapDisplay from './components/SplitFlapDisplay';
