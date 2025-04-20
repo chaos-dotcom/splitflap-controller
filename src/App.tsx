@@ -3,6 +3,7 @@ import './App.css';
 import SplitFlapDisplay from './components/SplitFlapDisplay';
 import SettingsPanel from './components/SettingsPanel';
 import TrainTimetableMode from './components/TrainTimetableMode'; // Import placeholder
+import SequenceMode from './components/SequenceMode'; // Import SequenceMode
 import { DISPLAY_LENGTH, ALLOWED_CHARS } from './constants'; // Import ALLOWED_CHARS
 import { mqttService } from './services/mqttService';
 import { ControlMode, MqttSettings } from './types'; // Import types
@@ -229,12 +230,18 @@ function App() {
       <div className="mode-selector">
           <button onClick={() => setCurrentMode('text')} disabled={currentMode === 'text'}>Text Input Mode</button>
           <button onClick={() => setCurrentMode('train')} disabled={currentMode === 'train'}>Train Timetable Mode</button>
+          {/* Add the button for Sequence Mode */}
+          <button onClick={() => setCurrentMode('sequence')} disabled={currentMode === 'sequence'}>Sequence Mode</button>
       </div>
 
       {/* Mode Specific Controls */}
       <div className="mode-controls">
           {currentMode === 'train' && (
               <TrainTimetableMode isConnected={isConnected} onSendMessage={publishMessage} />
+          )}
+          {/* Add the conditional rendering for SequenceMode */}
+          {currentMode === 'sequence' && (
+             <SequenceMode isConnected={isConnected} onSendMessage={publishMessage} />
           )}
           {/* Add other mode components here later */}
       </div>
