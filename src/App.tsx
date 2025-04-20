@@ -1,8 +1,9 @@
 import { useState, useEffect, KeyboardEvent } from 'react'; // Import useEffect, KeyboardEvent
 import './App.css';
+import { useState, useEffect, KeyboardEvent } from 'react'; // Import useEffect, KeyboardEvent
+import './App.css';
 import SplitFlapDisplay from './components/SplitFlapDisplay';
 import SettingsPanel from './components/SettingsPanel';
-// Remove TextInputMode import
 import { DISPLAY_LENGTH, ALLOWED_CHARS } from './constants'; // Import ALLOWED_CHARS
 import { mqttService } from './services/mqttService';
 import { Buffer } from 'buffer';
@@ -220,7 +221,6 @@ function App() {
         isConnected={isConnected} // To enable/disable interaction style
         onClick={handleDisplayClick} // Pass the click handler
       />
-      {/* Removed TextInputMode component */}
       {!isConnected && (
          <p style={{ textAlign: 'center', marginTop: '10px', color: '#555' }}>
            Connect to MQTT to enable display input.

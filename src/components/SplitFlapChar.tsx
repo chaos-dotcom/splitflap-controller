@@ -1,5 +1,4 @@
 import React from 'react';
-import React from 'react';
 import './SplitFlapChar.css';
 import { COLOR_MAP } from '../constants';
 
