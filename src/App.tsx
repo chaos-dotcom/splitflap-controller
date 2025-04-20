@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'; // Import useEffect
+import { useState, useEffect } from 'react'; // Import useEffect
 import './App.css';
 import SplitFlapDisplay from './components/SplitFlapDisplay';
-import SettingsPanel from './components/SettingsPanel'; // Import SettingsPanel
+import SettingsPanel from './components/SettingsPanel';
+import TextInputMode from './components/TextInputMode'; // Import TextInputMode
 import { DISPLAY_LENGTH } from './constants';
-import { mqttService } from './services/mqttService'; // Import mqttService
-import { Buffer } from 'buffer'; // Import Buffer for message handling
+import { mqttService } from './services/mqttService';
+import { Buffer } from 'buffer';
 window.Buffer = Buffer; // Polyfill Buffer for the mqtt library in browser if needed
 
 // Define the settings type inline or import from types/index.ts later
@@ -132,14 +134,18 @@ function App() {
       {/* Remove the separate status paragraph */}
       {/* <p>MQTT Status: {isConnected ? 'Connected' : 'Disconnected'}</p> */}
 
-      {/* Control Panel Placeholder */}
-      <div className="control-placeholder" style={{ border: '1px dashed green', padding: '10px', margin: '10px 0', width: '90%', maxWidth: '600px' }}>
-        Control Panel Placeholder
-        {/* Button to send a test message */}
-        <button onClick={() => sendMessage('HELLO WORLD?')}>Send Test</button>
-        {/* Button to test color codes */}
-        <button onClick={() => sendMessage('rgybvp tw ?')}>Send Colors</button>
-      </div>
+      {/* Split Flap Display */}
+      <SplitFlapDisplay text={displayText} />
+
+      {/* Control Panel - TextInputMode */}
+      <TextInputMode
+        onSendText={sendMessage}
+        maxLength={DISPLAY_LENGTH}
+        disabled={!isConnected} // Disable input if not connected
+      />
+
+      {/* Remove the separate status paragraph */}
+      {/* <p>MQTT Status: {isConnected ? 'Connected' : 'Disconnected'}</p> */}
 
     </div>
   );
