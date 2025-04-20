@@ -33,6 +33,14 @@ function App() {
   const handleConnect = (settings: MqttSettings) => {
     console.log('Connecting with settings:', settings);
     setConnectionError(null); // Clear previous errors
+
+    // Validate Broker URL scheme
+    if (!settings.brokerUrl.startsWith('ws://') && !settings.brokerUrl.startsWith('wss://')) {
+      setConnectionError('Invalid Broker URL: Must start with ws:// or wss://');
+      setIsConnected(false); // Ensure status reflects failure
+      return; // Prevent connection attempt
+    }
+
     setMqttSettings(settings); // Store the settings used for connection attempt
 
     mqttService.connect({

@@ -58,7 +58,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           value={settings.brokerUrl}
           onChange={handleChange}
           disabled={isConnected}
-          placeholder="e.g., ws://broker.hivemq.com:8000/mqtt"
+          placeholder="Use ws:// or wss:// (e.g., wss://broker.hivemq.com:8884/mqtt)"
         />
       </div>
       <div className="form-group">
