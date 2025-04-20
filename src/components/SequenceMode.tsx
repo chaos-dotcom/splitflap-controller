@@ -195,27 +195,27 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
                 <ul className="line-list">
                     {currentLines.map((line, index) => (
                         <li key={line.id}>
-                            <span>{index + 1}:</span>
+                            <span className="line-number">{index + 1}:</span>
                             <code className="line-text">{line.text.replace(/ /g, '\u00A0')}</code> {/* Show spaces */}
-                            <button onClick={() => handleDeleteLine(line.id)} disabled={isPlaying} title="Delete Line">×</button>
+                            <input
+                                type="number"
+                                className="line-duration-input"
+                                value={line.durationMs ?? 1000} // Use default if undefined
+                                onChange={(e) => handleDurationChange(line.id, parseInt(e.target.value, 10))}
+                                min="100"
+                                step="100"
+                                disabled={isPlaying}
+                                title="Line display duration (ms)"
+                            />
+                            <span className="duration-unit">ms</span>
+                            <button className="delete-line-btn" onClick={() => handleDeleteLine(line.id)} disabled={isPlaying} title="Delete Line">×</button>
                         </li>
                     ))}
                      {currentLines.length === 0 && <li className="no-lines">Add lines to create a scene.</li>}
                 </ul>
             </div>
-
-            {/* Delay and Play Controls */}
+            {/* Play/Stop Controls */}
             <div className="scene-controls">
-                <label htmlFor="delayInput">Delay (ms): </label>
-                <input
-                    id="delayInput"
-                    type="number"
-                    value={delayMs}
-                    onChange={(e) => setDelayMs(Math.max(100, parseInt(e.target.value, 10) || 100))} // Min 100ms delay
-                    min="100"
-                    step="100"
-                    disabled={isPlaying}
-                />
                 <button onClick={handlePlayScene} disabled={!isConnected || isPlaying || currentLines.length === 0}>
                     ▶️ Play Scene
                 </button>
