@@ -1,0 +1,169 @@
+/* src/components/SequenceMode.css */
+.sequence-mode {
+  border: 1px solid #b3d4fc;
+  padding: 15px;
+  margin-top: 15px;
+  border-radius: 5px;
+  background-color: #f0f8ff;
+}
+
+.sequence-mode h4 {
+  margin-top: 0;
+  text-align: center;
+  color: #0056b3;
+}
+
+.scene-management,
+.scene-editor,
+.scene-controls {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px dashed #ccc;
+}
+.scene-controls {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+
+.scene-management {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  gap: 10px; /* Add space between items */
+}
+
+.scene-management select {
+  padding: 8px;
+  min-width: 200px; /* Give dropdown space */
+  flex-grow: 1; /* Allow dropdown to grow */
+}
+
+.scene-management button {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.scene-editor h5 {
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.add-line-form {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.add-line-form input {
+  flex-grow: 1;
+  padding: 8px;
+  margin-right: 10px;
+  font-family: 'Roboto Mono', monospace;
+  text-transform: uppercase;
+}
+
+.line-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 200px; /* Limit height and make scrollable */
+  overflow-y: auto;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 5px;
+}
+
+.line-list li {
+  display: flex;
+  align-items: center;
+  padding: 5px 8px;
+  border-bottom: 1px solid #eee;
+}
+.line-list li:last-child {
+  border-bottom: none;
+}
+
+.line-list li span {
+    min-width: 25px;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.line-list li .line-text {
+  font-family: 'Roboto Mono', monospace;
+  background-color: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin: 0 10px;
+  flex-grow: 1; /* Take available space */
+  white-space: pre; /* Preserve spaces */
+  letter-spacing: 0.1em; /* Match display spacing */
+}
+
+.line-list li button {
+  background: none;
+  border: none;
+  color: red;
+  cursor: pointer;
+  font-size: 1.2em;
+  padding: 0 5px;
+  margin-left: auto; /* Push delete button to the right */
+}
+.line-list li button:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+.line-list .no-lines {
+    text-align: center;
+    color: #888;
+    padding: 10px;
+    font-style: italic;
+}
+
+
+.scene-controls {
+  text-align: center;
+}
+
+.scene-controls label {
+  margin-right: 5px;
+}
+
+.scene-controls input[type="number"] {
+  width: 80px;
+  padding: 8px;
+  margin-right: 15px;
+  text-align: right;
+}
+
+.scene-controls button {
+  padding: 8px 15px;
+  margin: 0 5px;
+  cursor: pointer;
+}
+
+.scene-controls .stop-button {
+    background-color: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+.scene-controls .stop-button:disabled {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+.connection-warning {
+    text-align: center;
+    color: #dc3545;
+    font-size: 0.9em;
+    margin-top: 10px;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
