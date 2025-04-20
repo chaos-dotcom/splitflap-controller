@@ -157,13 +157,19 @@ function App() {
           handled = true;
       }
     } else if (key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) { // Handle character input, ignore modifiers
-      const upperKey = key.toUpperCase();
-      // Check if the typed character (or its lowercase version for colors) is allowed
-      const isValidChar = ALLOWED_CHARS.includes(upperKey) || ALLOWED_CHARS.includes(key.toLowerCase());
+      let charToInsert: string | null = null;
 
-      if (isValidChar && newCaretPos < DISPLAY_LENGTH) {
-         // Prefer lowercase if it's in ALLOWED_CHARS (for colors), otherwise use uppercase
-         const charToInsert = ALLOWED_CHARS.includes(key.toLowerCase()) ? key.toLowerCase() : upperKey;
+      // Check if the exact key pressed is allowed (covers lowercase colors, uppercase letters, numbers, symbols)
+      if (ALLOWED_CHARS.includes(key)) {
+          charToInsert = key;
+      }
+      // If not, check if the uppercase version is allowed (handles typing 'a' -> 'A')
+      else if (ALLOWED_CHARS.includes(key.toUpperCase())) {
+          charToInsert = key.toUpperCase();
+      }
+
+      // If we determined a valid character to insert and there's space
+      if (charToInsert !== null && newCaretPos < DISPLAY_LENGTH) {
          newDraft[newCaretPos] = charToInsert;
          if (newCaretPos < DISPLAY_LENGTH) { // Move caret forward after typing if not at the very end
            newCaretPos++;
