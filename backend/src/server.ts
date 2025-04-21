@@ -558,9 +558,9 @@ io.on('connection', (socket: Socket) => {
             elapsedTime: stopwatchElapsedTime,
             isRunning: isStopwatchRunning,
         },
-        // sequence: { // Temporarily commented out for debugging
-        //     isPlaying: isSequencePlaying,
-        // },
+        sequence: { // Restore sequence state
+            isPlaying: isSequencePlaying,
+        },
         // train: { // Temporarily commented out for debugging
         //     route: currentTrainRoute,
         //     departures: lastFetchedDepartures,
