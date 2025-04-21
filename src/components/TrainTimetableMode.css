@@ -1,36 +1,142 @@
 /* src/components/TrainTimetableMode.css */
 .train-timetable-mode {
-  border: 1px dashed orange;
+  border: 1px solid #ffcc80; /* Slightly softer orange border */
   padding: 15px;
   margin-top: 15px;
   border-radius: 5px;
-  background-color: #fff9f0;
-  text-align: center;
+  background-color: #fff8e1; /* Lighter background */
 }
 
 .train-timetable-mode h4 {
   margin-top: 0;
-  color: #cc8400;
-  /* Add styles for the handle */
-  background-color: #fff3cd;
+  text-align: center;
+  color: #e65100; /* Darker orange for title */
+  background-color: #ffe0b2; /* Lighter orange for handle background */
   padding: 8px;
+  margin: -15px -15px 15px -15px; /* Extend handle to edges */
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  border-bottom: 1px solid #ffcc80;
+}
+
+.station-inputs {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px; /* Space between input groups and button */
   margin-bottom: 15px;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
 }
 
-.train-timetable-mode div {
+.station-inputs div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.station-inputs label {
+  font-weight: bold;
+  min-width: 70px; /* Ensure labels align */
+  text-align: right;
+}
+
+.station-inputs .crs-input {
+  padding: 6px 8px;
+  width: 60px; /* Fixed width for 3-char CRS code */
+  text-transform: uppercase;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+.station-inputs .crs-input:disabled {
+    background-color: #eee;
+}
+
+
+.station-inputs button {
+  padding: 6px 12px;
+  cursor: pointer;
+  background-color: #fb8c00; /* Orange button */
+  color: white;
+  border: none;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+.station-inputs button:hover:not(:disabled) {
+    background-color: #e65100;
+}
+.station-inputs button:disabled {
+    background-color: #bdbdbd;
+    cursor: not-allowed;
+}
+
+.error-message {
+  color: red;
+  text-align: center;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.departures-list {
+  margin-top: 15px;
+  text-align: left; /* Align table content left */
+}
+
+.departures-list h5 {
+    text-align: center;
     margin-bottom: 10px;
+    color: #e65100;
 }
 
-.train-timetable-mode label {
+.departures-list table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.departures-list th,
+.departures-list td {
+  border: 1px solid #eee;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.departures-list th {
+  background-color: #fff3e0; /* Light orange header */
+  font-weight: bold;
+}
+
+.departures-list td del {
+    color: #999;
+    text-decoration: line-through;
     margin-right: 5px;
-    min-width: 40px;
-    display: inline-block;
 }
-.train-timetable-mode input {
-    padding: 5px;
+.departures-list td span {
+    font-weight: bold;
+    color: #d32f2f; /* Red for delayed time */
 }
 
-.train-timetable-mode button {
-    padding: 8px 15px;
-    margin-top: 10px;
+
+.departures-list .send-button {
+    padding: 4px 8px;
+    font-size: 0.9em;
+    cursor: pointer;
+    background-color: #4CAF50; /* Green send button */
+    color: white;
+    border: none;
+    border-radius: 3px;
+}
+.departures-list .send-button:hover:not(:disabled) {
+    background-color: #388E3C;
+}
+.departures-list .send-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.departures-list p { /* For loading/error messages within the list area */
+    text-align: center;
+    color: #666;
+    padding: 10px;
 }

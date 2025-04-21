@@ -240,7 +240,7 @@ function App() {
       {/* Mode Specific Controls */}
       <div className="mode-controls">
           {currentMode === 'train' && (
-              <TrainTimetableMode isConnected={isConnected} onSendMessage={publishMessage} />
+              <TrainTimetableMode isConnected={isConnected} onSendMessage={publishMessage} isActive={currentMode === 'train'} />
           )}
           {/* Add the conditional rendering for SequenceMode */}
           {currentMode === 'sequence' && (

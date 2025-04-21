@@ -1,37 +1,218 @@
-import React from 'react';
-import './TrainTimetableMode.css'; // We'll create this CSS file next
+import React, { useState, useEffect } from 'react';
+import { DISPLAY_LENGTH } from '../constants'; // Import display length
+import './TrainTimetableMode.css';
 
+// Define the structure for departure data (as discussed)
+interface Departure {
+  id: string;
+  scheduledTime: string;
+  destination: string;
+  platform?: string;
+  status: string;
+  estimatedTime?: string;
+}
+
+// Define the props for the component
 interface TrainTimetableModeProps {
     isConnected: boolean;
     onSendMessage: (message: string) => void;
+    isActive: boolean; // To know if this mode is currently selected
 }
 
-const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, onSendMessage }) => {
+const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, onSendMessage, isActive }) => {
+    const [fromStation, setFromStation] = useState<string>(''); // e.g., KGX
+    const [toStation, setToStation] = useState<string>('');   // e.g., EDB (optional)
+    const [departures, setDepartures] = useState<Departure[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [pollingIntervalId, setPollingIntervalId] = useState<NodeJS.Timeout | null>(null);
 
-    // Placeholder function for when train data is selected/ready
-    const handleSendTrainInfo = () => {
-        if (!isConnected) return;
-        // TODO: Get actual train data from state/inputs
-        const trainInfoString = "TRAIN MODE.."; // Placeholder
-        onSendMessage(trainInfoString);
+    // Function to format a departure into a 12-char string
+    const formatDepartureForDisplay = (dep: Departure): string => {
+        const time = (dep.estimatedTime && dep.estimatedTime !== 'On time' ? dep.estimatedTime : dep.scheduledTime).replace(':', '');
+        let dest = dep.destination.toUpperCase().substring(0, 7); // Max 7 chars for dest
+        let plat = dep.platform ? ` ${dep.platform.padStart(1)}` : '  '; // Ensure 2 chars for plat (space + num or 2 spaces)
+
+        if (dep.status.toUpperCase() === 'CANCELLED') {
+            return `CANCELLED   `.padEnd(DISPLAY_LENGTH);
+        }
+        if (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime) {
+             dest = 'DELAYED'.substring(0,7); // Show delayed status instead of dest
+             plat = '  ';
+        }
+
+        // Combine, ensuring total length is DISPLAY_LENGTH
+        let output = `${time} ${dest}${plat}`;
+        return output.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
     };
+
+    // Placeholder function to simulate fetching data from the backend
+    const fetchDepartures = async () => {
+        if (!fromStation) {
+            setError("Please enter a 'From' station CRS code.");
+            setDepartures([]);
+            return;
+        }
+        setIsLoading(true);
+        setError(null);
+        console.log(`Simulating fetch for departures from ${fromStation} to ${toStation || 'anywhere'}...`);
+
+        // --- Replace this block with actual fetch call to your backend ---
+        try {
+            // Simulate network delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Example backend endpoint: /api/departures?from=KGX&to=EDB
+            // const response = await fetch(`/api/departures?from=${fromStation}${toStation ? `&to=${toStation}` : ''}`);
+            // if (!response.ok) {
+            //     throw new Error(`HTTP error! status: ${response.status}`);
+            // }
+            // const data: Departure[] = await response.json();
+
+            // Mock data for now:
+            const mockData: Departure[] = [
+                { id: '1', scheduledTime: '10:30', destination: 'Edinburgh', platform: '1', status: 'On time', estimatedTime: '10:30' },
+                { id: '2', scheduledTime: '10:35', destination: 'Leeds', platform: '5', status: 'On time', estimatedTime: '10:35' },
+                { id: '3', scheduledTime: '10:40', destination: 'Newcastle', platform: '8', status: 'Delayed', estimatedTime: '10:55' },
+                { id: '4', scheduledTime: '10:45', destination: 'Glasgow Central', status: 'Cancelled' },
+                { id: '5', scheduledTime: '10:50', destination: 'Aberdeen', platform: '2', status: 'On time', estimatedTime: '10:50' },
+            ];
+            // Filter mock data if 'toStation' is provided (for demo purposes)
+            const data = toStation
+                ? mockData.filter(dep => dep.destination.toLowerCase().includes(toStation.toLowerCase()))
+                : mockData;
+
+            setDepartures(data);
+        } catch (err) {
+            console.error("Failed to fetch departures:", err);
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+            setDepartures([]); // Clear departures on error
+        } finally {
+            setIsLoading(false);
+        }
+        // --- End of block to replace ---
+    };
+
+    // Function to send a specific departure line to the display
+    const handleSendDeparture = (departure: Departure) => {
+        if (!isConnected) return;
+        const displayString = formatDepartureForDisplay(departure);
+        onSendMessage(displayString);
+    };
+
+    // Effect to set up and clear polling interval
+    useEffect(() => {
+        // Function to perform the fetch and handle errors internally
+        const poll = async () => {
+            if (isActive && isConnected && fromStation) {
+                await fetchDepartures();
+            }
+        };
+
+        // Clear existing interval if dependencies change or component unmounts
+        if (pollingIntervalId) {
+            clearInterval(pollingIntervalId);
+            setPollingIntervalId(null);
+        }
+
+        // Start polling only if the mode is active, connected, and a station is set
+        if (isActive && isConnected && fromStation) {
+            poll(); // Fetch immediately when conditions are met
+            const intervalId = setInterval(poll, 30000); // Poll every 30 seconds
+            setPollingIntervalId(intervalId);
+        }
+
+        // Cleanup function
+        return () => {
+            if (pollingIntervalId) {
+                clearInterval(pollingIntervalId);
+            }
+        };
+        // Dependencies: isActive, isConnected, fromStation (to restart polling if station changes)
+    }, [isActive, isConnected, fromStation, toStation]); // Include toStation if filtering depends on it
+
 
     return (
         <div className="train-timetable-mode">
-            <h4 className="draggable-handle">Train Timetable Controls</h4> {/* Add handle class */}
-            <p>(Train timetable UI will go here)</p>
-            {/* Example: Placeholder for station inputs */}
-            <div>
-                <label>From: </label><input type="text" placeholder="e.g., London Euston" disabled={!isConnected} />
+            <h4 className="draggable-handle">Train Timetable</h4>
+            <div className="station-inputs">
+                <div>
+                    <label htmlFor="fromStation">From (CRS): </label>
+                    <input
+                        type="text"
+                        id="fromStation"
+                        value={fromStation}
+                        onChange={(e) => setFromStation(e.target.value.toUpperCase())}
+                        placeholder="e.g., KGX"
+                        maxLength={3}
+                        disabled={!isConnected || isLoading}
+                        className="crs-input"
+                    />
+                </div>
+                <div>
+                    <label htmlFor="toStation">To (CRS): </label>
+                    <input
+                        type="text"
+                        id="toStation"
+                        value={toStation}
+                        onChange={(e) => setToStation(e.target.value.toUpperCase())}
+                        placeholder="Optional (e.g., EDB)"
+                        maxLength={3}
+                        disabled={!isConnected || isLoading}
+                        className="crs-input"
+                    />
+                </div>
+                {/* Manual refresh button might still be useful */}
+                <button onClick={fetchDepartures} disabled={!isConnected || isLoading || !fromStation}>
+                    {isLoading ? 'Refreshing...' : 'Refresh Now'}
+                </button>
             </div>
-            <div>
-                <label>To: </label><input type="text" placeholder="e.g., Manchester Picc" disabled={!isConnected} />
+
+            {error && <p className="error-message">Error: {error}</p>}
+
+            <div className="departures-list">
+                <h5>Departures</h5>
+                {isLoading && departures.length === 0 && <p>Loading departures...</p>}
+                {!isLoading && !error && departures.length === 0 && fromStation && <p>No departures found for {fromStation}{toStation ? ` to ${toStation}` : ''}.</p>}
+                {!isLoading && !error && departures.length === 0 && !fromStation && <p>Enter a 'From' station code and click Refresh.</p>}
+
+                {departures.length > 0 && (
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Destination</th>
+                                <th>Plat</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {departures.map((dep) => (
+                                <tr key={dep.id}>
+                                    <td>{dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime ? <del>{dep.scheduledTime}</del> : dep.scheduledTime} {dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime && dep.estimatedTime !== 'On time' ? <span>{dep.estimatedTime}</span> : ''}</td>
+                                    <td>{dep.destination}</td>
+                                    <td>{dep.platform || '-'}</td>
+                                    <td>{dep.status}</td>
+                                    <td>
+                                        <button
+                                            onClick={() => handleSendDeparture(dep)}
+                                            disabled={!isConnected}
+                                            title={`Send to display: ${formatDepartureForDisplay(dep)}`}
+                                            className="send-button"
+                                        >
+                                            Send
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
-            <button onClick={handleSendTrainInfo} disabled={!isConnected}>
-                Send Train Info
-            </button>
-             <p style={{fontSize: '0.8em', color: '#666'}}>
-                Note: This requires a backend service to fetch real train data (not implemented yet).
+
+             <p style={{fontSize: '0.8em', color: '#666', marginTop: '15px'}}>
+                Note: This uses mock data. A backend service is required to fetch real train information from National Rail Enquiries. Polling is active when mode is selected, connected, and 'From' station is set.
             </p>
         </div>
     );
