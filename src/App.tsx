@@ -272,8 +272,7 @@ function App() {
           <button onClick={() => handleSetMode('timer')} disabled={currentMode === 'timer'} className={`govuk-button ${currentMode !== 'timer' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Timer</button>
       </div>
 
-      {/* Mode Specific Controls - COMMENT OUT THIS ENTIRE BLOCK */}
-      {/*
+      {/* Mode Specific Controls */}
       <div className="mode-controls">
           {currentMode === 'train' && (
               <TrainTimetableMode
@@ -303,9 +302,9 @@ function App() {
                 onReset={handleResetStopwatch}
              />
           )}
-          {/* {currentMode === 'timer' && ( <TimerMode ... /> )} */}
-      {/*</div> */}
-      {/* END OF BLOCK TO COMMENT OUT */}
+          {/* {currentMode === 'timer' && ( <TimerMode ... /> )} */} {/* Keep Timer commented if not implemented */}
+      </div>
+      {/* END OF BLOCK TO UNCOMMENT */}
 
 
       {/* Final conditional paragraph removed */}
