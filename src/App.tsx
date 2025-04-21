@@ -235,12 +235,12 @@ function App() {
     <div className="app-container">
       <h1>Split-Flap Controller</h1>
 
-      {/* Display Backend Connection Status */}
+      {/* Display Backend Connection Status - No longer needs wrapper div */}
       <p className={`status-indicator ${isConnectedToBackend ? 'connected' : 'disconnected'}`}>
           Backend: {isConnectedToBackend ? 'Connected' : 'Disconnected'}
           {backendError && <span className="error-text"> ({backendError})</span>}
       </p>
-      {/* Display Display MQTT Connection Status */}
+      {/* Display Display MQTT Connection Status - No longer needs wrapper div */}
       <p className={`status-indicator ${displayMqttStatus.status === 'connected' ? 'connected' : (displayMqttStatus.status === 'error' || displayMqttStatus.status === 'disconnected' ? 'disconnected' : 'connecting')}`}>
           Display MQTT: {displayMqttStatus.status}
           {displayMqttStatus.error && <span className="error-text"> ({displayMqttStatus.error})</span>}

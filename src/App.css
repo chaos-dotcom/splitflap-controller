@@ -47,14 +47,19 @@
 
 /* Styles for Backend/MQTT Status Indicators */
 .status-indicator {
-  text-align: center;
+  /* text-align: center; */ /* No longer centered */
   font-size: 0.9em;
-  margin: 5px auto; /* Center horizontally */
+  /* margin: 5px auto; */ /* No longer centered */
+  margin: 5px 0; /* Add vertical margin */
   padding: 4px 10px;
-  border-radius: 4px;
-  display: inline-block; /* Allow centering via text-align on parent */
+  border-radius: 3px; /* Smaller radius */
+  /* display: inline-block; */ /* No longer inline-block */
   border: 1px solid transparent;
   min-width: 180px; /* Give some consistent width */
+  /* Fixed Positioning */
+  position: fixed;
+  left: 10px; /* Adjust padding from left edge */
+  z-index: 100; /* Ensure it's above other content */
 }
 
 .status-indicator.connected {
@@ -82,13 +87,21 @@
     font-weight: bold;
 }
 
-/* Ensure the container allows centering of the indicators */
-.app-container > p.status-indicator {
-    display: block; /* Make them block elements */
-    width: fit-content; /* Adjust width to content */
+/* Position the two indicators vertically */
+.status-indicator:nth-of-type(1) { /* Backend status */
+    bottom: 40px; /* Position above the second one */
+}
+.status-indicator:nth-of-type(2) { /* MQTT status */
+    bottom: 10px; /* Position near the bottom edge */
+}
+
+/* Remove centering override */
+/* .app-container > p.status-indicator {
+    display: block;
+    width: fit-content;
     margin-left: auto;
     margin-right: auto;
-}
+} */
 
 /* Styles for Mode Selector (if not already present) */
 .mode-selector {
