@@ -85,7 +85,7 @@ const SortableLineItem: React.FC<SortableLineItemProps> = ({
                     onChange={(newText) => handleLineTextChange(line.id, newText)}
                     onEnter={finishEditing} // Use the combined handler
                     onBlur={finishEditing} // Use the combined handler
-                    maxLength={DISPLAY_LENGTH}
+                    maxLength={SPLITFLAP_DISPLAY_LENGTH}
                     disabled={isPlaying}
                     autoFocus />
             ) : (
@@ -148,7 +148,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onPlay, onStop
         const textToAdd = newLineText; // Already managed by InteractiveTextInput
         const newLine: SceneLine = {
             id: Date.now().toString() + Math.random(), // Simple unique ID
-            text: textToAdd.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH), // Ensure padding/length
+            text: textToAdd.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH), // Ensure padding/length
             durationMs: 1000, // Default duration for new lines
         };
         setCurrentLines([...currentLines, newLine]);
@@ -200,7 +200,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onPlay, onStop
 
     const handleLineTextChange = (idToUpdate: string, newText: string) => {
         // Ensure text is always padded/truncated correctly during edit
-        const formattedText = newText.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
+        const formattedText = newText.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH);
         setCurrentLines(currentLines.map(line =>
             line.id === idToUpdate ? { ...line, text: formattedText } : line
         ));
@@ -338,8 +338,8 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onPlay, onStop
                         value={newLineText}
                         onChange={setNewLineText} // Pass the state setter directly
                         onEnter={handleAddLine} // Trigger add line on Enter
-                        maxLength={DISPLAY_LENGTH}
-                        placeholder={`Enter line (max ${DISPLAY_LENGTH} chars)`}
+                        maxLength={SPLITFLAP_DISPLAY_LENGTH}
+                        placeholder={`Enter line (max ${SPLITFLAP_DISPLAY_LENGTH} chars)`}
                         disabled={isPlaying}
                     />
                 </div>

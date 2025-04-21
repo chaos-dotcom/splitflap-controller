@@ -1,6 +1,6 @@
 import React, { KeyboardEvent, MouseEvent } from 'react'; // Import event types
 import SplitFlapChar from './SplitFlapChar';
-import { DISPLAY_LENGTH } from '../constants';
+import { SPLITFLAP_DISPLAY_LENGTH } from '../constants'; // Use renamed constant
 import './SplitFlapDisplay.css';
 
 interface SplitFlapDisplayProps {
@@ -24,9 +24,9 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
   onKeyDown, // Can be undefined now
   onClick,   // Can be undefined now
 }) => {
-  // Ensure text is exactly DISPLAY_LENGTH characters long, padding with spaces if needed
+  // Ensure text is exactly SPLITFLAP_DISPLAY_LENGTH characters long, padding with spaces if needed
   // This should ideally be handled by the parent state management (draftText)
-  const displayText = text.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
+  const displayText = text.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH);
   const chars = displayText.split('');
 
   return (

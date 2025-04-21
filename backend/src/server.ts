@@ -14,7 +14,7 @@ import { ControlMode, Scene, SceneLine } from '../../src/types';
 dotenv.config();
 
 // --- Constants ---
-const DISPLAY_LENGTH = 12;
+const SPLITFLAP_DISPLAY_LENGTH = 12; // Use consistent naming
 // Sequence of colors to use as separators (copied from frontend constants)
 const SEPARATOR_COLORS: ReadonlyArray<string> = ['r', 'o', 'y', 'g', 'b', 'v', 'p', 't', 'w'];
 
@@ -42,7 +42,7 @@ const formatClockTime = (date: Date): string => {
     // Format: 'DDD HHMM  AP' (12 chars total)
     const formatted = `${weekday} ${hour}${minute}  ${dayPeriod}`;
 
-    return formatted.toUpperCase().padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
+    return formatted.toUpperCase().padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH);
 };
 
 
@@ -65,7 +65,7 @@ const formatStopwatchTime = (timeMs: number): string => {
     const formatted = `  ${hh}${separatorColor1}${mm}${separatorColor2}${ss}  `;
 
     // Ensure exactly DISPLAY_LENGTH
-    return formatted.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
+    return formatted.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH);
 };
 
 
@@ -75,9 +75,8 @@ const httpServer = createServer(app);
 const port = process.env.PORT || 3001;
 
 // --- Application State ---
-// Use DISPLAY_LENGTH from constants if available, otherwise hardcode or import differently
-// const DISPLAY_LENGTH = 12; // Assuming default length for now - MOVED TO CONSTANTS
-let currentDisplayText: string = ' '.repeat(DISPLAY_LENGTH);
+// Use SPLITFLAP_DISPLAY_LENGTH from constants if available, otherwise hardcode or import differently
+let currentDisplayText: string = ' '.repeat(SPLITFLAP_DISPLAY_LENGTH);
 let currentAppMode: ControlMode = 'text';
 let clockInterval: NodeJS.Timeout | null = null;
 let stopwatchInterval: NodeJS.Timeout | null = null;
@@ -88,6 +87,11 @@ let sequenceTimeout: NodeJS.Timeout | null = null;
 let isSequencePlaying: boolean = false;
 let currentSequence: SceneLine[] = []; // Store the lines of the currently playing sequence
 let currentSequenceIndex: number = 0;
+// --- Train Mode State ---
+const POLLING_INTERVAL_MS = 60000; // Poll every 60 seconds
+let currentTrainRoute: { fromCRS: string; toCRS?: string } | null = null;
+let lastFetchedDepartures: Departure[] = [];
+let trainPollingInterval: NodeJS.Timeout | null = null;
 // --- End Application State ---
 
 // --- Middleware ---
@@ -269,10 +273,13 @@ const io = new SocketIOServer(httpServer, {
     }
 });
 
-const updateDisplayAndBroadcast = (newText: string) => {
-    const formattedText = newText.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
-    if (formattedText !== currentDisplayText) {
-        console.log(`[State] Updating display: "${formattedText}"`);
+// --- Core Logic ---
+const updateDisplayAndBroadcast = (newText: string, sourceMode?: ControlMode) => {
+    const formattedText = newText.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH);
+    // Only update and broadcast if text actually changes AND
+    // (it's a manual update (no sourceMode) OR the sourceMode matches the currentAppMode)
+    if (formattedText !== currentDisplayText && (!sourceMode || sourceMode === currentAppMode)) {
+        console.log(`[State] Updating display: "${formattedText}" (Mode: ${currentAppMode}, Source: ${sourceMode || 'manual'})`);
         currentDisplayText = formattedText;
         const published = mqttClient.publishToDisplay(currentDisplayText); // Send to physical display via MQTT
         if (published) {
@@ -417,6 +424,10 @@ io.on('connection', (socket: Socket) => {
         sequence: {
             isPlaying: isSequencePlaying, // Send sequence playing status
             // Optionally send current line index or scene name if needed
+        },
+        train: { // Send initial train state
+            route: currentTrainRoute,
+            departures: lastFetchedDepartures,
         }
     });
     socket.emit('mqttStatus', mqttClient.getDisplayConnectionStatus()); // Send MQTT status
@@ -439,17 +450,26 @@ io.on('connection', (socket: Socket) => {
             // Handle mode-specific initial actions AFTER stopping old mode timers
             if (mode === 'clock') {
                 startBackendClock(); // Start the clock interval
+            } else if (mode === 'train') {
+                // Send last known departure data when switching TO train mode
+                if (currentTrainRoute) { // If a route was previously active, refresh its display
+                    fetchAndProcessDepartures(currentTrainRoute); // This will update display and emit trainDataUpdate
+                } else { // Otherwise send last known display text or blank
+                    updateDisplayAndBroadcast(currentDisplayText); // Send current text (might be from another mode)
+                    // Send empty departures if no route was active
+                    socket.emit('trainDataUpdate', { departures: lastFetchedDepartures }); // Send last known list (might be empty)
+                }
             } else if (mode === 'stopwatch') {
                 // Send current stopwatch state immediately
-                updateDisplayAndBroadcast(formatStopwatchTime(stopwatchElapsedTime));
+                updateDisplayAndBroadcast(formatStopwatchTime(stopwatchElapsedTime), 'stopwatch'); // Specify source mode
                 // Send running state too
                 socket.emit('stopwatchUpdate', { elapsedTime: stopwatchElapsedTime, isRunning: isStopwatchRunning });
             } else if (mode === 'text') {
                 // Ensure display shows current text state
-                updateDisplayAndBroadcast(currentDisplayText);
+                updateDisplayAndBroadcast(currentDisplayText); // Manual update source
             } else if (mode === 'sequence') {
                  // Ensure display shows current text state (or maybe last line of sequence?)
-                 updateDisplayAndBroadcast(currentDisplayText);
+                 updateDisplayAndBroadcast(currentDisplayText); // Manual update source
             }
             // Broadcast mode change to all clients so UI can update if needed
             io.emit('modeUpdate', { mode: currentAppMode });
@@ -460,10 +480,11 @@ io.on('connection', (socket: Socket) => {
         console.log(`[Socket.IO] Received setText: "${data.text}" from ${socket.id}`);
         // Allow setText from any mode if initiated by user action (like Send button in Train mode)
         // But ensure it stops any automatic backend timers.
-        // if (currentAppMode === 'text') { // Remove strict mode check
-            stopAllTimedModes(); // Stop other modes if text is set manually
-            updateDisplayAndBroadcast(data.text);
-        // } else {
+        stopAllTimedModes(); // Stop other modes if text is set manually
+        updateDisplayAndBroadcast(data.text); // Send text (source is manual/implicit)
+        // Note: If mode was 'train', this stops polling. User needs to Refresh/Select Preset again.
+        // If mode was 'clock'/'stopwatch'/'sequence', this stops the timers/playback.
+        // } else { // Logic simplified: always stop timers and update display on setText
         //     console.warn(`[Socket.IO] setText received but mode is ${currentAppMode}. Allowing, but stopping timers.`);
         //     // Optionally inform client, but maybe not necessary if it's an expected action like 'Send'
         //     // socket.emit('error', { message: `Cannot set text directly while in ${currentAppMode} mode.` });
@@ -505,6 +526,22 @@ io.on('connection', (socket: Socket) => {
         console.log(`[Socket.IO] Received stopSequence from ${socket.id}.`);
         if (currentAppMode === 'sequence') {
             stopBackendSequence();
+        }
+    });
+
+    socket.on('startTrainUpdates', (data: { fromCRS: string; toCRS?: string }) => {
+        console.log(`[Socket.IO] Received startTrainUpdates: ${data.fromCRS} -> ${data.toCRS || 'any'} from ${socket.id}`);
+        if (currentAppMode === 'train') {
+            // Only start polling if the route is valid
+            if (data.fromCRS && data.fromCRS.length === 3) {
+                startTrainPolling({ fromCRS: data.fromCRS, toCRS: data.toCRS || undefined });
+            } else {
+                console.warn('[Socket.IO] Invalid route received for startTrainUpdates.');
+                // Optionally send an error back to the client
+                // socket.emit('trainDataUpdate', { error: 'Invalid From CRS code provided.' });
+            }
+        } else {
+             console.warn(`[Socket.IO] Received startTrainUpdates but mode is ${currentAppMode}. Ignoring.`);
         }
     });
     // --- End Mode Handlers ---

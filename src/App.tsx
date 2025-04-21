@@ -6,21 +6,23 @@ import TrainTimetableMode from './components/TrainTimetableMode'; // Import plac
 import SequenceMode from './components/SequenceMode'; // Import SequenceMode
 import ClockMode from './components/ClockMode'; // Import ClockMode
 import StopwatchMode from './components/StopwatchMode'; // Import StopwatchMode
-import { DISPLAY_LENGTH, ALLOWED_CHARS } from './constants'; // Import ALLOWED_CHARS
+import { SPLITFLAP_DISPLAY_LENGTH, ALLOWED_CHARS } from './constants'; // Import renamed constant
 // Removed mqttService import
-// Removed socketService import as it's already present below
 import { socketService } from './services/socketService'; // Import Socket.IO service
-import { ControlMode, Scene } from './types'; // Import types (MqttSettings no longer needed here)
+import { ControlMode, Scene, Departure } from './types'; // Import types (MqttSettings no longer needed here)
+
 
 function App() {
   // --- State for Frontend ---
-  const [displayText, setDisplayText] = useState<string>(' '.repeat(DISPLAY_LENGTH)); // What the display *should* show
-  const [draftText, setDraftText] = useState<string>(' '.repeat(DISPLAY_LENGTH)); // State for inline editing in text mode
+  const [displayText, setDisplayText] = useState<string>(' '.repeat(SPLITFLAP_DISPLAY_LENGTH)); // What the display *should* show
+  const [draftText, setDraftText] = useState<string>(' '.repeat(SPLITFLAP_DISPLAY_LENGTH)); // State for inline editing in text mode
   // --- State related to Backend Connection & Status ---
   const [isConnectedToBackend, setIsConnectedToBackend] = useState<boolean>(false);
   const [backendError, setBackendError] = useState<string | null>(null);
   const [displayMqttStatus, setDisplayMqttStatus] = useState<{ status: string; error: string | null }>({ status: 'disconnected', error: null });
   const [stopwatchIsRunningBackend, setStopwatchIsRunningBackend] = useState<boolean>(false); // Added
+  // Add state for train departures list
+  const [currentDepartures, setCurrentDepartures] = useState<Departure[]>([]);
   // --- End Backend State ---
   const [caretPosition, setCaretPosition] = useState<number>(0); // State for cursor position in text mode
   const [currentMode, setCurrentMode] = useState<ControlMode>('text'); // State for current control mode
@@ -28,7 +30,7 @@ function App() {
 
   // Update draft text when display text changes (e.g., from backend or initial load)
   useEffect(() => {
-    setDraftText(displayText);
+    setDraftText(displayText.padEnd(SPLITFLAP_DISPLAY_LENGTH)); // Ensure draft matches length
     // Optionally reset caret, or try to maintain position if practical
     // setCaretPosition(0); // Reset caret when display updates externally for simplicity
   }, [displayText]);
@@ -43,6 +45,10 @@ function App() {
         setCurrentMode(state.mode);
         setStopwatchIsRunningBackend(state.stopwatch?.isRunning ?? false); // Handle potential missing stopwatch state
         // TODO: Add sequence state if needed
+        if (state.train) { // Handle initial train state
+            setCurrentDepartures(state.train.departures || []);
+            // Optionally set from/to station based on state.train.route if needed for UI consistency
+        }
       },
       // onDisplayUpdate
       (data) => setDisplayText(data.text),
@@ -54,9 +60,17 @@ function App() {
       // onMqttStatus
       (status) => setDisplayMqttStatus(status),
       // onStopwatchUpdate
-      (data) => { setStopwatchIsRunningBackend(data.isRunning); /* Display updated via displayUpdate */ },
-      // onTrainDataUpdate (Add handler - placeholder for now)
-      (data) => { console.log('[App] Received trainDataUpdate', data); /* TODO: Update departures state in TrainTimetableMode or here */ },
+      (data) => {
+          setStopwatchIsRunningBackend(data.isRunning);
+          // Display is updated via displayUpdate, but we could force it here if needed
+          // setDisplayText(formatStopwatchTime(data.elapsedTime)); // Requires formatStopwatchTime here
+      },
+      // onTrainDataUpdate (Add handler)
+      (data) => {
+          console.log('[App] Received trainDataUpdate', data);
+          setCurrentDepartures(data.departures || []); // Update departures list
+          if (data.error) { setBackendError(`Train Data Error: ${data.error}`); } // Show error if backend sent one
+      },
       // onSequenceStopped
       () => { /* Handle sequence stopped if needed */ console.log('Sequence Stopped'); },
       // onConnect
@@ -109,7 +123,7 @@ function App() {
         handled = true;
       }
     } else if (key === 'Delete') {
-       if (newCaretPos < DISPLAY_LENGTH) {
+       if (newCaretPos < SPLITFLAP_DISPLAY_LENGTH) {
            newDraft[newCaretPos] = ' '; // Replace char at caret with space
            // Caret position doesn't move on delete
            handled = true;
@@ -121,7 +135,7 @@ function App() {
       }
     } else if (key === 'ArrowRight') {
       // Allow moving caret up to the position *after* the last character
-      if (newCaretPos < DISPLAY_LENGTH) {
+      if (newCaretPos < SPLITFLAP_DISPLAY_LENGTH) {
           newCaretPos++;
           handled = true;
       }
@@ -138,9 +152,9 @@ function App() {
       }
 
       // If we determined a valid character to insert and there's space
-      if (charToInsert !== null && newCaretPos < DISPLAY_LENGTH) {
+      if (charToInsert !== null && newCaretPos < SPLITFLAP_DISPLAY_LENGTH) {
          newDraft[newCaretPos] = charToInsert;
-         if (newCaretPos < DISPLAY_LENGTH) { // Move caret forward after typing if not at the very end
+         if (newCaretPos < SPLITFLAP_DISPLAY_LENGTH) { // Move caret forward after typing if not at the very end
            newCaretPos++;
          }
          handled = true;
@@ -162,9 +176,9 @@ function App() {
       // This needs refinement for accuracy based on actual element positions/widths
       const displayRect = event.currentTarget.getBoundingClientRect();
       const clickX = event.clientX - displayRect.left;
-      const approxCharWidth = displayRect.width / DISPLAY_LENGTH;
+      const approxCharWidth = displayRect.width / SPLITFLAP_DISPLAY_LENGTH;
       const clickedIndex = Math.floor(clickX / approxCharWidth);
-      setCaretPosition(Math.max(0, Math.min(DISPLAY_LENGTH, clickedIndex))); // Clamp index
+      setCaretPosition(Math.max(0, Math.min(SPLITFLAP_DISPLAY_LENGTH, clickedIndex))); // Clamp index
       event.currentTarget.focus(); // Ensure display gets focus on click
   };
 

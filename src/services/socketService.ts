@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { ControlMode, Scene, Departure, TrainRoutePreset } from '../types'; // Added Departure, TrainRoutePreset
+import { ControlMode, Scene, Departure, TrainRoutePreset } from '../types';
 
 // Define the structure of events from the backend
 interface ServerToClientEvents {
@@ -9,20 +9,19 @@ interface ServerToClientEvents {
     initialState: (state: {
         text: string;
         mode: ControlMode;
-        // Add optional initial state for other modes
-        train?: {
+        stopwatch?: { isRunning: boolean; elapsedTime: number };
+        sequence?: { isPlaying: boolean };
+        train?: { // Add train initial state
             route: { fromCRS: string; toCRS?: string } | null;
             departures: Departure[];
         };
-        stopwatch?: { isRunning: boolean; elapsedTime: number }; // Make stopwatch optional
-        // Add other state if needed
     }) => void;
     displayUpdate: (data: { text: string }) => void;
     modeUpdate: (data: { mode: ControlMode }) => void;
     mqttStatus: (status: { status: string; error: string | null }) => void;
     stopwatchUpdate: (data: { elapsedTime: number; isRunning: boolean }) => void;
-    sequenceStopped: () => void;
     trainDataUpdate: (data: { departures?: Departure[]; error?: string }) => void; // Event for train data updates/errors
+    sequenceStopped: () => void;
     error: (data: { message: string }) => void; // General backend errors
 }
 
@@ -52,9 +51,9 @@ export const socketService = {
     connect: (
         onInitialState: (state: Parameters<ServerToClientEvents['initialState']>[0]) => void, // Corrected type
         onDisplayUpdate: (data: Parameters<ServerToClientEvents['displayUpdate']>[0]) => void, // Corrected type
-        onModeUpdate: (data: Parameters<ServerToClientEvents['modeUpdate']>[0]) => void, // Corrected type
-        onMqttStatus: (status: Parameters<ServerToClientEvents['mqttStatus']>[0]) => void, // Corrected type
-        onStopwatchUpdate: (data: Parameters<ServerToClientEvents['stopwatchUpdate']>[0]) => void, // Corrected type
+        onModeUpdate: (data: Parameters<ServerToClientEvents['modeUpdate']>[0]) => void,
+        onMqttStatus: (status: Parameters<ServerToClientEvents['mqttStatus']>[0]) => void,
+        onStopwatchUpdate: (data: Parameters<ServerToClientEvents['stopwatchUpdate']>[0]) => void,
         onTrainDataUpdate: (data: Parameters<ServerToClientEvents['trainDataUpdate']>[0]) => void, // Add callback for train data
         onSequenceStopped: () => void,
         onConnect: () => void,

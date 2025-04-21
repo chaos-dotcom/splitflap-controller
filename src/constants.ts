@@ -5,7 +5,8 @@ export const ALLOWED_CHARS: ReadonlyArray<string> = [
   '3', '4', '5', '6', '7', '8', '9', '.', '=', '?','$','&', '!',
 ];
 
-export const DISPLAY_LENGTH = 12;
+// Use a more specific name
+export const SPLITFLAP_DISPLAY_LENGTH = 12;
 
 // Map lowercase color codes to actual colors for potential styling
 export const COLOR_MAP: { [key: string]: string } = {
