@@ -236,10 +236,10 @@ function App() {
       {/* Mode Specific Controls */}
       <div className="mode-controls">
           {/* Temporarily render directly without Draggable */}
-          {currentMode === 'train' && (
-              <TrainTimetableMode isConnected={isConnectedToBackend} onSendMessage={handleSendText} onPlayScene={handlePlaySequence} />
+          {currentMode === 'train' && ( // Pass backend connection status and use handleSendText
+              <TrainTimetableMode isConnected={isConnectedToBackend} onSendMessage={handleSendText} />
           )}
-          {currentMode === 'sequence' && (
+          {currentMode === 'sequence' && ( // Pass backend connection status and specific handlers
              <SequenceMode
                 isConnected={isConnectedToBackend}
                 onPlay={handlePlaySequence}
