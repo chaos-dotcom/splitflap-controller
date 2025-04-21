@@ -80,8 +80,8 @@ app.get('/api/departures', async (req: Request, res: Response) => {
 
         const requestHeaders = {
             'Content-Type': 'text/xml;charset=UTF-8',
-            // Explicitly set the standard SOAPAction: Namespace + Operation
-            'SOAPAction': `http://thalesgroup.com/RTTI/2021-11-01/ldb/GetDepartureBoard`,
+            // Try adding quotes around the standard SOAPAction value
+            'SOAPAction': `"http://thalesgroup.com/RTTI/2021-11-01/ldb/GetDepartureBoard"`,
             'Accept-Encoding': 'identity', // Explicitly state we don't want compressed responses
         };
         console.log('Request Headers:', requestHeaders); // Log headers
