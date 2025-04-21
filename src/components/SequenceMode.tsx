@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd'; // Import dnd components
+// Removed react-beautiful-dnd imports
 import { Scene, SceneLine } from '../types';
 import { DISPLAY_LENGTH } from '../constants';
 import './SequenceMode.css';
@@ -102,24 +102,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
     };
     // --- End In-place Editing Handlers ---
 
-    // --- Drag and Drop Handler ---
-    const handleDragEnd = (result: DropResult) => {
-        const { source, destination } = result;
-
-        // Dropped outside the list or in the same position
-        if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) {
-            return;
-        }
-
-        // Reorder the lines
-        const linesCopy = Array.from(currentLines);
-        const [removed] = linesCopy.splice(source.index, 1); // Remove item from source
-        linesCopy.splice(destination.index, 0, removed); // Insert item at destination
-
-        setCurrentLines(linesCopy);
-        setEditingLineId(null); // Stop editing after reorder
-    };
-    // --- End Drag and Drop Handler ---
+    // --- Drag and Drop Handler (Removed - To be replaced with dnd-kit) ---
 
 
     const handleSaveScene = () => {
