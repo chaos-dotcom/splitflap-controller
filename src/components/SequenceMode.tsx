@@ -252,30 +252,34 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
         if (isPlaying || currentLines.length === 0 || !isConnected) return;
 
         setIsPlaying(true);
-        let lineIndex = 0;
+        let lineIndex = 0; // Index of the line to be sent NEXT
 
-        const playNextLine = () => {
-            // Get the line that was *just* displayed (or starting condition)
-            const previousLineIndex = lineIndex - 1;
-            const currentLineDuration = previousLineIndex >= 0
-                ? currentLines[previousLineIndex].durationMs ?? 1000 // Use duration of the line just shown
-                : 0; // No delay before the first line
+        const scheduleNextLine = (delay: number) => {
+            timeoutRef.current = setTimeout(() => {
+                if (lineIndex >= currentLines.length) {
+                    // We have displayed all lines and waited for the last one's duration
+                    setIsPlaying(false);
+                    timeoutRef.current = null;
+                    return;
+                }
 
-            if (lineIndex >= currentLines.length) { // Check if we've processed all lines
-                setIsPlaying(false); // Finished playing
-                timeoutRef.current = null;
-                return;
-            }
+                // Send the current line
+                const lineToSend = currentLines[lineIndex];
+                onSendMessage(lineToSend.text);
+                console.log(`Sent line ${lineIndex + 1}: "${lineToSend.text}", waiting ${lineToSend.durationMs ?? 1000}ms`);
 
-            const line = currentLines[lineIndex];
-            onSendMessage(line.text); // Send the line to be displayed now
-            lineIndex++; // Move to the next line index for the *next* iteration
+                // Prepare for the next line
+                const durationForCurrentLine = lineToSend.durationMs ?? 1000;
+                lineIndex++;
 
-            // Schedule the *next* call to playNextLine after the current line's duration
-            timeoutRef.current = setTimeout(playNextLine, currentLineDuration);
+                // Schedule the next call after the current line's duration
+                scheduleNextLine(durationForCurrentLine);
+
+            }, delay); // Use the provided delay for this timeout
         };
 
-        playNextLine(); // Start the sequence
+        // Start immediately (delay 0) for the first line
+        scheduleNextLine(0);
     };
 
      const handleStopScene = () => {
