@@ -209,11 +209,12 @@ function App() {
 
       {/* Mode Selector */}
       <div className="mode-selector">
-          <button onClick={() => setCurrentMode('text')} disabled={currentMode === 'text'}>Text Input Mode</button>
-          <button onClick={() => setCurrentMode('train')} disabled={currentMode === 'train'}>Train Timetable Mode</button>
-          <button onClick={() => setCurrentMode('sequence')} disabled={currentMode === 'sequence'}>Sequence Mode</button>
-          <button onClick={() => setCurrentMode('clock')} disabled={currentMode === 'clock'}>Clock Mode</button>
-          <button onClick={() => setCurrentMode('stopwatch')} disabled={currentMode === 'stopwatch'}>Stopwatch Mode</button>
+          {/* Use handleSetMode to request change via backend */}
+          <button onClick={() => handleSetMode('text')} disabled={currentMode === 'text'}>Text Input</button>
+          <button onClick={() => handleSetMode('train')} disabled={currentMode === 'train'}>Train Times</button>
+          <button onClick={() => handleSetMode('sequence')} disabled={currentMode === 'sequence'}>Sequence</button>
+          <button onClick={() => handleSetMode('clock')} disabled={currentMode === 'clock'}>Clock</button>
+          <button onClick={() => handleSetMode('stopwatch')} disabled={currentMode === 'stopwatch'}>Stopwatch</button>
       </div>
 
       {/* Mode Specific Controls */}
