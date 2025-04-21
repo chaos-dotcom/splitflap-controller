@@ -10,6 +10,7 @@
   border: 1px solid var(--govuk-border-colour);
   border-radius: 3px;
   box-shadow: var(--govuk-shadow-1);
+  outline: 3px solid red !important; /* TEMPORARY DEBUGGING OUTLINE */
 }
 
 /* Style draggable handle on heading */
