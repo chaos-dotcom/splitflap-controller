@@ -101,17 +101,20 @@
     justify-content: center; /* Center the handle icon */
     padding-right: 5px; /* Space between handle and display/input */
     user-select: none; /* Prevent text selection */
+    touch-action: none; /* Improve touch dragging */
 }
 .line-list li .drag-handle:active {
     cursor: grabbing;
 }
 
-/* Style for the list item while it's being dragged */
-.line-list li.dragging {
-    opacity: 0.5;
+/* Style applied via inline style using isDragging from useSortable */
+.line-list li.dragging-style {
+    /* opacity: 0.5; */ /* Applied via inline style */
     background-color: #d0e0f0; /* Optional: change background while dragging */
     box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Add a shadow */
+    /* z-index is also applied inline */
 }
+
 
 /* Ensure the small display takes up appropriate space */
 .line-list li .split-flap-display.small {
