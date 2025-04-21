@@ -22,10 +22,11 @@ const HA_MODE_SELECTOR_ID = 'splitflap_mode'; // Unique ID for the mode selector
 const HA_MODE_SELECTOR_NAME = 'Split-Flap Mode'; // Name for the mode selector entity
 const HA_AVAILABILITY_TOPIC = `${HA_DEVICE_ID}/status`; // Topic for online/offline status
 
-// Define the topics for the mode selector entity
+// Define the topics for the mode selector entity using HA standard structure
 const haModeConfigTopic = `${HA_DISCOVERY_PREFIX}/select/${HA_MODE_SELECTOR_ID}/config`;
-const haModeStateTopic = `${HA_DEVICE_ID}/mode/state`; // Topic to publish the current mode to
-const haModeCommandTopic = `${HA_DEVICE_ID}/mode/command`; // Topic to receive mode commands from HA
+// State and command topics nested under the entity's discovery path
+const haModeStateTopic = `${HA_DISCOVERY_PREFIX}/select/${HA_MODE_SELECTOR_ID}/state`;
+const haModeCommandTopic = `${HA_DISCOVERY_PREFIX}/select/${HA_MODE_SELECTOR_ID}/set`; // Use /set convention
 
 // Define the available modes for the HA select entity
 const HA_MODES: ControlMode[] = ['text', 'train', 'sequence', 'clock', 'stopwatch', 'timer'];
@@ -368,8 +369,8 @@ const setBackendMode = (newMode: ControlMode, source: 'socket' | 'mqtt') => {
         });
     }
 
-    // --- Publish state update to HA ---
-    mqttClient.publish(haModeStateTopic, currentAppMode, { retain: true }); // Publish retained state
+    // --- Publish state update to HA (using the updated haModeStateTopic variable) ---
+    mqttClient.publish(haModeStateTopic, currentAppMode, { retain: true });
 
     // --- Broadcast mode change to Socket.IO clients ---
     console.log(`[Socket.IO] Emitting modeUpdate event to all clients: ${currentAppMode}`); // <-- ADD LOG
@@ -779,11 +780,13 @@ const handleMqttMessage = (topic: string, message: Buffer) => {
         // MQTT client connected/reconnected
         haDiscoveryPublished = false; // Reset flag on new connection
         publishHaDiscoveryConfig();
+        // Subscribe to the *new* command topic
+        mqttClient.subscribe(haModeCommandTopic);
         // Publish initial state *after* subscribing
         mqttClient.publish(haModeStateTopic, currentAppMode, { retain: true });
         // Publish availability status *after* subscribing
         mqttClient.publish(HA_AVAILABILITY_TOPIC, 'online', { retain: true });
-    } else if (topic === haModeCommandTopic) {
+    } else if (topic === haModeCommandTopic) { // Check against the updated variable
         // Received a command from Home Assistant to change the mode
         const requestedMode = messageStr as ControlMode;
         if (HA_MODES.includes(requestedMode)) {
