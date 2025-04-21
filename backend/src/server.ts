@@ -9,10 +9,25 @@ import axios from 'axios'; // Import axios for internal API call
 // Adjust the path below if your 'src' and 'backend' folders have a different relationship
 // Assuming types are now defined ONLY in the frontend's src/types
 // If you create a shared types package later, adjust this import
-import { ControlMode, Scene, SceneLine, Departure } from '../../src/types'; // Added Departure, Timer types implicitly used
+import { ControlMode, Scene, SceneLine, Departure } from '../../src/types';
 
 // Load environment variables from .env file
 dotenv.config();
+
+// --- Home Assistant MQTT Discovery Configuration ---
+const HA_DISCOVERY_PREFIX = 'homeassistant'; // Default HA discovery prefix
+const HA_DEVICE_ID = 'splitflap_controller'; // Unique ID for the device in HA
+const HA_DEVICE_NAME = 'Split-Flap Controller'; // Name for the device in HA
+const HA_MODE_SELECTOR_ID = 'splitflap_mode'; // Unique ID for the mode selector entity
+const HA_MODE_SELECTOR_NAME = 'Split-Flap Mode'; // Name for the mode selector entity
+
+// Define the topics for the mode selector entity
+const haModeConfigTopic = `${HA_DISCOVERY_PREFIX}/select/${HA_MODE_SELECTOR_ID}/config`;
+const haModeStateTopic = `${HA_DEVICE_ID}/mode/state`; // Topic to publish the current mode to
+const haModeCommandTopic = `${HA_DEVICE_ID}/mode/command`; // Topic to receive mode commands from HA
+
+// Define the available modes for the HA select entity
+const HA_MODES: ControlMode[] = ['text', 'train', 'sequence', 'clock', 'stopwatch', 'timer'];
 
 // --- Constants ---
 const SPLITFLAP_DISPLAY_LENGTH = 12; // Use consistent naming
@@ -114,6 +129,7 @@ let timerInterval: NodeJS.Timeout | null = null;
 let timerTargetMs: number = 0; // The duration the timer was set for
 let timerRemainingMs: number = 0; // How much time is left
 let timerIsRunning: boolean = false;
+let haDiscoveryPublished = false; // Flag to track if discovery config has been sent
 // --- End Application State ---
 
 // --- Middleware ---
@@ -303,9 +319,68 @@ const updateDisplayAndBroadcast = (newText: string, sourceMode?: ControlMode) =>
     }
 };
 
+// --- Refactored Mode Setting Logic ---
+const setBackendMode = (newMode: ControlMode, source: 'socket' | 'mqtt') => {
+    if (currentAppMode === newMode) {
+        console.log(`[Mode Change] Mode is already ${newMode}. Ignoring request from ${source}.`);
+        return; // Already in the requested mode
+    }
+
+    console.log(`[Mode Change] Request to switch from ${currentAppMode} to ${newMode} (Source: ${source})`);
+
+    // Stop previous timed modes *before* setting the new mode
+    stopAllTimedModes({ resetStopwatch: false });
+
+    currentAppMode = newMode;
+
+    // Handle mode-specific initial actions AFTER stopping old mode timers
+    if (newMode === 'clock') {
+        startBackendClock(); // Start the clock interval
+    } else if (newMode === 'train') {
+        // Send last known departure data when switching TO train mode
+        if (currentTrainRoute) { // If a route was previously active, fetch and update display
+            fetchAndProcessDepartures(currentTrainRoute); // This will update display and emit trainDataUpdate
+        } else { // Otherwise send last known display text or blank
+            updateDisplayAndBroadcast(currentDisplayText); // Send current text (might be from another mode)
+            // Send empty departures if no route was active
+            io.emit('trainDataUpdate', { departures: lastFetchedDepartures }); // Send last known list (might be empty)
+        }
+    } else if (newMode === 'stopwatch') {
+        // Send current stopwatch state immediately
+        updateDisplayAndBroadcast(formatStopwatchTime(stopwatchElapsedTime), 'stopwatch'); // Specify source mode
+        // Send running state too
+        io.emit('stopwatchUpdate', { elapsedTime: stopwatchElapsedTime, isRunning: isStopwatchRunning });
+    } else if (newMode === 'text') {
+        // Ensure display shows current text state
+        updateDisplayAndBroadcast(currentDisplayText); // Manual update source
+    } else if (newMode === 'sequence') {
+         // Ensure display shows current text state (or maybe last line of sequence?)
+         updateDisplayAndBroadcast(currentDisplayText); // Manual update source
+    } else if (newMode === 'timer') {
+        // Send current timer state immediately
+        updateDisplayAndBroadcast(formatTimerTime(timerRemainingMs), 'timer');
+        // Send running state too
+        io.emit('timerUpdate', {
+            targetMs: timerTargetMs,
+            remainingMs: timerRemainingMs,
+            isRunning: timerIsRunning
+        });
+    }
+
+    // --- Publish state update to HA ---
+    mqttClient.publish(haModeStateTopic, currentAppMode, { retain: true }); // Publish retained state
+
+    // --- Broadcast mode change to Socket.IO clients ---
+    io.emit('modeUpdate', { mode: currentAppMode });
+
+    console.log(`[Mode Change] Successfully switched to ${currentAppMode}.`);
+};
+// --- End Refactored Mode Setting Logic ---
+
+
 // Function to stop all timed modes
 const stopAllTimedModes = (options: { resetStopwatch?: boolean } = {}) => {
-    console.log(`[Timer] Stopping all timed modes... (Reset SW: ${!!options.resetStopwatch}, Current Mode: ${currentAppMode})`);
+    console.log(`[Mode Logic] Stopping all timed modes... (Reset SW: ${!!options.resetStopwatch}, Current Mode: ${currentAppMode})`); // Changed log context
     if (clockInterval) clearInterval(clockInterval);
     if (stopwatchInterval) clearInterval(stopwatchInterval);
     if (sequenceTimeout) clearTimeout(sequenceTimeout);
@@ -320,7 +395,7 @@ const stopAllTimedModes = (options: { resetStopwatch?: boolean } = {}) => {
     isSequencePlaying = false; // Ensure sequence state is updated
 
     if (options.resetStopwatch) {
-        console.log('[Stopwatch] Resetting stopwatch state.'); // Corrected log context
+        console.log('[Mode Logic] Resetting stopwatch state.'); // Changed log context
         stopwatchElapsedTime = 0;
         stopwatchStartTime = 0;
     }
@@ -648,6 +723,60 @@ const stopBackendSequence = () => {
     io.emit('sequenceStopped'); // Inform clients
 };
 
+// --- Home Assistant MQTT Integration ---
+
+const publishHaDiscoveryConfig = () => {
+    if (haDiscoveryPublished) return; // Only publish once per connection usually
+
+    const devicePayload = {
+        identifiers: [HA_DEVICE_ID],
+        name: HA_DEVICE_NAME,
+        manufacturer: "Split-Flap Controller Backend", // Optional
+        model: "Software Controller v1.0", // Optional
+        // sw_version: "1.0.0" // Optional
+    };
+
+    const configPayload = {
+        name: HA_MODE_SELECTOR_NAME, // Name shown in HA UI
+        unique_id: HA_MODE_SELECTOR_ID, // Unique ID for this entity
+        device: devicePayload, // Link to the device
+        state_topic: haModeStateTopic, // Topic to read the current mode from
+        command_topic: haModeCommandTopic, // Topic to send mode change commands to
+        options: HA_MODES, // List of available modes
+        qos: 0, // Quality of Service for commands/state
+        retain: true // Retain the config message so HA finds it on restart
+    };
+
+    console.log(`[HA MQTT] Publishing discovery config to ${haModeConfigTopic}`);
+    mqttClient.publish(haModeConfigTopic, JSON.stringify(configPayload), { retain: true });
+    haDiscoveryPublished = true; // Mark as published for this connection cycle
+};
+
+const handleMqttMessage = (topic: string, message: Buffer) => {
+    const messageStr = message.toString();
+    console.log(`[MQTT Handler] Received message on topic ${topic}: ${messageStr}`);
+
+    if (topic === 'internal/connect') {
+        // MQTT client connected/reconnected
+        haDiscoveryPublished = false; // Reset flag on new connection
+        publishHaDiscoveryConfig();
+        // Subscribe to the command topic *after* publishing config
+        mqttClient.subscribe(haModeCommandTopic);
+        // Publish initial state *after* subscribing
+        mqttClient.publish(haModeStateTopic, currentAppMode, { retain: true });
+    } else if (topic === haModeCommandTopic) {
+        // Received a command from Home Assistant to change the mode
+        const requestedMode = messageStr as ControlMode;
+        if (HA_MODES.includes(requestedMode)) {
+            console.log(`[HA MQTT] Received mode command: ${requestedMode}`);
+            setBackendMode(requestedMode, 'mqtt'); // Use the refactored function
+        } else {
+            console.warn(`[HA MQTT] Received invalid mode command: ${requestedMode}`);
+        }
+    }
+    // Add handlers for other subscribed topics if needed
+};
+
 
 // --- Socket.IO Connection Handling ---
 io.on('connection', (socket: Socket) => {
@@ -695,51 +824,10 @@ io.on('connection', (socket: Socket) => {
         socket.emit('mqttStatus', mqttClient.getDisplayConnectionStatus());
     });
 
+    // Use the refactored mode setting function
     socket.on('setMode', (mode: ControlMode) => {
         console.log(`[Socket.IO] Received setMode: ${mode} from ${socket.id}`);
-        if (currentAppMode !== mode) {
-            console.log(`[Mode Change] Switching from ${currentAppMode} to ${mode}`);
-            // Stop previous timed modes *before* setting the new mode
-            // This prevents starting a new mode's logic while the old one might still be stopping
-            stopAllTimedModes({ resetStopwatch: false });
-
-            currentAppMode = mode;
-            // Handle mode-specific initial actions AFTER stopping old mode timers
-            if (mode === 'clock') {
-                startBackendClock(); // Start the clock interval
-            } else if (mode === 'train') {
-                // Send last known departure data when switching TO train mode
-                if (currentTrainRoute) { // If a route was previously active, fetch and update display
-                    fetchAndProcessDepartures(currentTrainRoute); // This will update display and emit trainDataUpdate
-                } else { // Otherwise send last known display text or blank
-                    updateDisplayAndBroadcast(currentDisplayText); // Send current text (might be from another mode)
-                    // Send empty departures if no route was active
-                    socket.emit('trainDataUpdate', { departures: lastFetchedDepartures }); // Send last known list (might be empty)
-                }
-            } else if (mode === 'stopwatch') {
-                // Send current stopwatch state immediately
-                updateDisplayAndBroadcast(formatStopwatchTime(stopwatchElapsedTime), 'stopwatch'); // Specify source mode
-                // Send running state too
-                socket.emit('stopwatchUpdate', { elapsedTime: stopwatchElapsedTime, isRunning: isStopwatchRunning });
-            } else if (mode === 'text') {
-                // Ensure display shows current text state
-                updateDisplayAndBroadcast(currentDisplayText); // Manual update source
-            } else if (mode === 'sequence') {
-                 // Ensure display shows current text state (or maybe last line of sequence?)
-                 updateDisplayAndBroadcast(currentDisplayText); // Manual update source
-            } else if (mode === 'timer') {
-                // Send current timer state immediately
-                updateDisplayAndBroadcast(formatTimerTime(timerRemainingMs), 'timer');
-                // Send running state too
-                socket.emit('timerUpdate', {
-                    targetMs: timerTargetMs,
-                    remainingMs: timerRemainingMs,
-                    isRunning: timerIsRunning
-                });
-            }
-            // Broadcast mode change to all clients so UI can update if needed
-            io.emit('modeUpdate', { mode: currentAppMode });
-        }
+        setBackendMode(mode, 'socket');
     });
 
     socket.on('setText', (data: { text: string }) => {
@@ -857,7 +945,8 @@ io.engine.on("connection_error", (err) => {
 });
 
 // --- Start Servers ---
-httpServer.listen(port, () => { // Use httpServer for Socket.IO
+httpServer.listen(port, () => {
     console.log(`[Server] HTTP & WebSocket server listening on http://localhost:${port}`);
-    mqttClient.connectToDisplayBroker(); // Connect to the display MQTT broker on startup
+    // Connect to MQTT and pass the message handler
+    mqttClient.connectToDisplayBroker(handleMqttMessage);
 });

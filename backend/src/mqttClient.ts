@@ -11,6 +11,9 @@ const password = process.env.DISPLAY_MQTT_PASSWORD;
 let client: MqttClient | null = null;
 let connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'error' = 'disconnected';
 let lastError: string | null = null;
+// Define a type for the message handler callback
+type MessageHandler = (topic: string, message: Buffer) => void;
+let messageHandler: MessageHandler | null = null; // Store the handler
 
 const options: IClientOptions = {
     clientId: `splitflap_backend_${Math.random().toString(16).substr(2, 8)}`,
@@ -22,9 +25,12 @@ const options: IClientOptions = {
     ...(password && { password }),
 };
 
-export const connectToDisplayBroker = (): void => {
-    if (!brokerUrl || !publishTopic) {
-        console.error('[MQTT Client] Error: DISPLAY_MQTT_BROKER_URL and DISPLAY_MQTT_TOPIC must be set in .env');
+// Modified connect function to accept the message handler
+export const connectToDisplayBroker = (handler: MessageHandler): void => {
+    messageHandler = handler; // Store the handler
+
+    if (!brokerUrl) { // Only brokerUrl is strictly required to connect
+        console.error('[MQTT Client] Error: DISPLAY_MQTT_BROKER_URL must be set in .env');
         connectionStatus = 'error';
         lastError = 'Missing MQTT configuration in .env';
         return;
@@ -44,8 +50,21 @@ export const connectToDisplayBroker = (): void => {
         console.log('[MQTT Client] Connected successfully to display broker.');
         connectionStatus = 'connected';
         lastError = null;
-        // Optionally subscribe to status topics from the display itself here if needed
+        // Call the handler to signal connection (e.g., for publishing discovery)
+        if (messageHandler) {
+            messageHandler('internal/connect', Buffer.from('connected'));
+        }
+        // No automatic subscriptions here anymore
     });
+
+    // Add message listener
+    client.on('message', (topic, message) => {
+        // console.log(`[MQTT Client] Received message on topic ${topic}: ${message.toString()}`); // Optional: Log received messages
+        if (messageHandler) {
+            messageHandler(topic, message); // Pass to the registered handler
+        }
+    });
+
 
     client.on('error', (err) => {
         console.error('[MQTT Client] Connection error:', err.message);
@@ -88,6 +107,39 @@ export const publishToDisplay = (message: string): boolean => {
     });
     return true;
 };
+
+// Generic publish function
+export const publish = (topic: string, message: string | Buffer, options?: mqtt.IClientPublishOptions): boolean => {
+    if (!client || !client.connected) {
+        console.warn(`[MQTT Client] Cannot publish to ${topic}: Not connected.`);
+        return false;
+    }
+    client.publish(topic, message, options ?? { qos: 0, retain: false }, (err) => {
+        if (err) {
+            console.error(`[MQTT Client] Failed to publish message to topic "${topic}":`, err);
+        } else {
+             console.log(`[MQTT Client] Published to ${topic}`); // Simplified log
+        }
+    });
+    return true;
+};
+
+// Subscribe function
+export const subscribe = (topic: string, options?: mqtt.IClientSubscribeOptions): boolean => {
+     if (!client || !client.connected) {
+        console.warn(`[MQTT Client] Cannot subscribe to ${topic}: Not connected.`);
+        return false;
+    }
+    client.subscribe(topic, options ?? { qos: 0 }, (err, granted) => {
+        if (err) {
+            console.error(`[MQTT Client] Failed to subscribe to topic "${topic}":`, err);
+        } else {
+            console.log(`[MQTT Client] Subscribed successfully to topic "${topic}" (Granted QoS: ${granted[0]?.qos})`);
+        }
+    });
+    return true;
+};
+
 
 export const disconnectFromDisplayBroker = (): void => {
     if (client) {
