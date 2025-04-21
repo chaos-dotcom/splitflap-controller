@@ -30,7 +30,7 @@ export const connectToDisplayBroker = (): void => {
         return;
     }
 
-    if (client && (client.connected || client.connecting)) {
+    if (client && (client.connected || client.reconnecting)) { // Use 'reconnecting' instead of 'connecting'
         console.log('[MQTT Client] Already connected or connecting.');
         return;
     }
