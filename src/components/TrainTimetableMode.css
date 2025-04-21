@@ -24,7 +24,7 @@
   --tt-send-button-disabled-bg: #ccc;
   --tt-info-text: #666;
   --tt-error-text: red;
-
+ 
   border: 1px solid var(--tt-border-color);
   padding: 15px;
   margin-top: 15px;
