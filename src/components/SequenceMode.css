@@ -4,13 +4,13 @@
 .sequence-mode {
   /* Keep top margin if needed for separation from mode buttons */
   margin-top: 15px;
-  /* Add GDS panel styles */
-  background-color: var(--govuk-colour-white);
-  padding: var(--govuk-spacing-6); /* Apply padding here */
-  border: 1px solid var(--govuk-border-colour);
+  /* Add GDS panel styles - Hardcoded values */
+  background-color: #ffffff; /* GDS White */
+  padding: 40px; /* Increased padding (was GDS spacing 6 ~30px, now GDS 8 ~40px) */
+  border: 1px solid #b1b4b6; /* GDS Border colour */
   border-radius: 3px;
-  box-shadow: var(--govuk-shadow-1);
-  outline: 3px solid red !important; /* TEMPORARY DEBUGGING OUTLINE */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* GDS Shadow approximation */
+  /* Outline removed */
 }
 
 /* Style draggable handle on heading */
