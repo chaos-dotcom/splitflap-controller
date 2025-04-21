@@ -44,43 +44,52 @@ function App() {
         /* ... commented out body ... */
        console.log('[App] Received initial state, but processing is currently commented out.');
       },
-      // onDisplayUpdate (Simplified)
-      (data) => console.log('[App] Received displayUpdate (callback simplified)', data),
-      // onModeUpdate (Simplified)
-      (data) => console.log('[App] Received modeUpdate (callback simplified)', data),
-      // onMqttStatus (Simplified)
-      (status) => console.log('[App] Received mqttStatus (callback simplified)', status),
-      // onStopwatchUpdate (Simplified)
-      (data) => console.log('[App] Received stopwatchUpdate (callback simplified)', data),
-      // onTimerUpdate (Simplified) - Assuming it exists in your service connect args
-      (data) => console.log('[App] Received timerUpdate (callback simplified)', data),
-      // onTrainDataUpdate (Simplified)
-      (data) => console.log('[App] Received trainDataUpdate (callback simplified)', data),
-      // onSequenceStopped (Simplified)
-      () => console.log('[App] Received sequenceStopped (callback simplified)'),
-      // onConnect (Simplified)
-      () => {
+      // onDisplayUpdate (Restore original logic)
+      (data) => setDisplayText(data.text), // <-- RESTORE
+      // onModeUpdate (Restore original logic)
+      (data) => { // <-- RESTORE BLOCK
+        console.log(`[App] Received modeUpdate from backend: ${data.mode}`);
+        setCurrentMode(data.mode);
+      }, // <-- RESTORE BLOCK
+      // onMqttStatus (Restore original logic)
+      (status) => setDisplayMqttStatus(status), // <-- RESTORE
+      // onStopwatchUpdate (Restore original logic)
+      (data) => { // <-- RESTORE BLOCK
+          setStopwatchIsRunningBackend(data.isRunning);
+          // Display is updated via displayUpdate, but we could force it here if needed
+          // setDisplayText(formatStopwatchTime(data.elapsedTime)); // Requires formatStopwatchTime here
+      }, // <-- RESTORE BLOCK
+      // onTimerUpdate (Restore original logic - assuming it exists)
+      (data) => { /* Handle timer update if needed */ console.log('[App] Received timerUpdate', data); }, // <-- RESTORE (or add placeholder)
+      // onTrainDataUpdate (Restore original logic)
+      (data) => { // <-- RESTORE BLOCK
+          console.log('[App] Received trainDataUpdate', data);
+          // Ensure departures is always an array
+          setCurrentDepartures(data.departures || []); // Update departures list
+          if (data.error) { setBackendError(`Train Data Error: ${data.error}`); } // Show error if backend sent one
+      }, // <-- RESTORE BLOCK
+      // onSequenceStopped (Restore original logic)
+      () => { /* Handle sequence stopped if needed */ console.log('[App] Received sequenceStopped (callback restored)'); }, // <-- RESTORE
+      // onConnect (Restore original logic)
+      () => { // <-- RESTORE BLOCK
         console.log('[App] Socket connected (onConnect callback)');
-        // Temporarily disable state updates here too
-        // setIsConnectedToBackend(true);
-        // setBackendError(null);
-        // socketService.emitGetMqttStatus(); // Don't emit anything automatically for now
-      },
-      // onDisconnect (Simplified)
-      (reason) => {
+        setIsConnectedToBackend(true);
+        setBackendError(null);
+        socketService.emitGetMqttStatus(); // Ask for MQTT status on connect
+      }, // <-- RESTORE BLOCK
+      // onDisconnect (Restore original logic)
+      (reason) => { // <-- RESTORE BLOCK
         console.log(`[App] Socket disconnected (onDisconnect callback): ${reason}`);
-        // Temporarily disable state updates here too
-        // setIsConnectedToBackend(false);
-        // setBackendError(`Disconnected: ${reason}`);
-        // setDisplayMqttStatus({ status: 'unknown', error: null });
-      },
-      // onError (Simplified)
-      (message) => {
+        setIsConnectedToBackend(false);
+        setBackendError(`Disconnected: ${reason}`);
+        setDisplayMqttStatus({ status: 'unknown', error: null }); // Reset MQTT status
+      }, // <-- RESTORE BLOCK
+      // onError (Restore original logic)
+      (message) => { // <-- RESTORE BLOCK
         console.error(`[App] Socket error (onError callback): ${message}`);
-        // Temporarily disable state updates here too
-        // setIsConnectedToBackend(false);
-        // setBackendError(message);
-      }
+        setIsConnectedToBackend(false); // Assume disconnect on error
+        setBackendError(message);
+      } // <-- RESTORE BLOCK
     );
 
     // Cleanup on unmount
