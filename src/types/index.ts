@@ -21,3 +21,10 @@ export interface Scene {
     lines: SceneLine[];
     // delayMs is removed, now part of SceneLine
 }
+
+// Interface for saved train route presets
+export interface TrainRoutePreset {
+    name: string; // User-defined name (e.g., "Home to Work")
+    fromCRS: string; // 3-letter code
+    toCRS?: string; // Optional 3-letter code
+}

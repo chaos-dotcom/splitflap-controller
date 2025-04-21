@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DISPLAY_LENGTH } from '../constants'; // Import display length
 import './TrainTimetableMode.css';
-import { Scene, SceneLine } from '../../src/types'; // Import Scene types
+import { Scene, SceneLine, TrainRoutePreset } from '../../src/types'; // Import types
 
 // Define the structure for departure data (as discussed)
 interface Departure {
@@ -16,15 +16,18 @@ interface Departure {
 // Define the props for the component
 interface TrainTimetableModeProps {
     isConnected: boolean;
-    onSendMessage: (message: string) => void; // For sending single lines
+    onSendMessage: (message: string) => void; // For sending single lines (from Send button)
     onPlayScene: (scene: Scene) => void; // For sending sequences
 }
+
+const PRESET_STORAGE_KEY = 'trainTimetablePresets';
 
 const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, onSendMessage, onPlayScene }) => {
     const [fromStation, setFromStation] = useState<string>(''); // e.g., KGX
     const [toStation, setToStation] = useState<string>('');   // e.g., EDB (optional)
     const [departures, setDepartures] = useState<Departure[]>([]);
     const [selectedDepartureIds, setSelectedDepartureIds] = useState<Set<string>>(new Set()); // State for selected rows
+    const [savedPresets, setSavedPresets] = useState<TrainRoutePreset[]>([]); // State for presets
     const [isLoading, setIsLoading] = useState<boolean>(false); // Keep loading state for manual refresh
     const [error, setError] = useState<string | null>(null);
     const [formattedDisplayStrings, setFormattedDisplayStrings] = useState<string[]>([]); // State for formatted strings
@@ -37,6 +40,19 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
         const parts = timeString.split(':');
         return { hour: parseInt(parts[0], 10), minute: parseInt(parts[1], 10) };
     };
+
+    // Load presets from localStorage on mount
+    useEffect(() => {
+        const storedPresets = localStorage.getItem(PRESET_STORAGE_KEY);
+        if (storedPresets) {
+            try {
+                setSavedPresets(JSON.parse(storedPresets));
+            } catch (e) {
+                console.error("Failed to parse saved presets from localStorage", e);
+                localStorage.removeItem(PRESET_STORAGE_KEY);
+            }
+        }
+    }, []); // Empty dependency array ensures this runs only once on mount
 
     // Effect to calculate formatted display strings whenever departures change
     useEffect(() => {
@@ -84,23 +100,27 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     }, [departures]); // Recalculate when departures data changes
 
     // Placeholder function to simulate fetching data from the backend
-    const fetchDepartures = async () => {
-        if (!fromStation) {
+    // Modified to accept station codes as arguments
+    const fetchDepartures = async (fetchFromCRS: string, fetchToCRS?: string) => {
+        if (!fetchFromCRS) {
             setError("Please enter a 'From' station CRS code.");
             setDepartures([]);
             return;
         }
+        // Update state visually immediately if called from preset selection
+        setFromStation(fetchFromCRS);
+        setToStation(fetchToCRS || '');
+
         setIsLoading(true);
         setError(null);
-        console.log(`Fetching departures from backend: from=${fromStation}, to=${toStation || 'any'}`);
+        console.log(`Fetching departures from backend: from=${fetchFromCRS}, to=${fetchToCRS || 'any'}`);
 
         // Construct the API URL
-        // Ensure the backend URL is configurable or uses environment variables in a real app
         const backendUrl = 'http://localhost:3001'; // Assuming backend runs on port 3001
         const apiUrl = new URL('/api/departures', backendUrl);
-        apiUrl.searchParams.append('from', fromStation);
-        if (toStation) {
-            apiUrl.searchParams.append('to', toStation);
+        apiUrl.searchParams.append('from', fetchFromCRS);
+        if (fetchToCRS) {
+            apiUrl.searchParams.append('to', fetchToCRS);
         }
 
         try {
@@ -179,6 +199,72 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
         onPlayScene(scene); // Send the generated scene to the backend
     };
 
+    // --- Preset Handlers ---
+    const handleSavePreset = () => {
+        if (!fromStation || fromStation.length !== 3) {
+            alert("Please enter a valid 3-letter 'From' station code first.");
+            return;
+        }
+        const presetName = prompt("Enter a name for this route preset:", `${fromStation}${toStation ? ` to ${toStation}` : ''}`);
+        if (!presetName || presetName.trim() === '') return;
+
+        const newPreset: TrainRoutePreset = {
+            name: presetName.trim(),
+            fromCRS: fromStation,
+            toCRS: toStation || undefined, // Store empty string as undefined
+        };
+
+        // Avoid duplicate names (simple check)
+        if (savedPresets.some(p => p.name === newPreset.name)) {
+            if (!confirm(`A preset named "${newPreset.name}" already exists. Overwrite it?`)) {
+                return;
+            }
+        }
+
+        const updatedPresets = [...savedPresets.filter(p => p.name !== newPreset.name), newPreset];
+        updatedPresets.sort((a, b) => a.name.localeCompare(b.name)); // Keep sorted
+        setSavedPresets(updatedPresets);
+        localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(updatedPresets));
+        alert(`Preset "${newPreset.name}" saved!`);
+    };
+
+    const handleSelectPreset = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedName = event.target.value;
+        const selectedPreset = savedPresets.find(p => p.name === selectedName);
+        if (selectedPreset) {
+            // Call fetchDepartures directly with the preset's values
+            fetchDepartures(selectedPreset.fromCRS, selectedPreset.toCRS);
+        } else {
+            // Handle "-- Select Preset --" selection if needed (e.g., clear inputs)
+            // setFromStation('');
+            // setToStation('');
+            // setDepartures([]);
+        }
+    };
+
+    const handleDeletePreset = () => {
+        const selectElement = document.getElementById('presetSelector') as HTMLSelectElement;
+        const selectedName = selectElement?.value;
+        if (!selectedName || !savedPresets.some(p => p.name === selectedName)) {
+            alert("Please select a preset from the list to delete.");
+            return;
+        }
+
+        if (confirm(`Are you sure you want to delete the preset "${selectedName}"?`)) {
+            const updatedPresets = savedPresets.filter(p => p.name !== selectedName);
+            setSavedPresets(updatedPresets);
+            localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(updatedPresets));
+            alert(`Preset "${selectedName}" deleted.`);
+            // Optionally clear inputs if the deleted preset was loaded
+            const deletedPreset = savedPresets.find(p => p.name === selectedName); // Find *before* filtering state
+            if (deletedPreset && fromStation === deletedPreset.fromCRS && toStation === (deletedPreset.toCRS || '')) {
+                setFromStation('');
+                setToStation('');
+                setDepartures([]);
+            }
+        }
+    };
+    // --- End Preset Handlers ---
 
     return (
         <div className="train-timetable-mode">
