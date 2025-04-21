@@ -379,7 +379,12 @@ const playNextSequenceLine = () => {
 };
 
 const startBackendSequence = (scene: Scene) => {
-    if (isSequencePlaying || scene.lines.length === 0) return;
+    // Add log to check state *before* the guard clause
+    console.log(`[Sequence] Inside startBackendSequence. isSequencePlaying: ${isSequencePlaying}, lines: ${scene.lines.length}`);
+    if (isSequencePlaying || scene.lines.length === 0) { // Explicitly log if aborted
+        console.log(`[Sequence] Start aborted. isPlaying: ${isSequencePlaying}, lines: ${scene.lines.length}`);
+        return;
+    }
     stopAllTimedModes();
     console.log(`[Sequence] Starting sequence: ${scene.name}`);
     isSequencePlaying = true;
@@ -487,6 +492,8 @@ io.on('connection', (socket: Socket) => {
 
     socket.on('playSequence', (data: { scene: Scene }) => {
         console.log(`[Socket.IO] Received playSequence: ${data.scene.name} from ${socket.id}.`);
+        // Add log to check the current mode on the backend when the event arrives
+        console.log(`[Socket.IO] Current backend mode is: ${currentAppMode}`);
         if (currentAppMode === 'sequence') {
             startBackendSequence(data.scene);
         }
