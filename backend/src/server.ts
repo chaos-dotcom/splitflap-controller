@@ -763,7 +763,7 @@ const publishHaDiscoveryConfig = () => {
         payload_not_available: "offline",
         // Add origin information
         origin: originPayload,
-        // platform: "select", // Removed platform key as it should be derived from the topic
+        platform: "select", // Re-adding platform key for potentially better compatibility
     };
 
     console.log(`[HA MQTT] Publishing discovery config to ${haModeConfigTopic}`);
