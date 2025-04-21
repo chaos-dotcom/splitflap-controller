@@ -41,11 +41,12 @@ interface SortableLineItemProps {
     handleLineBlur: () => void; // Renamed from handleFinishEditing for clarity here
     handleDurationChange: (id: string, duration: number) => void;
     handleDeleteLine: (id: string) => void;
+    handleDuplicateLine: (id: string) => void; // Add duplicate handler prop
 }
 
 const SortableLineItem: React.FC<SortableLineItemProps> = ({
     line, isPlaying, editingLineId, handleLineClick, handleLineTextChange,
-    handleLineEnter, handleLineBlur, handleDurationChange, handleDeleteLine
+    handleLineEnter, handleLineBlur, handleDurationChange, handleDeleteLine, handleDuplicateLine // Destructure new prop
 }) => {
     const {
         attributes,
@@ -91,6 +92,8 @@ const SortableLineItem: React.FC<SortableLineItemProps> = ({
             )}
             <input type="number" className="line-duration-input" value={line.durationMs ?? 1000} onChange={(e) => handleDurationChange(line.id, parseInt(e.target.value, 10))} min="100" step="100" disabled={isPlaying || editingLineId === line.id} title="Line display duration (ms)" />
             <span className="duration-unit">ms</span>
+            {/* Add Duplicate Button - Disable if playing or *any* line is being edited */}
+            <button className="duplicate-line-btn" onClick={() => handleDuplicateLine(line.id)} disabled={isPlaying || !!editingLineId} title="Duplicate Line">❐</button>
             <button className="delete-line-btn" onClick={() => handleDeleteLine(line.id)} disabled={isPlaying || editingLineId === line.id} title="Delete Line">×</button>
         </li>
     );
@@ -158,6 +161,24 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
             setEditingLineId(null); // Stop editing if the deleted line was being edited
         }
     };
+
+    const handleDuplicateLine = (idToDuplicate: string) => {
+        const lineIndex = currentLines.findIndex(line => line.id === idToDuplicate);
+        if (lineIndex === -1) return; // Line not found
+
+        const originalLine = currentLines[lineIndex];
+        const newLine: SceneLine = {
+            ...originalLine, // Copy text and duration
+            id: Date.now().toString() + Math.random(), // Generate a new unique ID
+        };
+
+        // Insert the copy immediately after the original line
+        const linesCopy = [...currentLines];
+        linesCopy.splice(lineIndex + 1, 0, newLine);
+        setCurrentLines(linesCopy);
+        setEditingLineId(null); // Ensure editing stops if duplicating while editing was somehow possible
+    };
+
 
     const handleDurationChange = (idToUpdate: string, newDuration: number) => {
         setCurrentLines(currentLines.map(line => {
@@ -364,6 +385,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
                                     handleLineBlur={handleFinishEditing} // Pass combined handler
                                     handleDurationChange={handleDurationChange}
                                     handleDeleteLine={handleDeleteLine}
+                                    handleDuplicateLine={handleDuplicateLine} // Pass duplicate handler
                                 />
                             ))}
                             {currentLines.length === 0 && <li className="no-lines">Add lines to create a scene.</li>}
