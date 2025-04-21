@@ -1,21 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+// Import react-beautiful-dnd components
 import {
-    DndContext,
-    closestCenter,
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    DragEndEvent,
-} from '@dnd-kit/core';
-import {
-    arrayMove,
-    SortableContext,
-    sortableKeyboardCoordinates,
-    verticalListSortingStrategy,
-    useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+    DragDropContext,
+    Droppable,
+    Draggable,
+    DropResult, // Import DropResult type for the handler
+} from 'react-beautiful-dnd';
 import { Scene, SceneLine } from '../types';
 import { DISPLAY_LENGTH } from '../constants';
 import './SequenceMode.css';
@@ -38,12 +28,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [editingLineId, setEditingLineId] = useState<string | null>(null); // State to track which line is being edited
     const timeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref to store timeout ID
-    const sensors = useSensors(
-        useSensor(PointerSensor),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
-    );
+    // Removed dnd-kit sensors
 
     // Load saved scenes from localStorage on mount
     useEffect(() => {
@@ -122,9 +107,10 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
     const handleLineEnter = () => {
         setEditingLineId(null); // Stop editing when Enter is pressed
     };
+    // Renamed handlers for clarity with editing
+    const handleEditLineText = handleLineTextChange;
+    const handleFinishEditing = handleLineEnter; // Or handleLineBlur if preferred
     // --- End In-place Editing Handlers ---
-
-    // --- Drag and Drop Handler (Removed - To be replaced with dnd-kit) ---
 
 
     const handleSaveScene = () => {
@@ -214,90 +200,23 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
         setIsPlaying(false);
     };
 
-    // --- Drag and Drop Handler ---
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-
-        if (over && active.id !== over.id) {
-            setCurrentLines((items) => {
-                const oldIndex = items.findIndex(item => item.id === active.id);
-                const newIndex = items.findIndex(item => item.id === over.id);
-                return arrayMove(items, oldIndex, newIndex);
-            });
-            setEditingLineId(null); // Stop editing if item is moved
+    // --- Drag and Drop Handler (react-beautiful-dnd) ---
+    const handleDragEnd = (result: DropResult) => {
+        // If dropped outside the list or no movement occurred
+        if (!result.destination || result.destination.index === result.source.index) {
+            return;
         }
+
+        // Reorder the lines array
+        const items = Array.from(currentLines);
+        const [reorderedItem] = items.splice(result.source.index, 1);
+        items.splice(result.destination.index, 0, reorderedItem);
+
+        setCurrentLines(items);
+        setEditingLineId(null); // Stop editing if item is moved
     };
 
-    // --- Sortable Item Component ---
-    const SortableLineItem: React.FC<{ line: SceneLine }> = ({ line }) => {
-        const {
-            attributes,
-            listeners,
-            setNodeRef,
-            transform,
-            transition,
-            isDragging, // Add isDragging state
-        } = useSortable({ id: line.id });
-
-        const style = {
-            transform: CSS.Transform.toString(transform),
-            transition,
-            opacity: isDragging ? 0.5 : 1, // Make item semi-transparent while dragging
-            zIndex: isDragging ? 1 : 'auto', // Ensure dragging item is on top
-            // Add a class for dragging state if needed for more complex styling
-        };
-
-        return (
-            <li
-                ref={setNodeRef}
-                style={style}
-                key={line.id} // Keep React key
-                className={`${editingLineId === line.id ? 'editing' : ''} ${isDragging ? 'dragging' : ''}`} // Add dragging class
-            >
-                {/* Drag Handle */}
-                <span
-                    className="drag-handle"
-                    title="Drag to reorder"
-                    {...attributes} // Spread dnd attributes here
-                    {...listeners} // Spread dnd listeners here
-                >
-                    ⠿ {/* Use a drag handle icon (or text like '::') */}
-                </span>
-                {/* Conditionally render Display or Input */}
-                {editingLineId === line.id ? (
-                    <InteractiveTextInput
-                        value={line.text}
-                        onChange={(newText) => handleLineTextChange(line.id, newText)}
-                        onEnter={handleLineEnter}
-                        onBlur={handleLineBlur} // Stop editing on blur
-                        maxLength={DISPLAY_LENGTH}
-                        disabled={isPlaying}
-                        autoFocus // Focus when the input appears
-                    />
-                ) : (
-                    <div className="line-display-clickable" onClick={() => handleLineClick(line.id)} title="Click to edit text">
-                        <SplitFlapDisplay
-                            size="small"
-                            text={line.text}
-                        />
-                    </div>
-                )}
-                <input
-                    type="number"
-                    className="line-duration-input"
-                    value={line.durationMs ?? 1000} // Use default if undefined
-                    onChange={(e) => handleDurationChange(line.id, parseInt(e.target.value, 10))}
-                    min="100"
-                    step="100"
-                    disabled={isPlaying || !!editingLineId} // Disable if editing text too
-                    title="Line display duration (ms)"
-                />
-                <span className="duration-unit">ms</span>
-                <button className="delete-line-btn" onClick={() => handleDeleteLine(line.id)} disabled={isPlaying || !!editingLineId} title="Delete Line">×</button>
-            </li>
-        );
-    };
-
+    // Removed SortableLineItem component
 
     return (
         <div className="sequence-mode">
@@ -333,31 +252,76 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
                         disabled={isPlaying}
                     />
                 </div>
-                 {/* List container - dnd-kit context will wrap this */}
-                 <ul className="line-list">
-                 {/* List container - Wrap with DndContext and SortableContext */}
-                 <DndContext
-                     sensors={sensors}
-                     collisionDetection={closestCenter}
-                     onDragEnd={handleDragEnd}
-                 >
-                     <SortableContext
-                         items={currentLines} // Pass the array of items with unique 'id' properties
-                         strategy={verticalListSortingStrategy}
-                     >
-                         <ul className="line-list">
-                             {currentLines.map((line) => (
-                                 // Use the SortableLineItem component
-                                 <SortableLineItem key={line.id} line={line} />
-                             ))}
-                             {/* Placeholder for empty list remains */}
-                             {currentLines.length === 0 && <li className="no-lines">Add lines to create a scene.</li>}
-                         </ul>
-                     </SortableContext>
-                 </DndContext>
-                 {/* Removed old list rendering logic */}
-             </div>
-             {/* Play/Stop Controls */}
+                {/* Corrected Drag and Drop Structure */}
+                <DragDropContext onDragEnd={handleDragEnd}>
+                    <Droppable droppableId="sequenceLinesDroppable">
+                        {(providedDroppable) => (
+                            <ul // This is the Droppable container
+                                className="line-list"
+                                {...providedDroppable.droppableProps}
+                                ref={providedDroppable.innerRef}
+                            >
+                                {currentLines.map((line, index) => (
+                                    <Draggable // Each li is Draggable
+                                        key={line.id}
+                                        draggableId={line.id}
+                                        index={index}
+                                        isDragDisabled={isPlaying || !!editingLineId}
+                                    >
+                                        {(providedDraggable, snapshot) => ( // Add snapshot for styling if needed
+                                            <li // This is the Draggable item
+                                                ref={providedDraggable.innerRef}
+                                                {...providedDraggable.draggableProps}
+                                                // dragHandleProps are applied to the handle element below
+                                                className={`${editingLineId === line.id ? 'editing' : ''} ${snapshot.isDragging ? 'dragging' : ''}`} // Use snapshot for dragging style
+                                            >
+                                                {/* Drag Handle */}
+                                                <span
+                                                    className="drag-handle"
+                                                    {...providedDraggable.dragHandleProps} // Attach handle props here
+                                                    title="Drag to reorder"
+                                                >
+                                                    ⠿ {/* Drag handle icon */}
+                                                </span>
+                                                {/* Conditionally render Display or Input */}
+                                                {editingLineId === line.id ? (
+                                                    <InteractiveTextInput
+                                                        value={line.text}
+                                                        onChange={(newText) => handleEditLineText(line.id, newText)} // Corrected handler name
+                                                        onEnter={handleFinishEditing} // Corrected handler name
+                                                        onBlur={handleFinishEditing} // Corrected handler name
+                                                        maxLength={DISPLAY_LENGTH}
+                                                        disabled={isPlaying}
+                                                        autoFocus // Focus when the input appears
+                                                    />
+                                                ) : (
+                                                    <div className="line-display-clickable" onClick={() => !isPlaying && setEditingLineId(line.id)} title="Click to edit text">
+                                                        <SplitFlapDisplay size="small" text={line.text} />
+                                                    </div>
+                                                )}
+                                                <input
+                                                    type="number"
+                                                    className="line-duration-input"
+                                                    value={line.durationMs ?? 1000}
+                                                    onChange={(e) => handleDurationChange(line.id, parseInt(e.target.value, 10))}
+                                                    min="100" step="100"
+                                                    disabled={isPlaying || editingLineId === line.id} // Disable duration if editing text
+                                                    title="Line display duration (ms)"
+                                                />
+                                                <span className="duration-unit">ms</span>
+                                                <button className="delete-line-btn" onClick={() => handleDeleteLine(line.id)} disabled={isPlaying || editingLineId === line.id} title="Delete Line">×</button>
+                                            </li>
+                                        )}
+                                    </Draggable>
+                                ))}
+                                {providedDroppable.placeholder} {/* Droppable placeholder */}
+                                {currentLines.length === 0 && <li className="no-lines">Add lines to create a scene.</li>}
+                            </ul>
+                        )}
+                    </Droppable>
+                </DragDropContext>
+            </div>
+            {/* Play/Stop Controls */}
              <div className="scene-controls">
                  <button onClick={handlePlayScene} disabled={!isConnected || isPlaying || currentLines.length === 0}>
                      ▶️ Play Scene
