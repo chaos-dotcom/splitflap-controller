@@ -101,8 +101,8 @@ app.get('/api/departures', async (req: Request, res: Response) => {
 
         // --- Map Data ---
         // Access data directly from the parsed JavaScript object.
-        const trainServices = stationBoardResult.stationBoard?.trainServices?.service; // This path might need adjustment
         const departures: Departure[] = [];
+        const trainServices = stationBoardResult.trainServices?.service; // Corrected path
 
         if (trainServices) {
             // Ensure trainServices is an array, even if only one service is returned
@@ -143,7 +143,7 @@ app.get('/api/departures', async (req: Request, res: Response) => {
                 };
                 departures.push(departure);
             });
-        } else if (stationBoardResult.stationBoard) { // Check if stationBoard exists but services are missing
+        } else { // If trainServices is null, undefined, or empty array
             console.log(`No train services found for ${fromStation} in the response.`);
             // Check for informational messages from NRCC
             if (stationBoardResult.nrccMessages?.message) {
