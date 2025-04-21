@@ -146,7 +146,9 @@ export const subscribe = (topic: string, options?: mqtt.IClientSubscribeOptions)
         if (err) {
             console.error(`[MQTT Client] Failed to subscribe to topic "${topic}":`, err);
         } else {
-            console.log(`[MQTT Client] Subscribed successfully to topic "${topic}" (Granted QoS: ${granted[0]?.qos})`);
+            // Check if granted exists and has elements before accessing QoS
+            const grantedQoS = (granted && granted.length > 0) ? granted[0]?.qos : 'N/A';
+            console.log(`[MQTT Client] Subscribed successfully to topic "${topic}" (Granted QoS: ${grantedQoS})`);
         }
     });
     return true;
