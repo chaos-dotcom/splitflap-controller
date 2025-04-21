@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Import useRef
 import { DISPLAY_LENGTH } from '../constants'; // Import display length
 import './TrainTimetableMode.css';
 import { Scene, SceneLine, TrainRoutePreset } from '../../src/types'; // Import types
