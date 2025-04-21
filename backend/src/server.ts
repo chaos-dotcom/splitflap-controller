@@ -20,12 +20,12 @@ interface Departure {
   estimatedTime?: string;
 }
 
-// NRE LDBWS Endpoint (for POST requests)
-const NRE_LDBWS_ENDPOINT = 'https://lite.realtime.nationalrail.co.uk/OpenLDBWS/ldb11.asmx';
+// NRE LDBWS Endpoint (for POST requests) - Use the latest version endpoint
+const NRE_LDBWS_ENDPOINT = 'https://lite.realtime.nationalrail.co.uk/OpenLDBWS/ldb12.asmx';
 // Namespaces needed for the SOAP request
 const SOAP_ENV_NS = 'http://schemas.xmlsoap.org/soap/envelope/';
 const TOKEN_TYPES_NS = 'http://thalesgroup.com/RTTI/2013-11-28/Token/types';
-const LDB_NS = 'http://thalesgroup.com/RTTI/2015-11-27/ldb/'; // Try an older, common LDB namespace version
+const LDB_NS = 'http://thalesgroup.com/RTTI/2021-11-01/ldb/'; // Use the latest LDB namespace version
 
 // Enable CORS for all origins (adjust for production later)
 app.use(cors());
