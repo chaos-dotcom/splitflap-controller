@@ -22,11 +22,11 @@ const formatStopwatchTime = (timeMs: number, includeTenths: boolean): string => 
     let formatted: string;
     if (includeTenths) {
         const tenths = Math.floor((timeMs % 1000) / 100); // Calculate tenths
-        // Format: " MM c SS.T  " (12 chars) - c is color separator
-        formatted = ` ${mm}${separatorColor}${ss}.${tenths}  `;
+        // Format: "  MMcSS.T   " (12 chars) - 2 spaces left, 3 spaces right for 7 chars
+        formatted = `  ${mm}${separatorColor}${ss}.${tenths}   `;
     } else {
-        // Format: "  MM c SS   " (12 chars) - c is color separator
-        formatted = `  ${mm}${separatorColor}${ss}   `;
+        // Format: "   MMcSS    " (12 chars) - 3 spaces left, 4 spaces right for 5 chars
+        formatted = `   ${mm}${separatorColor}${ss}    `;
     }
 
     // Ensure exactly DISPLAY_LENGTH
