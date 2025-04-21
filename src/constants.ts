@@ -19,3 +19,6 @@ export const COLOR_MAP: { [key: string]: string } = {
   't': 'turquoise', // or teal/cyan
   'w': 'white',
 };
+
+// Sequence of colors to use as separators
+export const SEPARATOR_COLORS: ReadonlyArray<string> = ['r', 'o', 'y', 'g', 'b', 'v', 'p', 't', 'w'];

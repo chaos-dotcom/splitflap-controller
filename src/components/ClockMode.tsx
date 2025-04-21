@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { DISPLAY_LENGTH } from '../constants';
+import { DISPLAY_LENGTH, SEPARATOR_COLORS } from '../constants'; // Import SEPARATOR_COLORS
 import './ClockMode.css';
 
 interface ClockModeProps {
@@ -17,16 +17,22 @@ const formatTime = (date: Date): string => {
     const weekday = date.toLocaleDateString('en-US', optionsWeekday).substring(0, 3); // Ensure 3 chars like 'Mon'
     let hour = date.getHours();
     const minute = date.getMinutes();
+    const second = date.getSeconds(); // Get seconds for separator color
     const ampm = hour >= 12 ? 'PM' : 'AM';
 
     hour = hour % 12;
     hour = hour ? hour : 12; // Handle midnight (0 becomes 12)
 
     const hourStr = hour.toString().padStart(2, '0'); // Pad with ZERO for single digit hours
-    const minuteStr = minute.toString().padStart(2, '0'); // Pad minutes with zero like %M
+    const minuteStr = minute.toString().padStart(2, '0');
+    // Get separator color based on the second (changes every second)
+    const separatorColor = SEPARATOR_COLORS[second % SEPARATOR_COLORS.length];
 
-    // Format: 'DDD HHMM  AP' (12 chars total) - Two spaces before AM/PM
-    const formatted = `${weekday} ${hourStr}${minuteStr}  ${ampm}`;
+    // Format: 'DDD HHcMM AP' (12 chars total) - c is the color separator
+    // Example: MON 01r31 AM
+    // Pad appropriately: "DDD HH" (6) + "c" (1) + "MM" (2) + " " (1) + "AP" (2) = 12
+    const formatted = `${weekday} ${hourStr}${separatorColor}${minuteStr} ${ampm}`;
+
 
     // Ensure uppercase and exactly DISPLAY_LENGTH
     return formatted.toUpperCase().padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { DISPLAY_LENGTH } from '../constants';
+import { DISPLAY_LENGTH, SEPARATOR_COLORS } from '../constants'; // Import SEPARATOR_COLORS
 import './StopwatchMode.css';
 
 interface StopwatchModeProps {
@@ -13,16 +13,20 @@ const formatStopwatchTime = (timeMs: number, includeTenths: boolean): string => 
     const totalSeconds = Math.floor(timeMs / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
+    // Get separator color based on the current second of the stopwatch
+    const separatorColor = SEPARATOR_COLORS[seconds % SEPARATOR_COLORS.length];
 
     const mm = minutes.toString().padStart(2, '0');
     const ss = seconds.toString().padStart(2, '0');
 
     let formatted: string;
     if (includeTenths) {
-        const tenths = Math.floor((timeMs % 1000) / 100);
-        formatted = `  ${mm}:${ss}.${tenths}   `; // Format: "  MM:SS.T   " (12 chars)
+        const tenths = Math.floor((timeMs % 1000) / 100); // Calculate tenths
+        // Format: " MM c SS.T  " (12 chars) - c is color separator
+        formatted = ` ${mm}${separatorColor}${ss}.${tenths}  `;
     } else {
-        formatted = `   ${mm}:${ss}    `; // Format: "   MM:SS    " (12 chars)
+        // Format: "  MM c SS   " (12 chars) - c is color separator
+        formatted = `  ${mm}${separatorColor}${ss}   `;
     }
 
     // Ensure exactly DISPLAY_LENGTH
