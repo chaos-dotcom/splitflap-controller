@@ -554,10 +554,10 @@ io.on('connection', (socket: Socket) => {
         socket.emit('initialState', {
             text: currentDisplayText,
             mode: currentAppMode,
-        // stopwatch: { // Temporarily commented out for debugging
-        //     elapsedTime: stopwatchElapsedTime,
-        //     isRunning: isStopwatchRunning,
-        // },
+        stopwatch: { // Restore stopwatch state
+            elapsedTime: stopwatchElapsedTime,
+            isRunning: isStopwatchRunning,
+        },
         // sequence: { // Temporarily commented out for debugging
         //     isPlaying: isSequencePlaying,
         // },
