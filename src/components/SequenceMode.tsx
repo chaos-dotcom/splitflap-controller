@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Scene, SceneLine } from '../types';
-import { DISPLAY_LENGTH } from '../constants';
+import { SPLITFLAP_DISPLAY_LENGTH } from '../constants'; // Use renamed constant
 import './SequenceMode.css';
 import SplitFlapDisplay from './SplitFlapDisplay'; // Import the display component
 import InteractiveTextInput from './InteractiveTextInput';

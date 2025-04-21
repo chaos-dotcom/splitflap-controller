@@ -5,10 +5,11 @@ import { createClientAsync, Client } from 'soap';
 import { createServer } from 'http'; // Import http server
 import { Server as SocketIOServer, Socket } from 'socket.io'; // Import socket.io
 import * as mqttClient from './mqttClient'; // Import our MQTT client module
+import axios from 'axios'; // Import axios for internal API call
 // Adjust the path below if your 'src' and 'backend' folders have a different relationship
 // Assuming types are now defined ONLY in the frontend's src/types
 // If you create a shared types package later, adjust this import
-import { ControlMode, Scene, SceneLine } from '../../src/types';
+import { ControlMode, Scene, SceneLine, Departure } from '../../src/types'; // Added Departure
 
 // Load environment variables from .env file
 dotenv.config();
@@ -293,7 +294,7 @@ const updateDisplayAndBroadcast = (newText: string, sourceMode?: ControlMode) =>
 
 // Function to stop all timed modes
 const stopAllTimedModes = (options: { resetStopwatch?: boolean } = {}) => {
-    console.log(`[Timer] Stopping all timed modes... (Reset Stopwatch: ${!!options.resetStopwatch}, Current Mode: ${currentAppMode})`); // Add context
+    console.log(`[Timer] Stopping all timed modes... (Reset SW: ${!!options.resetStopwatch}, Current Mode: ${currentAppMode})`);
     if (clockInterval) clearInterval(clockInterval);
     if (stopwatchInterval) clearInterval(stopwatchInterval);
     if (sequenceTimeout) clearTimeout(sequenceTimeout);
@@ -301,6 +302,7 @@ const stopAllTimedModes = (options: { resetStopwatch?: boolean } = {}) => {
     stopwatchInterval = null;
     sequenceTimeout = null;
     isStopwatchRunning = false; // Ensure stopwatch state is updated
+    stopTrainPolling(); // Stop train polling as well
     isSequencePlaying = false; // Ensure sequence state is updated
 
     if (options.resetStopwatch) {

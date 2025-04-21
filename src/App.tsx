@@ -275,9 +275,9 @@ function App() {
           {currentMode === 'train' && ( // Pass backend connection status, send text handler, and start updates handler
               <TrainTimetableMode
                   isConnected={isConnectedToBackend}
-                  isActive={currentMode === 'train'} // Keep isActive for polling logic *within* TrainTimetableMode for now
                   onSendMessage={handleSendText} // For sending individual lines
-                  // onStartUpdates={handleStartTrainUpdates} // Pass the handler if App triggers updates
+                  onStartUpdates={handleStartTrainUpdates} // Pass the handler to trigger backend polling
+                  departures={currentDepartures} // Pass down the departures list
               />
           )}
           {currentMode === 'sequence' && ( // Pass backend connection status and specific handlers

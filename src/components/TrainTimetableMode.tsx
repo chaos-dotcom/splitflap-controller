@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'; // Import useRef
 import { DISPLAY_LENGTH } from '../constants'; // Import display length
 import './TrainTimetableMode.css';
-import { Scene, SceneLine, TrainRoutePreset } from '../../src/types'; // Import types
-
+import { Departure, TrainRoutePreset } from '../types'; // Import types
+ 
 // Define the structure for departure data (as discussed)
+// Removed local Departure interface
+/*
 interface Departure {
   id: string;
   scheduledTime: string;
@@ -12,6 +14,7 @@ interface Departure {
   status: string;
   estimatedTime?: string;
 }
+*/
 
 // Define the props for the component
 interface TrainTimetableModeProps {
@@ -55,8 +58,9 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, is
             }
         }
     }, []); // Empty dependency array ensures this runs only once on mount
-
-    // Effect to handle polling for updates
+ 
+    // Effect to handle polling for updates - REMOVED
+    /*
     useEffect(() => {
         // Function to clear existing interval
         const clearPollingInterval = () => {
@@ -83,9 +87,10 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, is
         // Cleanup function to clear interval on unmount or when dependencies change
         return clearPollingInterval;
     }, [isActive, isConnected, fromStation, toStation, isLoading]); // Dependencies for polling effect
-
-    // Placeholder function to simulate fetching data from the backend
-    // Now reads directly from state
+    */
+ 
+    // Placeholder function to simulate fetching data from the backend - REMOVED
+    /*
     const fetchDepartures = async () => {
         // Use component state directly
         if (!fromStation || fromStation.length !== 3) {
@@ -136,6 +141,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, is
             setIsLoading(false);
         }
     };
+    */
 
     // Function to send a specific departure line to the display
     // Calculates the condensed format on demand
@@ -228,14 +234,15 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, is
         if (selectedPreset) {
             // ONLY update the state fields, do not fetch automatically
             setFromStation(selectedPreset.fromCRS);
-            setToStation(selectedPreset.toCRS || '');
-            setDepartures([]); // Clear previous results when selecting a preset
+            setToStation(selectedPreset.toCRS || ''); // Update local state
+            // Trigger backend update for the new route
+            onStartUpdates(selectedPreset.fromCRS, selectedPreset.toCRS);
             setError(null); // Clear previous errors
         } else {
             // Clear inputs and results if "-- Select Preset --" is chosen
-            setFromStation('');
+            setFromStation(''); // Clear local state
             setToStation('');
-            setDepartures([]);
+            // setDepartures([]); // Data now comes from props
             setError(null);
         }
     };
@@ -257,8 +264,8 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, is
             const deletedPreset = savedPresets.find(p => p.name === selectedName); // Find *before* filtering state
             if (deletedPreset && fromStation === deletedPreset.fromCRS && toStation === (deletedPreset.toCRS || '')) {
                 setFromStation('');
-                setToStation('');
-                setDepartures([]);
+                setToStation(''); // Clear local state
+                // setDepartures([]); // Data now comes from props
             }
         }
     };
@@ -307,7 +314,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, is
                     />
                </div>
                {/* Manual refresh button now explicitly uses state */}
-               <button onClick={fetchDepartures} disabled={!isConnected || isLoading || !fromStation || fromStation.length !== 3}>
+               <button onClick={() => onStartUpdates(fromStation, toStation)} disabled={!isConnected || !fromStation || fromStation.length !== 3}>
                    {isLoading ? 'Refreshing...' : 'Refresh Now'}
                </button>
             </div>
@@ -333,9 +340,9 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, is
             <div className="departures-list">
                 <h5>Departures</h5>
                 {isLoading && <p>Loading departures...</p>}
-                {!isLoading && !error && departures.length === 0 && fromStation && !isLoading && <p>No departures found for {fromStation}{toStation ? ` to ${toStation}` : ''}.</p>} {/* Added !isLoading check */}
+                {!isLoading && !error && departures.length === 0 && fromStation && <p>No departures found for {fromStation}{toStation ? ` to ${toStation}` : ''}.</p>}
                 {!isLoading && !error && departures.length === 0 && !fromStation && <p>Enter a 'From' station code and click Refresh.</p>}
-
+ 
                 {departures.length > 0 && (
                     <table>
                         <thead>
@@ -372,9 +379,9 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, is
                     </table>
                 )}
             </div>
-
+ 
              <p style={{fontSize: '0.8em', color: 'var(--tt-info-text, #666)', marginTop: '15px'}}>
-                Note: Fetches live data via backend. Auto-refreshes every minute when active.
+                Note: Fetches live data via backend. Auto-refreshes when route is active.
             </p>
         </div>
     );
