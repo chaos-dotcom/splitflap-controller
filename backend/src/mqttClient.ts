@@ -14,10 +14,13 @@ let lastError: string | null = null;
 // Define a type for the message handler callback
 type MessageHandler = (topic: string, message: Buffer) => void;
 let messageHandler: MessageHandler | null = null; // Store the handler
+let availabilityTopic: string | null = null; // Store the availability topic for LWT
 
 const options: IClientOptions = {
     clientId: `splitflap_backend_${Math.random().toString(16).substr(2, 8)}`,
     clean: true,
+    // Last Will and Testament (LWT)
+    will: undefined, // Initialize as undefined, will be set in connectToDisplayBroker
     connectTimeout: 5000,
     reconnectPeriod: 5000, // Attempt reconnect every 5 seconds
     // Add username/password if they exist
@@ -25,9 +28,18 @@ const options: IClientOptions = {
     ...(password && { password }),
 };
 
-// Modified connect function to accept the message handler
-export const connectToDisplayBroker = (handler: MessageHandler): void => {
+// Modified connect function to accept the message handler AND availability topic
+export const connectToDisplayBroker = (handler: MessageHandler, availTopic: string): void => {
     messageHandler = handler; // Store the handler
+    availabilityTopic = availTopic; // Store for potential use elsewhere if needed
+
+    // Configure LWT before connecting
+    options.will = {
+        topic: availabilityTopic,
+        payload: 'offline', // Payload for unavailable state
+        qos: 1, // Quality of Service for LWT
+        retain: true, // Retain the offline status
+    };
 
     if (!brokerUrl) { // Only brokerUrl is strictly required to connect
         console.error('[MQTT Client] Error: DISPLAY_MQTT_BROKER_URL must be set in .env');

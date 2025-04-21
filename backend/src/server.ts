@@ -20,6 +20,7 @@ const HA_DEVICE_ID = 'splitflap_controller'; // Unique ID for the device in HA
 const HA_DEVICE_NAME = 'Split-Flap Controller'; // Name for the device in HA
 const HA_MODE_SELECTOR_ID = 'splitflap_mode'; // Unique ID for the mode selector entity
 const HA_MODE_SELECTOR_NAME = 'Split-Flap Mode'; // Name for the mode selector entity
+const HA_AVAILABILITY_TOPIC = `${HA_DEVICE_ID}/status`; // Topic for online/offline status
 
 // Define the topics for the mode selector entity
 const haModeConfigTopic = `${HA_DISCOVERY_PREFIX}/select/${HA_MODE_SELECTOR_ID}/config`;
@@ -731,10 +732,22 @@ const publishHaDiscoveryConfig = () => {
     const devicePayload = {
         identifiers: [HA_DEVICE_ID],
         name: HA_DEVICE_NAME,
-        manufacturer: "Split-Flap Controller Backend", // Optional
-        model: "Software Controller v1.0", // Optional
-        // sw_version: "1.0.0" // Optional
+        manufacturer: "Split-Flap Controller Backend",
+        model: "Software Controller v1.0",
+        sw_version: "1.0.0", // Example version
+        // Add availability topic for the device itself
+        availability_topic: HA_AVAILABILITY_TOPIC,
+        payload_available: "online",
+        payload_not_available: "offline",
     };
+
+    // Define origin info (recommended for discovery)
+    const originPayload = {
+        name: "splitflap-controller-backend", // Name of this software
+        sw_version: "1.0.0", // Example version
+        support_url: "https://github.com/your-repo/splitflap-controller", // Optional: Link to your repo/docs
+    };
+
 
     const configPayload = {
         name: HA_MODE_SELECTOR_NAME, // Name shown in HA UI
@@ -744,7 +757,13 @@ const publishHaDiscoveryConfig = () => {
         command_topic: haModeCommandTopic, // Topic to send mode change commands to
         options: HA_MODES, // List of available modes
         qos: 0, // Quality of Service for commands/state
-        retain: true // Retain the config message so HA finds it on restart
+        retain: true, // Retain the config message so HA finds it on restart
+        // Add availability topic for the select entity
+        availability_topic: HA_AVAILABILITY_TOPIC,
+        payload_available: "online",
+        payload_not_available: "offline",
+        // Add origin information
+        origin: originPayload,
     };
 
     console.log(`[HA MQTT] Publishing discovery config to ${haModeConfigTopic}`);
@@ -760,10 +779,10 @@ const handleMqttMessage = (topic: string, message: Buffer) => {
         // MQTT client connected/reconnected
         haDiscoveryPublished = false; // Reset flag on new connection
         publishHaDiscoveryConfig();
-        // Subscribe to the command topic *after* publishing config
-        mqttClient.subscribe(haModeCommandTopic);
         // Publish initial state *after* subscribing
         mqttClient.publish(haModeStateTopic, currentAppMode, { retain: true });
+        // Publish availability status *after* subscribing
+        mqttClient.publish(HA_AVAILABILITY_TOPIC, 'online', { retain: true });
     } else if (topic === haModeCommandTopic) {
         // Received a command from Home Assistant to change the mode
         const requestedMode = messageStr as ControlMode;
@@ -947,6 +966,6 @@ io.engine.on("connection_error", (err) => {
 // --- Start Servers ---
 httpServer.listen(port, () => {
     console.log(`[Server] HTTP & WebSocket server listening on http://localhost:${port}`);
-    // Connect to MQTT and pass the message handler
-    mqttClient.connectToDisplayBroker(handleMqttMessage);
+    // Connect to MQTT and pass the message handler and availability topic
+    mqttClient.connectToDisplayBroker(handleMqttMessage, HA_AVAILABILITY_TOPIC);
 });
