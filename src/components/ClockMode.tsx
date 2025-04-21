@@ -1,85 +1,26 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { DISPLAY_LENGTH, SEPARATOR_COLORS } from '../constants'; // Import SEPARATOR_COLORS
+import React from 'react'; // Removed useState, useEffect, useRef
+// Removed constants import as formatting happens on backend
 import './ClockMode.css';
 
 interface ClockModeProps {
-    isConnected: boolean;
-    onSendMessage: (message: string) => void;
-    isActive: boolean; // Prop to know if this mode is currently selected
+    isConnectedToBackend: boolean; // Renamed prop
+    // onSendMessage and isActive removed
 }
 
-// Helper function to format the date
-const formatTime = (date: Date): string => {
-    const optionsWeekday: Intl.DateTimeFormatOptions = { weekday: 'short' };
-    const optionsTime: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: 'numeric', hour12: true };
-
-    // Get parts - handle potential inconsistencies across locales/browsers if needed
-    const weekday = date.toLocaleDateString('en-US', optionsWeekday).substring(0, 3); // Ensure 3 chars like 'Mon'
-    let hour = date.getHours();
-    const minute = date.getMinutes();
-    const second = date.getSeconds(); // Get seconds for separator color
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-
-    hour = hour % 12;
-    hour = hour ? hour : 12; // Handle midnight (0 becomes 12)
-
-    const hourStr = hour.toString().padStart(2, '0'); // Pad with ZERO for single digit hours
-    const minuteStr = minute.toString().padStart(2, '0');
-
-    // Format: 'DDD HHMM  AP' (12 chars total) - Two spaces before AM/PM for right justification
-    // Example: MON 0131  AM
-    // Pad appropriately: "DDD HHMM" (8) + "  " (2) + "AP" (2) = 12
-    const formatted = `${weekday} ${hourStr}${minuteStr}  ${ampm}`;
-
-    // Ensure uppercase and exactly DISPLAY_LENGTH
-    return formatted.toUpperCase().padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
-};
+// Removed formatTime function - formatting now done on backend
 
 
-const ClockMode: React.FC<ClockModeProps> = ({ isConnected, onSendMessage, isActive }) => {
-    const [currentTimeString, setCurrentTimeString] = useState<string>(' '.repeat(DISPLAY_LENGTH));
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-    useEffect(() => {
-        // Function to update time and send message
-        const updateClock = () => {
-            const now = new Date();
-            const formattedTime = formatTime(now);
-            setCurrentTimeString(formattedTime); // Update local state for potential display within the component
-            if (isConnected && isActive) { // Only send if connected AND this mode is active
-                onSendMessage(formattedTime);
-            }
-        };
-
-        // Clear any existing interval when isActive or isConnected changes
-        if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-        }
-
-        // Start interval only if this mode is active
-        if (isActive) {
-            updateClock(); // Update immediately when activated
-            intervalRef.current = setInterval(updateClock, 1000); // Update every second
-        }
-
-        // Cleanup function to clear interval on unmount or when isActive becomes false
-        return () => {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-            }
-        };
-    }, [isActive, isConnected, onSendMessage]); // Rerun effect if isActive or isConnected changes
+const ClockMode: React.FC<ClockModeProps> = ({ isConnectedToBackend }) => {
+    // No internal state or timer needed anymore
 
     return (
         <div className="clock-mode">
             <h4 className="draggable-handle">Clock Mode</h4>
-            <p>Displaying current time:</p>
-            {/* Optionally display the time here too */}
-            <code className="current-time-display">{currentTimeString}</code>
-            {!isConnected && isActive && (
-                 <p className="connection-warning">MQTT Disconnected. Clock running locally.</p>
+            <p>The main display should show the current time.</p>
+            {/* Display is handled by App.tsx based on backend updates */}
+            {/* <code className="current-time-display">{...}</code> */}
+            {!isConnectedToBackend && (
+                 <p className="connection-warning">Disconnected from backend. Clock may not update.</p>
             )}
         </div>
     );

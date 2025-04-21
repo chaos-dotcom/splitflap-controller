@@ -1,143 +1,66 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { DISPLAY_LENGTH, SEPARATOR_COLORS } from '../constants'; // Import SEPARATOR_COLORS
+import React from 'react'; // Removed useState, useEffect, useRef
+// Removed constants import as formatting happens on backend
 import './StopwatchMode.css';
 
 interface StopwatchModeProps {
-    isConnected: boolean;
-    onSendMessage: (message: string) => void;
-    isActive: boolean; // Prop to know if this mode is currently selected
+    isConnectedToBackend: boolean; // Renamed prop
+    displayTime: string; // Time string received from backend via App state
+    isRunningBackend: boolean; // Whether the backend considers the stopwatch running
+    onStart: () => void; // Prop to trigger start event to backend
+    onStop: () => void; // Prop to trigger stop event to backend
+    onReset: () => void; // Prop to trigger reset event to backend
 }
 
-// Updated Helper function to format milliseconds into HHcHMcSS
-const formatStopwatchTime = (timeMs: number): string => {
-    const totalSeconds = Math.floor(timeMs / 1000);
-    const totalMinutes = Math.floor(totalSeconds / 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    const seconds = totalSeconds % 60;
+// Removed formatStopwatchTime - formatting done on backend
 
-    // Get separator colors based on hours and minutes
-    const separatorColor1 = SEPARATOR_COLORS[hours % SEPARATOR_COLORS.length];
-    const separatorColor2 = SEPARATOR_COLORS[minutes % SEPARATOR_COLORS.length];
-
-    const hh = hours.toString().padStart(2, '0');
-    const mm = minutes.toString().padStart(2, '0');
-    const ss = seconds.toString().padStart(2, '0');
-    // Format: "  HHcHMcSS  " (12 chars) - 2 spaces left, 2 spaces right for 8 chars
-    const formatted = `  ${hh}${separatorColor1}${mm}${separatorColor2}${ss}  `;
-
-    // Ensure exactly DISPLAY_LENGTH
-    return formatted.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
-};
-
-const StopwatchMode: React.FC<StopwatchModeProps> = ({ isConnected, onSendMessage, isActive }) => {
-    const [elapsedTime, setElapsedTime] = useState<number>(0); // Time in milliseconds
-    const [isRunning, setIsRunning] = useState<boolean>(false);
-    // Removed includeTenths state
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const startTimeRef = useRef<number>(0); // Timestamp when the stopwatch was last started/resumed
-
-    // Effect to run the timer
-    useEffect(() => {
-        if (isActive && isRunning) {
-            // If running, set up the interval
-            intervalRef.current = setInterval(() => {
-                const now = Date.now();
-                setElapsedTime(now - startTimeRef.current);
-            }, 200); // Update 5 times per second (can adjust if needed)
-
-        } else {
-            // If not active or not running, clear the interval
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-            }
-        }
-
-        // Cleanup function
-        return () => {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-            }
-        };
-    }, [isActive, isRunning]); // Rerun effect when isActive or isRunning changes
-
-    // Effect to send updates via MQTT when elapsedTime changes and mode is active/connected
-    useEffect(() => {
-        if (isActive && isConnected) {
-            onSendMessage(formatStopwatchTime(elapsedTime)); // Call without includeTenths
-        }
-        // If mode becomes inactive, send a final update or clear message?
-        // For now, it just stops sending. The main display will hold the last value.
-    }, [elapsedTime, isActive, isConnected, onSendMessage]); // Removed includeTenths dependency
-
-    // Effect to stop the timer if the mode becomes inactive
-    useEffect(() => {
-        if (!isActive && isRunning) {
-            setIsRunning(false); // Stop the timer logic if mode switched away
-             if (intervalRef.current) {
-                clearInterval(intervalRef.current); // Ensure interval is cleared
-                intervalRef.current = null;
-            }
-        }
-    }, [isActive, isRunning]);
-
+const StopwatchMode: React.FC<StopwatchModeProps> = ({
+    isConnectedToBackend,
+    displayTime,
+    isRunningBackend,
+    onStart,
+    onStop,
+    onReset
+}) => {
+    // No internal timer state needed
 
     const handleStartStop = () => {
-        if (!isConnected) return; // Don't allow control if not connected
-
-        if (isRunning) {
-            // Stopping
-            setIsRunning(false);
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-            }
-            // No need to update startTimeRef here, elapsedTime holds the final value
+        if (!isConnectedToBackend) return;
+        if (isRunningBackend) {
+            onStop(); // Call the prop function to emit stop event
         } else {
-            // Starting or Resuming
-            startTimeRef.current = Date.now() - elapsedTime; // Adjust start time based on previous elapsed time
-            setIsRunning(true);
+            onStart(); // Call the prop function to emit start event
         }
     };
 
     const handleReset = () => {
-        if (!isConnected) return; // Don't allow control if not connected
-
-        if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-        }
-        setIsRunning(false);
-        setElapsedTime(0);
-        startTimeRef.current = 0; // Reset start time ref
-        // Send reset state immediately if connected
-        if (isConnected && isActive) {
-             onSendMessage(formatStopwatchTime(0)); // Call without includeTenths
-        }
+        if (!isConnectedToBackend) return;
+        onReset(); // Call the prop function to emit reset event
     };
 
-    const formattedDisplayTime = formatStopwatchTime(elapsedTime);
+    // Determine if reset should be disabled (e.g., if time is zero and not running)
+    // This check assumes the backend sends a displayTime like "00:00" or similar when reset and stopped.
+    // Adjust the condition based on the actual format sent by the backend for the reset state.
+    const isTimeZero = displayTime.replace(/[^0-9]/g, '') === '0000'; // Example check for "00:00" or "  00 00   " etc.
+    const isResetDisabled = !isConnectedToBackend || (isTimeZero && !isRunningBackend);
 
     return (
         <div className="stopwatch-mode">
             <h4 className="draggable-handle">Stopwatch Mode</h4>
             <div className="stopwatch-display">
                 {/* Display time locally */}
-                <code>{formattedDisplayTime}</code>
+                <code>{displayTime}</code> {/* Display time received from backend */}
             </div>
             {/* Removed Formatting Option */}
             <div className="stopwatch-controls">
-                <button onClick={handleStartStop} disabled={!isConnected}>
-                    {isRunning ? 'Stop' : 'Start'}
+                <button onClick={handleStartStop} disabled={!isConnectedToBackend}>
+                    {isRunningBackend ? 'Stop' : 'Start'} {/* Use backend running state */}
                 </button>
-                <button onClick={handleReset} disabled={!isConnected || elapsedTime === 0 && !isRunning}>
+                <button onClick={handleReset} disabled={isResetDisabled}>
                     Reset
                 </button>
             </div>
-             {!isConnected && isActive && (
-                 <p className="connection-warning">MQTT Disconnected. Controls disabled.</p>
+             {!isConnectedToBackend && (
+                 <p className="connection-warning">Disconnected from backend. Controls disabled.</p>
             )}
         </div>
     );

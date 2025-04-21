@@ -24,8 +24,9 @@ import SplitFlapDisplay from './SplitFlapDisplay'; // Import the display compone
 import InteractiveTextInput from './InteractiveTextInput';
 
 interface SequenceModeProps {
-    isConnected: boolean;
-    onSendMessage: (message: string) => void;
+    isConnected: boolean; // Keep isConnected for disabling UI elements
+    onPlay: (scene: Scene) => void; // Callback to request backend play
+    onStop: () => void; // Callback to request backend stop
 }
 
 // --- Sortable Item Component ---
@@ -103,7 +104,7 @@ const SortableLineItem: React.FC<SortableLineItemProps> = ({
 
 const LOCAL_STORAGE_KEY = 'splitFlapScenes';
 
-const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage }) => {
+const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onPlay, onStop }) => {
     const [currentLines, setCurrentLines] = useState<SceneLine[]>([]);
     const [newLineText, setNewLineText] = useState<string>('');
     // Removed top-level delayMs state
@@ -272,43 +273,24 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
     const handlePlayScene = () => {
         if (isPlaying || currentLines.length === 0 || !isConnected) return;
 
-        setIsPlaying(true);
-        let lineIndex = 0; // Index of the line to be sent NEXT
-
-        const scheduleNextLine = (delay: number) => {
-            timeoutRef.current = setTimeout(() => {
-                if (lineIndex >= currentLines.length) {
-                    // We have displayed all lines and waited for the last one's duration
-                    setIsPlaying(false);
-                    timeoutRef.current = null;
-                    return;
-                }
-
-                // Send the current line
-                const lineToSend = currentLines[lineIndex];
-                onSendMessage(lineToSend.text);
-                console.log(`Sent line ${lineIndex + 1}: "${lineToSend.text}", waiting ${lineToSend.durationMs ?? 1000}ms`);
-
-                // Prepare for the next line
-                const durationForCurrentLine = lineToSend.durationMs ?? 1000;
-                lineIndex++;
-
-                // Schedule the next call after the current line's duration
-                scheduleNextLine(durationForCurrentLine);
-
-            }, delay); // Use the provided delay for this timeout
+        // Construct the scene object to send to backend
+        const currentScene: Scene = {
+            name: selectedSceneName || `Untitled Scene ${Date.now()}`, // Use selected name or generate one
+            lines: currentLines,
         };
-
-        // Start immediately (delay 0) for the first line
-        scheduleNextLine(0);
+        onPlay(currentScene); // Emit event to backend via App.tsx prop
+        setIsPlaying(true); // Set local playing state immediately for UI feedback
+        // Backend will manage the actual playback and timing
     };
 
      const handleStopScene = () => {
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-            timeoutRef.current = null;
-        }
-        setIsPlaying(false);
+        // if (timeoutRef.current) { // Backend now manages the timer
+        //     clearTimeout(timeoutRef.current);
+        //     timeoutRef.current = null;
+        // }
+        onStop(); // Emit event to backend via App.tsx prop
+        setIsPlaying(false); // Set local playing state immediately for UI feedback
+        // Backend state update might confirm this later
     };
 
     // --- Drag and Drop Handler (dnd-kit) ---
