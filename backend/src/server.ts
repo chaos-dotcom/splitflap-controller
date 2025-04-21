@@ -25,7 +25,7 @@ const NRE_LDBWS_ENDPOINT = 'https://lite.realtime.nationalrail.co.uk/OpenLDBWS/l
 // Namespaces needed for the SOAP request
 const SOAP_ENV_NS = 'http://schemas.xmlsoap.org/soap/envelope/';
 const TOKEN_TYPES_NS = 'http://thalesgroup.com/RTTI/2013-11-28/Token/types';
-const LDB_NS = 'http://thalesgroup.com/RTTI/2021-11-01/ldb/'; // Use the latest LDB namespace version
+const LDB_NS = 'http://thalesgroup.com/RTTI/2021-11-01/ldb/'; // Use the latest LDB namespace version from WSDL
 
 // Enable CORS for all origins (adjust for production later)
 app.use(cors());
@@ -80,8 +80,8 @@ app.get('/api/departures', async (req: Request, res: Response) => {
 
         const requestHeaders = {
             'Content-Type': 'text/xml;charset=UTF-8',
-            // Try sending ONLY the operation name as the SOAPAction
-            'SOAPAction': `GetDepartureBoard`,
+            // Explicitly set the standard SOAPAction: Namespace + Operation
+            'SOAPAction': `http://thalesgroup.com/RTTI/2021-11-01/ldb/GetDepartureBoard`,
             'Accept-Encoding': 'identity', // Explicitly state we don't want compressed responses
         };
         console.log('Request Headers:', requestHeaders); // Log headers
