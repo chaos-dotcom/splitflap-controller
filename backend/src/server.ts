@@ -80,8 +80,9 @@ app.get('/api/departures', async (req: Request, res: Response) => {
 
         const requestHeaders = {
             'Content-Type': 'text/xml;charset=UTF-8',
-            // Use the LDB namespace declared for the body + Operation Name
-            'SOAPAction': `${LDB_NS}GetDepartureBoard`,
+            // Construct SOAPAction: Namespace URI (no trailing slash) + "/" + Operation Name
+            // Some servers are picky about the exact format.
+            'SOAPAction': `${LDB_NS.replace(/\/$/, '')}/GetDepartureBoard`,
             'Accept-Encoding': 'identity', // Explicitly state we don't want compressed responses
         };
         console.log('Request Headers:', requestHeaders); // Log headers
