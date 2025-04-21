@@ -292,11 +292,11 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                     <label htmlFor="fromStation">From (CRS): </label>
                     <input
                         type="text"
-                        id="fromStation"
-                        value={fromStation}
-                        onChange={(e) => setFromStation(e.target.value.toUpperCase())}
-                        placeholder="e.g., KGX"
-                        maxLength={3}
+                       id="fromStation"
+                       value={fromStation}
+                       onChange={handleFromStationChange} // Use new handler
+                       placeholder="e.g., KGX"
+                       maxLength={3}
                         disabled={!isConnected || isLoading}
                         className="crs-input"
                     />
@@ -305,19 +305,19 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                     <label htmlFor="toStation">To (CRS): </label>
                     <input
                         type="text"
-                        id="toStation"
-                        value={toStation}
-                        onChange={(e) => setToStation(e.target.value.toUpperCase())}
-                        placeholder="Optional (e.g., EDB)"
-                        maxLength={3}
+                       id="toStation"
+                       value={toStation}
+                       onChange={handleToStationChange} // Use new handler
+                       placeholder="Optional (e.g., EDB)"
+                       maxLength={3}
                         disabled={!isConnected || isLoading}
                         className="crs-input"
                     />
-                </div>
-                {/* Manual refresh button might still be useful */}
-                <button onClick={fetchDepartures} disabled={!isConnected || isLoading || !fromStation}>
-                    {isLoading ? 'Refreshing...' : 'Refresh Now'}
-                </button>
+               </div>
+               {/* Manual refresh button now explicitly uses state */}
+               <button onClick={fetchDepartures} disabled={!isConnected || isLoading || !fromStation || fromStation.length !== 3}>
+                   {isLoading ? 'Refreshing...' : 'Refresh Now'}
+               </button>
             </div>
 
             {/* Button to send selected times sequence */}
