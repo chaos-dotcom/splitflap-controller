@@ -434,6 +434,7 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
                 previousHour = currentHour; // Update the last seen hour only when HH is shown
             }
 
+            // Only append the 2-char (MM) or 4-char (HHMM) timePart to the string
             if ((concatenatedTimes + timePart).length <= SPLITFLAP_DISPLAY_LENGTH) {
                 concatenatedTimes += timePart;
             } else {

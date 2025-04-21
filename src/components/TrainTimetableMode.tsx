@@ -196,10 +196,12 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
         } else if (timePart === 'DLAY') {
             output = 'DELAYED     '; // Specific 12-char format
         } else {
+            // The output string uses the calculated timePart (HHMM or   MM), not the full estimatedTime string
             output = `${timePart} ${dest}${plat}`; // TTTT + space + DEST(6/7) + P(1/0) = 12
         }
 
-        onSendMessage(output.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH)); // Send the calculated string
+        // Send the condensed 12-character string to the backend/display
+        onSendMessage(output.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH));
     };
 
     // --- Preset Handlers ---
@@ -362,7 +364,18 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                             {departures.map((dep, index) => ( // Add index here
                                 <tr key={dep.id}>
                                     {/* Removed Checkbox cell */}
-                                    <td>{dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime ? <del>{dep.scheduledTime}</del> : dep.scheduledTime} {dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime && dep.estimatedTime !== 'On time' ? <span>{dep.estimatedTime}</span> : ''}</td>
+                                    {/* This logic displays STD crossed out and ETD if available and different */}
+                                    <td>
+                                        {dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime && dep.status !== 'Cancelled' && dep.status !== 'Delayed'
+                                            ? <del>{dep.scheduledTime}</del>
+                                            : dep.scheduledTime
+                                        }
+                                        {' '}
+                                        {dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime && dep.status !== 'Cancelled' && dep.status !== 'Delayed'
+                                            ? <span>{dep.estimatedTime}</span>
+                                            : ''
+                                        }
+                                    </td>
                                     <td>{dep.destination}</td>
                                     <td>{dep.platform || '-'}</td>
                                     <td>{dep.status}</td>
