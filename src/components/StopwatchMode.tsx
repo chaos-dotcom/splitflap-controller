@@ -51,15 +51,25 @@ const StopwatchMode: React.FC<StopwatchModeProps> = ({
                 <code>{displayTime}</code> {/* Display time received from backend */}
             </div>
             {/* Removed Formatting Option */}
-            <div className="stopwatch-controls">
-                <button onClick={handleStartStop} disabled={!isConnectedToBackend}>
+            <div className="stopwatch-controls govuk-button-group">
+                <button
+                    onClick={handleStartStop}
+                    disabled={!isConnectedToBackend}
+                    className="govuk-button"
+                    data-module="govuk-button"
+                >
                     {isRunningBackend ? 'Stop' : 'Start'} {/* Use backend running state */}
                 </button>
-                <button onClick={handleReset} disabled={isResetDisabled}>
+                <button
+                    onClick={handleReset}
+                    disabled={isResetDisabled}
+                    className="govuk-button govuk-button--warning" // Use warning style for reset
+                    data-module="govuk-button"
+                >
                     Reset
                 </button>
             </div>
-             {!isConnectedToBackend && (
+            {!isConnectedToBackend && (
                  <p className="connection-warning">Disconnected from backend. Controls disabled.</p>
             )}
         </div>

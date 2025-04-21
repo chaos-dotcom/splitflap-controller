@@ -33,40 +33,11 @@
     color: #1a202c; /* Very dark gray */
 }
 
-
-.stopwatch-controls button {
-  padding: 10px 20px;
-  margin: 0 10px;
-  font-size: 1rem;
-  cursor: pointer;
-  border: 1px solid #cbd5e0;
-  border-radius: 4px;
-}
-
-.stopwatch-controls button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.stopwatch-controls button:first-of-type:not(:disabled) { /* Start/Stop button */
-    background-color: #48bb78; /* Green */
-    color: white;
-}
-.stopwatch-controls button:first-of-type:not(:disabled):active {
-    background-color: #38a169;
-}
-/* Style specifically for Stop state if needed */
-.stopwatch-mode button:first-of-type:contains("Stop") { /* Might need JS class toggle instead */
-    /* background-color: #f56565; */ /* Red for stop */
-}
-
-
-.stopwatch-controls button:last-of-type:not(:disabled) { /* Reset button */
-    background-color: #f7fafc;
-    color: #4a5568;
-}
-.stopwatch-controls button:last-of-type:not(:disabled):active {
-    background-color: #e2e8f0;
+/* Removed custom button styles - now handled by GOV.UK Design System classes */
+/* Keep the container for layout if needed */
+.stopwatch-controls {
+    /* Add any specific layout adjustments for the button group if necessary */
+    /* Example: margin-top: 15px; */
 }
 
 
