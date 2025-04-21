@@ -4,12 +4,12 @@
 .sequence-mode {
   /* Keep top margin if needed for separation from mode buttons */
   margin-top: 15px;
-  /* Add GDS panel styles - TEMPORARILY HARDCODED FOR DEBUGGING */
-  background-color: white; /* Was: var(--govuk-colour-white); */
+  /* Add GDS panel styles */
+  background-color: var(--govuk-colour-white);
   padding: var(--govuk-spacing-6); /* Apply padding here */
-  border: 1px solid #b1b4b6; /* Was: var(--govuk-border-colour); GDS grey */
+  border: 1px solid var(--govuk-border-colour);
   border-radius: 3px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Simplified shadow */ /* Was: var(--govuk-shadow-1); */
+  box-shadow: var(--govuk-shadow-1);
 }
 
 /* Style draggable handle on heading */
@@ -194,8 +194,8 @@
   border-bottom: none;
   padding-bottom: 0;
   /* Add padding to prevent buttons touching edges */
-  padding-left: var(--govuk-spacing-4);
-  padding-right: var(--govuk-spacing-4);
+  padding-left: var(--govuk-spacing-4); /* Keep existing padding */
+  padding-right: var(--govuk-spacing-4); /* Keep existing padding */
 }
 /* Remove custom play/stop button styles */
 
