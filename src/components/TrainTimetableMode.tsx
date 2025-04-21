@@ -30,7 +30,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     const [savedPresets, setSavedPresets] = useState<TrainRoutePreset[]>([]); // State for presets
     const [isLoading, setIsLoading] = useState<boolean>(false); // Keep loading state for manual refresh
     const [error, setError] = useState<string | null>(null);
-    const [formattedDisplayStrings, setFormattedDisplayStrings] = useState<string[]>([]); // State for formatted strings
+    // Removed formattedDisplayStrings state
 
     // Helper to get hour and minute from a departure time string (HH:MM)
     const getHourMinute = (timeString: string | undefined): { hour: number | null, minute: number | null } => {
@@ -53,57 +53,6 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
             }
         }
     }, []); // Empty dependency array ensures this runs only once on mount
-
-    // Effect to calculate formatted display strings whenever departures change
-    useEffect(() => {
-        let previousHour: number | null = null;
-        const newFormattedStrings = departures.map(dep => {
-            // Determine the time to display and its hour/minute
-            const displayTimeStr = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
-                ? dep.estimatedTime
-                : dep.scheduledTime;
-            const { hour: currentHour, minute: currentMinute } = getHourMinute(displayTimeStr);
-
-            let timePart: string;
-
-            if (dep.status.toUpperCase() === 'CANCELLED') {
-                timePart = 'CANC'; // 4 chars
-                previousHour = null; // Reset hour context after cancelled
-            } else if (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime) {
-                 timePart = 'DLAY'; // 4 chars
-                 previousHour = null; // Reset hour context after delayed
-            } else if (currentHour !== null && currentMinute !== null) {
-                const minuteStr = currentMinute.toString().padStart(2, '0'); // MM
-                if (currentHour === previousHour) {
-                    timePart = `  ${minuteStr}`; // Hour is same, show space-space-minute-minute
-                } else {
-                    timePart = currentHour.toString().padStart(2, '0') + minuteStr; // Hour is different, show hour-hour-minute-minute
-                    previousHour = currentHour; // Update previous hour
-                }
-            } else {
-                timePart = '----'; // Fallback if time is invalid
-                previousHour = null; // Reset hour context
-            }
-
-            // Format: TTTT DEST... P (4 + 1 space + 7 = 12)
-            let output: string;
-            if (timePart === 'CANC') {
-                output = 'CANCELLED   '; // Specific 12-char format
-            } else if (timePart === 'DLAY') {
-                output = 'DELAYED     '; // Specific 12-char format
-            } else {
-                // Normal time display
-                const plat = dep.platform ? dep.platform.slice(-1) : ' '; // Take last digit of platform or space (1 char)
-                const maxDestLength = 7; // Space + Dest + Plat = 8 chars. Time = 4 chars. Total 12.
-                let dest = dep.destination.toUpperCase().substring(0, maxDestLength - 1); // Max 6 chars for dest if platform exists
-                dest = dest.padEnd(maxDestLength - plat.length); // Pad destination to fill space (6 or 7 chars)
-                output = `${timePart} ${dest}${plat}`; // TTTT + space + DEST(6/7) + P(1/0) = 12
-            }
-            return output.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
-        });
-        setFormattedDisplayStrings(newFormattedStrings);
-        setSelectedDepartureIds(new Set()); // Clear selection when departures refresh
-    }, [departures]); // Recalculate when departures data changes
 
     // Placeholder function to simulate fetching data from the backend
     // Now reads directly from state
@@ -159,10 +108,59 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     };
 
     // Function to send a specific departure line to the display
-    // Now uses the pre-formatted string based on index
+    // Calculates the condensed format on demand
     const handleSendDeparture = (index: number) => {
-        if (!isConnected || index < 0 || index >= formattedDisplayStrings.length) return;
-        onSendMessage(formattedDisplayStrings[index]); // Send pre-formatted string
+        if (!isConnected || index < 0 || index >= departures.length) return;
+
+        const dep = departures[index];
+        const prevDep = index > 0 ? departures[index - 1] : null;
+
+        // Determine the time to display and its hour/minute
+        const displayTimeStr = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
+            ? dep.estimatedTime
+            : dep.scheduledTime;
+        const { hour: currentHour, minute: currentMinute } = getHourMinute(displayTimeStr);
+
+        // Determine previous hour for comparison, considering its status
+        const prevDisplayTimeStr = prevDep ? ((prevDep.estimatedTime && prevDep.estimatedTime !== 'On time' && prevDep.estimatedTime !== 'Delayed' && prevDep.estimatedTime !== 'Cancelled') ? prevDep.estimatedTime : prevDep.scheduledTime) : null;
+        const { hour: previousHour } = prevDisplayTimeStr ? getHourMinute(prevDisplayTimeStr) : { hour: null };
+        const prevWasSpecialStatus = prevDep && (prevDep.status.toUpperCase() === 'CANCELLED' || (prevDep.status.toUpperCase() === 'DELAYED' && !prevDep.estimatedTime));
+
+
+        let timePart: string;
+
+        if (dep.status.toUpperCase() === 'CANCELLED') {
+            timePart = 'CANC';
+        } else if (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime) {
+             timePart = 'DLAY';
+        } else if (currentHour !== null && currentMinute !== null) {
+            const minuteStr = currentMinute.toString().padStart(2, '0'); // MM
+            // Only use '  MM' if hours match AND previous train wasn't cancelled/delayed without estimate
+            if (currentHour === previousHour && !prevWasSpecialStatus) {
+                timePart = `  ${minuteStr}`; // Hour is same, show space-space-minute-minute
+            } else {
+                timePart = currentHour.toString().padStart(2, '0') + minuteStr; // Hour is different or prev was special, show hour-hour-minute-minute
+            }
+        } else {
+            timePart = '----'; // Fallback
+        }
+
+        // Format the rest of the string (same logic as before)
+        const plat = dep.platform ? dep.platform.slice(-1) : ' ';
+        const maxDestLength = 7; // Space + Dest + Plat = 8 chars. Time = 4 chars. Total 12.
+        let dest = dep.destination.toUpperCase().substring(0, maxDestLength - plat.length); // Max 6 chars for dest if platform exists
+        dest = dest.padEnd(maxDestLength - plat.length); // Pad destination to fill space (6 or 7 chars)
+
+        let output: string;
+        if (timePart === 'CANC') {
+            output = 'CANCELLED   '; // Specific 12-char format
+        } else if (timePart === 'DLAY') {
+            output = 'DELAYED     '; // Specific 12-char format
+        } else {
+            output = `${timePart} ${dest}${plat}`; // TTTT + space + DEST(6/7) + P(1/0) = 12
+        }
+
+        onSendMessage(output.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH)); // Send the calculated string
     };
 
     // --- Preset Handlers ---
@@ -332,7 +330,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                                         <button // Use index to send correct formatted string
                                             onClick={() => handleSendDeparture(index)}
                                             disabled={!isConnected}
-                                            title={`Send to display: ${formattedDisplayStrings[index] || ''}`} // Use pre-formatted string in title
+                                            title={`Send departure info to display`} // Simplified title
                                             className="send-button"
                                         >
                                             Send
