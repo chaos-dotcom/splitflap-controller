@@ -743,7 +743,7 @@ const publishHaDiscoveryConfig = () => {
     const originPayload = {
         name: "splitflap-controller-backend", // Name of this software
         sw_version: "1.0.0", // Example version
-        support_url: "https://github.com/your-repo/splitflap-controller", // Optional: Link to your repo/docs
+        // support_url: "https://github.com/your-repo/splitflap-controller", // Removed optional URL
     };
 
 
@@ -763,8 +763,7 @@ const publishHaDiscoveryConfig = () => {
         payload_not_available: "offline",
         // Add origin information
         origin: originPayload,
-        // Explicitly add platform (though usually derived from topic for single discovery)
-        platform: "select",
+        // platform: "select", // Removed platform key as it should be derived from the topic
     };
 
     console.log(`[HA MQTT] Publishing discovery config to ${haModeConfigTopic}`);
