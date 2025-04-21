@@ -20,6 +20,7 @@
 
 .clock-mode p {
     margin-bottom: 5px;
+    color: var(--govuk-text-colour); /* Explicitly use GDS text color */
 }
 
 .clock-mode .current-time-display {
@@ -32,8 +33,9 @@
     letter-spacing: 0.1em;
 }
 
+/* Rely on GDS classes for warning text styling */
 .clock-mode .connection-warning {
-    color: #dc3545;
+    /* color: #dc3545; */ /* Remove specific color rule */
     font-size: 0.9em;
     margin-top: 10px;
 }
