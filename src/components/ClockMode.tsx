@@ -25,14 +25,11 @@ const formatTime = (date: Date): string => {
 
     const hourStr = hour.toString().padStart(2, '0'); // Pad with ZERO for single digit hours
     const minuteStr = minute.toString().padStart(2, '0');
-    // Get separator color based on the minute (changes every minute)
-    const separatorColor = SEPARATOR_COLORS[minute % SEPARATOR_COLORS.length];
 
-    // Format: 'DDD HHcMM AP' (12 chars total) - c is the color separator
-    // Example: MON 01r31 AM
-    // Pad appropriately: "DDD HH" (6) + "c" (1) + "MM" (2) + " " (1) + "AP" (2) = 12
-    const formatted = `${weekday} ${hourStr}${separatorColor}${minuteStr} ${ampm}`;
-
+    // Format: 'DDD HHMM  AP' (12 chars total) - Two spaces before AM/PM for right justification
+    // Example: MON 0131  AM
+    // Pad appropriately: "DDD HHMM" (8) + "  " (2) + "AP" (2) = 12
+    const formatted = `${weekday} ${hourStr}${minuteStr}  ${ampm}`;
 
     // Ensure uppercase and exactly DISPLAY_LENGTH
     return formatted.toUpperCase().padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
