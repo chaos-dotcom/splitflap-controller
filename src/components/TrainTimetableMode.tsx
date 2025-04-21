@@ -16,14 +16,14 @@ interface Departure {
 // Define the props for the component
 interface TrainTimetableModeProps {
     isConnected: boolean;
-    onSendMessage: (message: string) => void; // For sending single lines (from Send button)
-    onPlayScene: (scene: Scene) => void; // For sending sequences
+    onSendMessage: (message: string) => void; // For sending single lines
+    // onPlayScene prop removed
 }
 
 const PRESET_STORAGE_KEY = 'trainTimetablePresets';
 
-const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, onSendMessage, onPlayScene }) => {
-    const [fromStation, setFromStation] = useState<string>(''); // e.g., KGX
+const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, onSendMessage }) => {
+    const [fromStation, setFromStation] = useState<string>('TON'); // e.g., KGX
     const [toStation, setToStation] = useState<string>('');   // e.g., EDB (optional)
     const [departures, setDepartures] = useState<Departure[]>([]);
     const [selectedDepartureIds, setSelectedDepartureIds] = useState<Set<string>>(new Set()); // State for selected rows
@@ -67,13 +67,13 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
             let timePart: string;
 
             if (dep.status.toUpperCase() === 'CANCELLED') {
-                timePart = 'CANC'.padEnd(4); // Use first 4 chars for time slot (Adjusted from CANCELLED)
+                timePart = 'CANC'; // 4 chars
                 previousHour = null; // Reset hour context after cancelled
             } else if (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime) {
-                 timePart = 'DLAY'; // Use first 4 chars for time slot
+                 timePart = 'DLAY'; // 4 chars
                  previousHour = null; // Reset hour context after delayed
             } else if (currentHour !== null && currentMinute !== null) {
-                const minuteStr = currentMinute.toString().padStart(2, '0');
+                const minuteStr = currentMinute.toString().padStart(2, '0'); // MM
                 if (currentHour === previousHour) {
                     timePart = `  ${minuteStr}`; // Hour is same, show space-space-minute-minute
                 } else {
@@ -85,14 +85,20 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                 previousHour = null; // Reset hour context
             }
 
-            // Combine with destination/platform (reuse existing logic, adapt if needed)
             // Format: TTTT DEST... P (4 + 1 space + 7 = 12)
-            let dest = dep.destination.toUpperCase().substring(0, 7); // Max 7 chars for dest
-            let plat = dep.platform ? `${dep.platform.padStart(1)}` : ' '; // Ensure 1 char for plat (space or num) - Adjusted for new time format
-            // Ensure destination doesn't overwrite platform if too long
-            dest = dest.padEnd(7 - plat.length); // Pad dest to fill remaining space before platform
-
-            let output = `${timePart} ${dest}${plat}`;
+            let output: string;
+            if (timePart === 'CANC') {
+                output = 'CANCELLED   '; // Specific 12-char format
+            } else if (timePart === 'DLAY') {
+                output = 'DELAYED     '; // Specific 12-char format
+            } else {
+                // Normal time display
+                const plat = dep.platform ? dep.platform.slice(-1) : ' '; // Take last digit of platform or space (1 char)
+                const maxDestLength = 7; // Space + Dest + Plat = 8 chars. Time = 4 chars. Total 12.
+                let dest = dep.destination.toUpperCase().substring(0, maxDestLength - 1); // Max 6 chars for dest if platform exists
+                dest = dest.padEnd(maxDestLength - plat.length); // Pad destination to fill space (6 or 7 chars)
+                output = `${timePart} ${dest}${plat}`; // TTTT + space + DEST(6/7) + P(1/0) = 12
+            }
             return output.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
         });
         setFormattedDisplayStrings(newFormattedStrings);
@@ -157,48 +163,6 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     const handleSendDeparture = (index: number) => {
         if (!isConnected || index < 0 || index >= formattedDisplayStrings.length) return;
         onSendMessage(formattedDisplayStrings[index]); // Send pre-formatted string
-    };
-
-    // Handler for checkbox changes
-    const handleSelectionChange = (departureId: string, isSelected: boolean) => {
-        setSelectedDepartureIds(prevSelected => {
-            const newSelected = new Set(prevSelected);
-            if (isSelected) {
-                newSelected.add(departureId);
-            } else {
-                newSelected.delete(departureId);
-            }
-            return newSelected;
-        });
-    };
-
-    // Handler for sending the sequence of selected times
-    const handleSendSelectedTimesSequence = () => {
-        if (!isConnected || selectedDepartureIds.size === 0) return;
-
-        const selectedDepartures = departures.filter(dep => selectedDepartureIds.has(dep.id));
-        // Sort selected departures by scheduled time
-        selectedDepartures.sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || ''));
-
-        const timeStrings = selectedDepartures.map(dep => {
-            const time = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
-                ? dep.estimatedTime
-                : dep.scheduledTime;
-            return time?.replace(':', '') || '----'; // HHMM format or fallback
-        });
-
-        const sceneLines: SceneLine[] = [];
-        for (let i = 0; i < timeStrings.length; i += 3) {
-            const chunk = timeStrings.slice(i, i + 3).join(''); // Concatenate HHMMHHMMHHMM
-            sceneLines.push({
-                id: `train-time-${i}`, // Simple ID
-                text: chunk.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH),
-                durationMs: 2000 // Default duration for each time chunk display
-            });
-        }
-
-        const scene: Scene = { name: `Times from ${fromStation}`, lines: sceneLines };
-        onPlayScene(scene); // Send the generated scene to the backend
     };
 
     // --- Preset Handlers ---
@@ -336,15 +300,6 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                 </button>
             </div>
 
-            {/* Button to send selected times sequence */}
-            {departures.length > 0 && (
-                <div className="sequence-send-controls">
-                    <button onClick={handleSendSelectedTimesSequence} disabled={!isConnected || selectedDepartureIds.size === 0}>
-                        Send Selected Times Sequence ({selectedDepartureIds.size})
-                    </button>
-                </div>
-            )}
-
             {error && <p className="error-message">Error: {error}</p>}
 
             <div className="departures-list">
@@ -357,7 +312,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                     <table>
                         <thead>
                             <tr>
-                                <th>Select</th> {/* Header for checkboxes */}
+                                {/* Removed Select column */}
                                 <th>Time</th>
                                 <th>Destination</th>
                                 <th>Plat</th>
@@ -368,14 +323,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                         <tbody>
                             {departures.map((dep, index) => ( // Add index here
                                 <tr key={dep.id}>
-                                    <td> {/* Checkbox cell */}
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedDepartureIds.has(dep.id)}
-                                            onChange={(e) => handleSelectionChange(dep.id, e.target.checked)}
-                                            disabled={!isConnected}
-                                        />
-                                    </td>
+                                    {/* Removed Checkbox cell */}
                                     <td>{dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime ? <del>{dep.scheduledTime}</del> : dep.scheduledTime} {dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime && dep.estimatedTime !== 'On time' ? <span>{dep.estimatedTime}</span> : ''}</td>
                                     <td>{dep.destination}</td>
                                     <td>{dep.platform || '-'}</td>
