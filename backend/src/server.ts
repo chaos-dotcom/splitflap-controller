@@ -415,31 +415,39 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
             const displayTimeStr = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
                 ? dep.estimatedTime : dep.scheduledTime;
             const { hour: currentHour, minute: currentMinute } = getHourMinute(displayTimeStr);
-            const isSpecialStatus = dep.status.toUpperCase() === 'CANCELLED' || (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime);
+           const isSpecialStatus = dep.status.toUpperCase() === 'CANCELLED' || (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime);
 
-            let timePart = '----'; // Default for errors or special cases not handled below
-            if (currentHour !== null && currentMinute !== null && !isSpecialStatus) {
-                const minuteStr = currentMinute.toString().padStart(2, '0');
-                timePart = (currentHour === previousHour) ? `  ${minuteStr}` : `${currentHour.toString().padStart(2, '0')}${minuteStr}`;
-                previousHour = currentHour;
-            } else {
-                previousHour = null; // Reset hour context for special status or errors
-            }
-
+           let timePart = '----'; // Default 4 chars for errors or special cases
+           if (currentHour !== null && currentMinute !== null && !isSpecialStatus) {
+               const minuteStr = currentMinute.toString().padStart(2, '0');
+               // Ensure exactly 4 characters are generated
+               timePart = (currentHour === previousHour)
+                   ? `  ${minuteStr}` // "  MM" (4 chars)
+                   : `${currentHour.toString().padStart(2, '0')}${minuteStr}`; // "HHMM" (4 chars)
+               previousHour = currentHour;
+           } else {
+               previousHour = null; // Reset hour context for special status or errors to force HHMM next time
+           }
             if ((concatenatedTimes + timePart).length <= SPLITFLAP_DISPLAY_LENGTH) {
                 concatenatedTimes += timePart;
             } else {
                 break; // Stop adding times if it exceeds display length
             }
-        }
-        // --- End Calculation ---
+           } else {
+               break; // Stop adding times if it exceeds display length
+           }
+       }
+       // --- End Calculation ---
 
-        // Update display with the concatenated string, padded if necessary
-        if (concatenatedTimes) {
-            updateDisplayAndBroadcast(concatenatedTimes.padEnd(SPLITFLAP_DISPLAY_LENGTH), 'train');
-        } else {
-            updateDisplayAndBroadcast(`${route.fromCRS} NO DEPT`.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH), 'train'); // Show no departures message
-        }
+       const finalPaddedString = concatenatedTimes.padEnd(SPLITFLAP_DISPLAY_LENGTH);
+       console.log(`[Train Polling] Calculated times string: "${concatenatedTimes}", Padded: "${finalPaddedString}"`); // Log before/after padding
+
+       // Update display with the concatenated string, padded if necessary
+       if (concatenatedTimes) {
+           updateDisplayAndBroadcast(finalPaddedString, 'train');
+       } else {
+           updateDisplayAndBroadcast(`${route.fromCRS} NO DEPT`.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH), 'train'); // Show no departures message
+       }
 
         // Send full data to clients interested in the table view
         io.emit('trainDataUpdate', { departures: lastFetchedDepartures });
