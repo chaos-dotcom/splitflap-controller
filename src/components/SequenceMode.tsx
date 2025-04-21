@@ -117,23 +117,30 @@ const SortableLineItem: React.FC<SortableLineItemProps> = ({
                 )}
             </div>
 
-            {/* Duration Input - GDS Style */}
+            {/* Duration Input - GDS Style (Seconds) */}
             <div className="govuk-form-group govuk-!-margin-left-2 line-duration-group">
                 <label className="govuk-label govuk-visually-hidden" htmlFor={durationInputId}>
-                    Duration (ms) for line {line.text}
+                    Duration (seconds) for line {line.text}
                 </label>
                 <input
-                    type="number"
+                    type="number" // Keep as number, but handle floats
                     id={durationInputId}
                     className="govuk-input govuk-input--width-5 line-duration-input"
-                    value={line.durationMs ?? 1000}
-                    onChange={(e) => handleDurationChange(line.id, parseInt(e.target.value, 10))}
-                    min="100"
-                    step="100"
+                    // Display value in seconds
+                    value={(line.durationMs ?? 1000) / 1000}
+                    // Convert input value (seconds) back to milliseconds for state update
+                    onChange={(e) => {
+                        const seconds = parseFloat(e.target.value);
+                        // Convert valid float seconds to milliseconds, default/minimum 100ms
+                        const ms = !isNaN(seconds) ? Math.max(100, Math.round(seconds * 1000)) : 100;
+                        handleDurationChange(line.id, ms);
+                    }}
+                    min="0.1" // Minimum 0.1 seconds (100ms)
+                    step="0.1" // Step in 0.1 second increments
                     disabled={isPlaying || isEditing} // Disable when editing this line
-                    title="Line display duration (milliseconds)"
+                    title="Line display duration (seconds)"
                 />
-                <span className="govuk-input__suffix" aria-hidden="true">ms</span>
+                <span className="govuk-input__suffix" aria-hidden="true">s</span> {/* Changed unit to 's' */}
             </div>
 
             {/* Action Buttons - GDS Style */}
