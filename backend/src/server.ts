@@ -108,20 +108,6 @@ interface Departure {
 // NRE LDBWS WSDL URL - Use the latest version
 const NRE_LDBWS_WSDL_URL = 'https://lite.realtime.nationalrail.co.uk/OpenLDBWS/wsdl.aspx?ver=2021-11-01';
 
-// --- Application State ---
-// Use DISPLAY_LENGTH from constants if available, otherwise hardcode or import differently
-const DISPLAY_LENGTH = 12; // Assuming default length for now
-let currentDisplayText: string = ' '.repeat(DISPLAY_LENGTH);
-let currentAppMode: ControlMode = 'text';
-let clockInterval: NodeJS.Timeout | null = null;
-let stopwatchInterval: NodeJS.Timeout | null = null;
-let stopwatchElapsedTime: number = 0;
-let stopwatchStartTime: number = 0;
-let isStopwatchRunning: boolean = false;
-let sequenceTimeout: NodeJS.Timeout | null = null;
-let isSequencePlaying: boolean = false;
-// --- End Application State ---
-
 // Enable CORS for HTTP and WebSockets
 app.use(cors()); // For HTTP requests like NRE API proxy
 
