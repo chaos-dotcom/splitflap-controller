@@ -39,15 +39,15 @@ interface SortableLineItemProps {
     handleLineClick: (id: string) => void;
     handleLineTextChange: (id: string, text: string) => void;
     handleLineEnter: () => void; // Renamed from handleFinishEditing for clarity here
-    handleLineBlur: () => void; // Renamed from handleFinishEditing for clarity here
+    handleLineBlur: () => void;
     handleDurationChange: (id: string, duration: number) => void;
     handleDeleteLine: (id: string) => void;
-    handleDuplicateLine: (id: string) => void; // Add duplicate handler prop
+    handleDuplicateLine: (id: string) => void;
 }
 
 const SortableLineItem: React.FC<SortableLineItemProps> = ({
     line, isPlaying, editingLineId, handleLineClick, handleLineTextChange,
-    handleLineEnter, handleLineBlur, handleDurationChange, handleDeleteLine, handleDuplicateLine // Destructure new prop
+    handleLineEnter, handleLineBlur, handleDurationChange, handleDeleteLine, handleDuplicateLine
 }) => {
     const {
         attributes,
@@ -63,39 +63,103 @@ const SortableLineItem: React.FC<SortableLineItemProps> = ({
         transition,
         opacity: isDragging ? 0.5 : 1, // Example dragging style
         // Add other styles as needed, e.g., zIndex if elements overlap during drag
-        zIndex: isDragging ? 100 : 'auto', // Ensure dragging item is on top
+        zIndex: isDragging ? 100 : 'auto',
     };
 
-    // Use handleLineBlur or handleLineEnter when the inline input loses focus or Enter is pressed
     const finishEditing = () => {
-        handleLineBlur(); // Or handleLineEnter(), depending on desired behavior
+        handleLineBlur();
     };
 
+    const isEditing = editingLineId === line.id;
+    const durationInputId = `duration-${line.id}`; // Unique ID for label association
 
     return (
-        <li ref={setNodeRef} style={style} className={`${editingLineId === line.id ? 'editing' : ''} ${isDragging ? 'dragging-style' : ''}`}>
-            {/* Drag Handle - using listeners from useSortable */}
-            <span className="drag-handle" {...attributes} {...listeners} title="Drag to reorder">
-                ⠿
-            </span>
-            {/* Rest of the line item content remains the same */}
-            {editingLineId === line.id ? (
-                 <InteractiveTextInput
-                    value={line.text}
-                    onChange={(newText) => handleLineTextChange(line.id, newText)}
-                    onEnter={finishEditing} // Use the combined handler
-                    onBlur={finishEditing} // Use the combined handler
-                    maxLength={SPLITFLAP_DISPLAY_LENGTH}
-                    disabled={isPlaying}
-                    autoFocus />
-            ) : (
-                 <div className="line-display-clickable" onClick={() => !isPlaying && handleLineClick(line.id)} title="Click to edit text"><SplitFlapDisplay size="small" text={line.text} /></div>
-            )}
-            <input type="number" className="line-duration-input" value={line.durationMs ?? 1000} onChange={(e) => handleDurationChange(line.id, parseInt(e.target.value, 10))} min="100" step="100" disabled={isPlaying || editingLineId === line.id} title="Line display duration (ms)" />
-            <span className="duration-unit">ms</span>
-            {/* Add Duplicate Button - Disable if playing or *any* line is being edited */}
-            <button className="duplicate-line-btn" onClick={() => handleDuplicateLine(line.id)} disabled={isPlaying || !!editingLineId} title="Duplicate Line">❐</button>
-            <button className="delete-line-btn" onClick={() => handleDeleteLine(line.id)} disabled={isPlaying || editingLineId === line.id} title="Delete Line">×</button>
+        <li ref={setNodeRef} style={style} className={`sequence-line-item ${isEditing ? 'editing' : ''} ${isDragging ? 'dragging-style' : ''}`}>
+            {/* Drag Handle - GDS Button */}
+            <button
+                {...attributes}
+                {...listeners}
+                className="drag-handle govuk-button govuk-button--secondary govuk-!-margin-right-1"
+                aria-label="Drag to reorder line"
+                disabled={isPlaying || isEditing} // Disable drag when editing this line too
+                title="Drag to reorder"
+            >
+                <DragHandleIcon size="1.5em" />
+            </button>
+
+            {/* Text Display/Input Area */}
+            <div className="line-text-area">
+                {isEditing ? (
+                    <div className="govuk-form-group line-text-input-group">
+                        <InteractiveTextInput
+                            value={line.text}
+                            onChange={(newText) => handleLineTextChange(line.id, newText)}
+                            onEnter={finishEditing}
+                            onBlur={finishEditing}
+                            maxLength={SPLITFLAP_DISPLAY_LENGTH}
+                            disabled={isPlaying}
+                            autoFocus
+                            // Assuming InteractiveTextInput internally uses govuk-input or similar styling
+                        />
+                    </div>
+                ) : (
+                    <div
+                        className="line-display-clickable"
+                        onClick={() => !isPlaying && handleLineClick(line.id)}
+                        title="Click to edit text"
+                        role="button" // Semantics
+                        tabIndex={isPlaying ? -1 : 0} // Keyboard accessible when not playing
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') !isPlaying && handleLineClick(line.id); }} // Allow activation with Enter/Space
+                    >
+                        <SplitFlapDisplay size="small" text={line.text} isConnected={true} isInteractive={false} caretPosition={-1} />
+                    </div>
+                )}
+            </div>
+
+            {/* Duration Input - GDS Style */}
+            <div className="govuk-form-group govuk-!-margin-left-2 line-duration-group">
+                <label className="govuk-label govuk-visually-hidden" htmlFor={durationInputId}>
+                    Duration (ms) for line {line.text}
+                </label>
+                <input
+                    type="number"
+                    id={durationInputId}
+                    className="govuk-input govuk-input--width-5 line-duration-input"
+                    value={line.durationMs ?? 1000}
+                    onChange={(e) => handleDurationChange(line.id, parseInt(e.target.value, 10))}
+                    min="100"
+                    step="100"
+                    disabled={isPlaying || isEditing} // Disable when editing this line
+                    title="Line display duration (milliseconds)"
+                />
+                <span className="govuk-input__suffix" aria-hidden="true">ms</span>
+            </div>
+
+            {/* Action Buttons - GDS Style */}
+            <div className="line-action-buttons govuk-button-group govuk-!-margin-left-2">
+                {/* Duplicate Button */}
+                <button
+                    className="govuk-button govuk-button--secondary duplicate-line-btn"
+                    onClick={() => handleDuplicateLine(line.id)}
+                    disabled={isPlaying || isEditing} // Disable when editing this line
+                    title="Duplicate Line"
+                    aria-label={`Duplicate line ${line.text}`}
+                >
+                    <DuplicateIcon size="1.2em" />
+                    <span className="govuk-visually-hidden">Duplicate</span>
+                </button>
+                {/* Delete Button */}
+                <button
+                    className="govuk-button govuk-button--warning delete-line-btn"
+                    onClick={() => handleDeleteLine(line.id)}
+                    disabled={isPlaying || isEditing} // Disable when editing this line
+                    title="Delete Line"
+                    aria-label={`Delete line ${line.text}`}
+                >
+                    <DeleteIcon size="1.2em" />
+                    <span className="govuk-visually-hidden">Delete</span>
+                </button>
+            </div>
         </li>
     );
 };
@@ -111,13 +175,14 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onPlay, onStop
     const [savedScenes, setSavedScenes] = useState<{ [name: string]: Scene }>({});
     const [selectedSceneName, setSelectedSceneName] = useState<string>('');
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
-    const [editingLineId, setEditingLineId] = useState<string | null>(null); // State to track which line is being edited
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref to store timeout ID
-    // Setup dnd-kit sensors
+    const [editingLineId, setEditingLineId] = useState<string | null>(null);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
+    const addLineInputId = 'add-sequence-line-input'; // ID for label association
+    const loadSceneSelectId = 'load-sequence-scene-select'; // ID for label association
 
     // Load saved scenes from localStorage on mount
     useEffect(() => {
@@ -310,40 +375,79 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onPlay, onStop
     // --- End Drag and Drop Handler ---
 
     return (
-        <div className="sequence-mode">
-            <h4>Sequence Mode</h4>
+        <div className="sequence-mode govuk-!-padding-4"> {/* Add GDS padding */}
+            <h4 className="govuk-heading-m draggable-handle">Sequence Mode</h4> {/* GDS Heading */}
 
-            {/* Scene Loading/Saving */}
-            <div className="scene-management">
-                <select onChange={handleLoadScene} value={selectedSceneName} disabled={isPlaying}>
-                    <option value="">-- Load Saved Scene --</option>
-                    {Object.keys(savedScenes).sort().map(name => (
-                        <option key={name} value={name}>{name}</option>
-                    ))}
-                </select>
-                 <button onClick={handleDeleteSavedScene} disabled={!selectedSceneName || isPlaying} title="Delete Selected Scene">
-                    🗑️ Delete
-                </button>
-                <button onClick={handleSaveScene} disabled={currentLines.length === 0 || isPlaying}>
-                    💾 Save Current Scene
-                </button>
+            {/* Scene Loading/Saving - GDS Style */}
+            <div className="scene-management govuk-grid-row govuk-!-margin-bottom-6">
+                <div className="govuk-grid-column-two-thirds">
+                    <div className="govuk-form-group">
+                        <label className="govuk-label" htmlFor={loadSceneSelectId}>
+                            Load Saved Scene
+                        </label>
+                        <select
+                            className="govuk-select"
+                            id={loadSceneSelectId}
+                            onChange={handleLoadScene}
+                            value={selectedSceneName}
+                            disabled={isPlaying || !!editingLineId} // Also disable if editing a line
+                        >
+                            <option value="">-- Select Scene --</option>
+                            {Object.keys(savedScenes).sort().map(name => (
+                                <option key={name} value={name}>{name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                <div className="govuk-grid-column-one-third">
+                    {/* Buttons aligned to the right or below select on smaller screens */}
+                    <div className="govuk-button-group scene-management-buttons">
+                        <button
+                            onClick={handleSaveScene}
+                            disabled={currentLines.length === 0 || isPlaying || !!editingLineId}
+                            className="govuk-button govuk-button--secondary" // Secondary for save
+                            data-module="govuk-button"
+                            title="Save the current lines as a new scene or overwrite the selected scene"
+                        >
+                            Save Scene
+                        </button>
+                        <button
+                            onClick={handleDeleteSavedScene}
+                            disabled={!selectedSceneName || isPlaying || !!editingLineId}
+                            className="govuk-button govuk-button--warning" // Warning for delete
+                            data-module="govuk-button"
+                            title="Delete the currently selected saved scene"
+                        >
+                            Delete Scene
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            {/* Scene Editor */}
+
+            {/* Scene Editor - GDS Style */}
             <div className="scene-editor">
-                <h5>Edit Scene Lines ({currentLines.length})</h5>
-                <div className="add-line-form">
-                    {/* Replace input with InteractiveTextInput */}
+                <h5 className="govuk-heading-s">Edit Scene Lines ({currentLines.length})</h5> {/* GDS Heading */}
+                {/* Add Line Form - GDS Style */}
+                <div className="add-line-form govuk-form-group">
+                     <label className="govuk-label govuk-visually-hidden" htmlFor={addLineInputId}>
+                        Add new line text
+                     </label>
+                    {/* Assuming InteractiveTextInput applies govuk-input style */}
                     <InteractiveTextInput
                         value={newLineText}
-                        onChange={setNewLineText} // Pass the state setter directly
-                        onEnter={handleAddLine} // Trigger add line on Enter
+                        onChange={setNewLineText}
+                        onEnter={handleAddLine}
                         maxLength={SPLITFLAP_DISPLAY_LENGTH}
-                        placeholder={`Enter line (max ${SPLITFLAP_DISPLAY_LENGTH} chars)`}
-                        disabled={isPlaying}
+                        placeholder={`Enter new line text (max ${SPLITFLAP_DISPLAY_LENGTH} chars)`}
+                        disabled={isPlaying || !!editingLineId} // Disable if playing or editing any line
+                        // Pass ID for label association if InteractiveTextInput supports it
+                        // id={addLineInputId}
                     />
+                    {/* Add button is implicit via Enter key in InteractiveTextInput */}
                 </div>
-                {/* dnd-kit Implementation */}
+
+                {/* dnd-kit List */}
                 <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
@@ -375,16 +479,35 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onPlay, onStop
                     </SortableContext>
                 </DndContext>
             </div>
-            {/* Play/Stop Controls */}
-             <div className="scene-controls">
-                 <button onClick={handlePlayScene} disabled={!isConnected || isPlaying || currentLines.length === 0}>
-                     ▶️ Play Scene
-                 </button>
-                  <button onClick={handleStopScene} disabled={!isPlaying} className="stop-button">
-                     ⏹️ Stop
-                 </button>
+            {/* Play/Stop Controls - GDS Style */}
+            <div className="scene-controls govuk-button-group govuk-!-margin-top-6">
+                <button
+                    onClick={handlePlayScene}
+                    disabled={!isConnected || isPlaying || currentLines.length === 0 || !!editingLineId} // Disable if editing
+                    className="govuk-button" // Primary button for Play
+                    data-module="govuk-button"
+                >
+                    ▶️ Play Scene
+                </button>
+                <button
+                    onClick={handleStopScene}
+                    disabled={!isPlaying} // Only depends on playing state
+                    className="govuk-button govuk-button--secondary stop-button" // Secondary for Stop
+                    data-module="govuk-button"
+                >
+                    ⏹️ Stop
+                </button>
             </div>
-             {!isConnected && <p className="connection-warning">Connect to MQTT to play scenes.</p>}
+            {/* Connection Warning - GDS Style */}
+            {!isConnected && (
+                <div className="govuk-warning-text govuk-!-margin-top-4">
+                    <span className="govuk-warning-text__icon" aria-hidden="true">!</span>
+                    <strong className="govuk-warning-text__text">
+                        <span className="govuk-warning-text__assistive">Warning</span>
+                        Disconnected from backend. Connect to play scenes.
+                    </strong>
+                </div>
+            )}
         </div>
     );
 };

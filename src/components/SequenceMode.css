@@ -1,252 +1,193 @@
 /* src/components/SequenceMode.css */
+
+/* Remove default component styling, rely on GDS utilities and classes */
 .sequence-mode {
-  border: 1px solid #b3d4fc;
-  padding: 15px;
+  /* Keep top margin if needed for separation from mode buttons */
   margin-top: 15px;
-  border-radius: 5px;
-  background-color: #f0f8ff;
+  /* Remove border, padding, background - use GDS padding utility */
 }
 
-.sequence-mode h4 {
-  margin-top: 0;
-  text-align: center;
-  color: #0056b3;
+/* Style draggable handle on heading */
+.sequence-mode h4.draggable-handle {
+  cursor: move;
+  user-select: none;
+  /* GDS heading styles applied via class */
 }
 
-.scene-management,
-.scene-editor,
-.scene-controls {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px dashed #ccc;
-}
-.scene-controls {
-    border-bottom: none;
-    padding-bottom: 0;
-}
-
-
+/* Scene Management Layout */
 .scene-management {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  flex-wrap: wrap; /* Allow wrapping on smaller screens */
-  gap: 10px; /* Add space between items */
+  /* Use GDS grid system */
+  align-items: end; /* Align items to bottom for button alignment */
 }
-
-.scene-management select {
-  padding: 8px;
-  min-width: 200px; /* Give dropdown space */
-  flex-grow: 1; /* Allow dropdown to grow */
+.scene-management-buttons {
+    /* Adjust button group alignment if needed on smaller screens */
+    /* Example: text-align: right; */
 }
+/* Remove custom select/button styles */
 
-.scene-management button {
-  padding: 8px 12px;
-  cursor: pointer;
-}
 
+/* Scene Editor Layout */
 .scene-editor h5 {
-  margin-bottom: 10px;
-  text-align: center;
+  /* GDS heading styles applied via class */
+  margin-bottom: var(--govuk-gutter-half); /* GDS spacing */
 }
 
+/* Add Line Form Layout */
 .add-line-form {
-  display: flex;
-  margin-bottom: 10px;
+  /* GDS form group handles spacing */
+  /* display: flex; */ /* No longer needed */
 }
-
-/* Ensure the interactive input takes full width */
-.add-line-form .interactive-text-input {
-    flex-grow: 1;
-}
+/* Remove custom input styles */
 
 
+/* Line List Styling */
 .line-list {
   list-style: none;
   padding: 0;
-  margin: 0;
-  max-height: 200px; /* Limit height and make scrollable */
-  overflow-y: auto;
-  background-color: #fff;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 5px;
+  margin: var(--govuk-gutter) 0 0 0; /* GDS spacing */
+  /* Remove max-height/overflow or adjust as needed */
+  /* max-height: 200px; */
+  /* overflow-y: auto; */
+  /* Remove background, border, padding - handled by items */
 }
 
-.line-list li {
+/* Individual Line Item Layout */
+.sequence-line-item {
   display: flex;
-  align-items: center;
-  padding: 5px 8px;
-  border-bottom: 1px solid #eee;
-  /* Ensure consistent height whether displaying text or input */
-  min-height: 36px; /* Adjust based on small display/input height + padding */
+  align-items: center; /* Vertically align items */
+  padding: var(--govuk-gutter-half) 0; /* GDS spacing */
+  border-bottom: 1px solid var(--govuk-border-colour); /* GDS border */
+  /* Remove min-height */
 }
 .line-list li:last-child {
   border-bottom: none;
 }
-/* Optional: Highlight the row being edited */
-.line-list li.editing {
-   background-color: #e6f0ff; /* Lighter blue background for editing */
+
+/* Editing state visual cue (optional) */
+.sequence-line-item.editing {
+   /* background-color: #f3f2f1; */ /* GDS subtle background */
+   /* Or add a border */
+   /* box-shadow: inset 2px 0 0 var(--govuk-focus-colour); */
 }
 
-/* Updated from .line-number to .drag-handle */
-/* Style for the drag handle */
-.line-list li .drag-handle {
-    min-width: 25px;
-    color: #666;
-    font-size: 1.2em; /* Make handle slightly larger */
-    cursor: grab; /* Indicate draggable handle */
-    display: inline-flex; /* Align icon/text if needed */
+/* Dragging state visual cue */
+.sequence-line-item.dragging-style {
+    background-color: var(--govuk-focus-colour-fade-20); /* Use GDS focus color */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    /* z-index applied inline */
+}
+
+/* Drag Handle Button */
+.drag-handle {
+    /* GDS button styles applied via class */
+    /* Ensure icon is centered */
+    display: inline-flex;
     align-items: center;
-    justify-content: center; /* Center the handle icon */
-    padding-right: 5px; /* Space between handle and display/input */
-    user-select: none; /* Prevent text selection */
-    touch-action: none; /* Improve touch dragging */
+    justify-content: center;
+    /* Remove custom styles */
 }
-.line-list li .drag-handle:active {
-    cursor: grabbing;
+/* Remove :active style - handled by dnd-kit */
+
+/* Text Display/Input Area Layout */
+.line-text-area {
+    flex-grow: 1; /* Take available space */
+    margin: 0 var(--govuk-gutter-half); /* GDS spacing */
+    display: flex; /* Needed for clickable area height */
+    align-items: center; /* Vertically center content */
+    min-height: 40px; /* Ensure consistent height with inputs/buttons */
 }
 
-/* Style applied via inline style using isDragging from useSortable */
-.line-list li.dragging-style {
-    /* opacity: 0.5; */ /* Applied via inline style */
-    background-color: #d0e0f0; /* Optional: change background while dragging */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Add a shadow */
-    /* z-index is also applied inline */
-}
-
-
-/* Ensure the small display takes up appropriate space */
-.line-list li .split-flap-display.small {
-    flex-grow: 1; /* Allow it to take available space */
-    margin: 0 10px; /* Adjust spacing */
-    /* Removed flex-grow: 1; as the clickable div will handle it */
-}
- 
-/* Style for the clickable display area */
-.line-list li .line-display-clickable {
-    flex-grow: 1; /* Allow it to take available space */
-    margin: 0 10px; /* Adjust spacing */
+/* Clickable Display Area */
+.line-display-clickable {
+    flex-grow: 1;
     cursor: pointer;
+    padding: 5px 2px; /* Minimal padding */
     border-radius: 3px;
-    padding: 0 2px; /* Small padding to show hover */
-    /* Ensure it aligns vertically like the input would */
+    display: flex; /* Align SplitFlapDisplay */
+    align-items: center;
+    width: 100%; /* Fill the text area */
+    min-height: inherit; /* Inherit height from parent */
+}
+.line-display-clickable:hover {
+    background-color: #f3f2f1; /* GDS subtle hover */
+}
+.line-display-clickable:focus {
+    outline: 3px solid transparent; /* Remove default */
+    box-shadow: 0 0 0 3px var(--govuk-focus-colour); /* GDS focus */
+    background-color: #f3f2f1; /* Add background on focus */
+}
+/* Ensure SplitFlapDisplay within clickable area is sized correctly */
+.line-display-clickable .split-flap-display.small {
+    /* Adjust if needed, but should inherit size */
+}
+
+/* Text Input Group Layout */
+.line-text-input-group {
+    margin-bottom: 0; /* Override GDS form group margin */
+    width: 100%; /* Ensure it fills the text area */
+}
+/* Style for InteractiveTextInput if it doesn't apply GDS styles */
+.line-text-input-group .interactive-text-input input {
+    /* Example: Apply GDS input styles if needed */
+    /* @extend .govuk-input; */
+}
+
+/* Duration Input Group Layout */
+.line-duration-group {
     display: flex;
     align-items: center;
-    min-height: 28px; /* Match approx height of small display */
+    margin-bottom: 0; /* Override GDS form group margin */
 }
-.line-list li .line-display-clickable:hover {
-    background-color: #e2e6ea; /* Subtle hover effect */
+/* Remove custom duration input styles */
+.line-duration-input {
+    /* GDS input styles applied via class */
 }
- 
-/* Style for the interactive input when editing */
-.line-list li .interactive-text-input {
-    flex-grow: 1; /* Take up the space */
-    margin: 0 10px; /* Match spacing */
-    /* Override default interactive input padding/border if needed */
-    padding: 0;
-    border: none;
-    background-color: transparent; /* Blend in */
-    outline: none; /* Remove focus outline within the list */
-    min-height: 28px; /* Match clickable area height */
-}
-/* Ensure small chars inside the input look right */
-.line-list li .interactive-text-input .split-flap-char.small {
-    width: 18px;
-    height: 26px;
-    line-height: 26px;
-    font-size: 1rem;
-    margin: 0 1px; /* Minimal margin */
-    vertical-align: middle; /* Align chars vertically */
-}
-/* Style the caret within the input */
-.line-list li .interactive-text-input .split-flap-char.small.caret {
-   outline: 1px solid dodgerblue;
-   outline-offset: -1px;
-}
- 
-.line-list li .line-duration-input {
-    width: 70px; /* Fixed width for duration */
-    padding: 3px 6px;
-    margin-left: 10px; /* Space before duration */
-    text-align: right;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-}
+/* Remove custom duration unit styles */
 
-.line-list li .duration-unit {
-    font-size: 0.8em;
-    color: #666;
-    margin-left: 3px; /* Space after input */
-    margin-right: 5px; /* Space before duplicate button */
-}
 
-/* Common styles for action buttons */
-.line-list li .duplicate-line-btn,
-.line-list li .delete-line-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.1em; /* Make icons similar size */
-  padding: 0 5px;
+/* Action Buttons Layout */
+.line-action-buttons {
+    /* GDS button group handles spacing */
+    /* Ensure buttons don't wrap unnecessarily */
+    white-space: nowrap;
 }
+/* Style action buttons */
+.line-action-buttons .govuk-button {
+    /* Ensure icon-only buttons have minimum size */
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0; /* Remove padding for icon-only */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+/* Remove custom duplicate/delete button styles */
 
-/* Specific styles */
-.line-list li .duplicate-line-btn {
-    color: #007bff; /* Blue */
-    margin-left: 5px; /* Space after duration unit */
-}
-.line-list li .delete-line-btn {
-  color: red;
-  margin-left: auto; /* Push delete button to the far right */
-}
 
-/* Disabled state for both buttons */
-.line-list li .duplicate-line-btn:disabled,
-.line-list li .delete-line-btn:disabled {
-    color: #ccc;
-    cursor: not-allowed;
-}
-
+/* No Lines Message */
 .line-list .no-lines {
+    /* Use GDS body text style */
+    color: var(--govuk-secondary-text-colour);
+    padding: var(--govuk-gutter-half);
     text-align: center;
-    color: #888;
-    padding: 10px;
     font-style: italic;
+    border-bottom: none; /* Remove border if it's the only item */
 }
 
-
+/* Scene Controls Layout */
 .scene-controls {
-  text-align: center;
+  /* GDS button group handles layout */
+  text-align: center; /* Center the button group */
+  /* Remove border */
+  border-bottom: none;
+  padding-bottom: 0;
 }
+/* Remove custom play/stop button styles */
 
-/* Removed styles for label and number input as they are no longer used globally */
 
-.scene-controls button {
-  padding: 8px 15px;
-  margin: 0 5px;
-  cursor: pointer;
-}
+/* Connection Warning */
+/* GDS warning text styles applied via class */
+/* Remove custom styles */
 
-.scene-controls .stop-button {
-    background-color: #dc3545;
-    color: white;
-    border-color: #dc3545;
-}
-.scene-controls .stop-button:disabled {
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-    color: #721c24;
-}
-
-.connection-warning {
-    text-align: center;
-    color: #dc3545;
-    font-size: 0.9em;
-    margin-top: 10px;
-}
-
-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
+/* Remove generic button:disabled */
+/* button:disabled { ... } */
