@@ -16,16 +16,14 @@ interface Departure {
 interface TrainTimetableModeProps {
     isConnected: boolean;
     onSendMessage: (message: string) => void;
-    isActive: boolean; // To know if this mode is currently selected
 }
 
-const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, onSendMessage, isActive }) => {
+const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, onSendMessage }) => {
     const [fromStation, setFromStation] = useState<string>(''); // e.g., KGX
     const [toStation, setToStation] = useState<string>('');   // e.g., EDB (optional)
     const [departures, setDepartures] = useState<Departure[]>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(false); // Keep loading state for manual refresh
     const [error, setError] = useState<string | null>(null);
-    const [pollingIntervalId, setPollingIntervalId] = useState<NodeJS.Timeout | null>(null);
 
     // Function to format a departure into a 12-char string
     const formatDepartureForDisplay = (dep: Departure): string => {
@@ -99,37 +97,6 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
         const displayString = formatDepartureForDisplay(departure);
         onSendMessage(displayString);
     };
-
-    // Effect to set up and clear polling interval
-    useEffect(() => {
-        // Function to perform the fetch and handle errors internally
-        const poll = async () => {
-            if (isActive && isConnected && fromStation) {
-                await fetchDepartures();
-            }
-        };
-
-        // Clear existing interval if dependencies change or component unmounts
-        if (pollingIntervalId) {
-            clearInterval(pollingIntervalId);
-            setPollingIntervalId(null);
-        }
-
-        // Start polling only if the mode is active, connected, and a station is set
-        if (isActive && isConnected && fromStation) {
-            poll(); // Fetch immediately when conditions are met
-            const intervalId = setInterval(poll, 30000); // Poll every 30 seconds
-            setPollingIntervalId(intervalId);
-        }
-
-        // Cleanup function
-        return () => {
-            if (pollingIntervalId) {
-                clearInterval(pollingIntervalId);
-            }
-        };
-        // Dependencies: isActive, isConnected, fromStation (to restart polling if station changes)
-    }, [isActive, isConnected, fromStation, toStation]); // Include toStation if filtering depends on it
 
 
     return (

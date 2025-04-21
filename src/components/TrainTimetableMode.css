@@ -1,22 +1,36 @@
 /* src/components/TrainTimetableMode.css */
 .train-timetable-mode {
-  border: 1px solid #ffcc80; /* Slightly softer orange border */
+  /* Define CSS Variables for theming */
+  --tt-bg-color: #fff8e1; /* Lighter background */
+  --tt-border-color: #ffcc80; /* Slightly softer orange border */
+  --tt-handle-bg: #ffe0b2; /* Lighter orange for handle background */
+  --tt-handle-text: #e65100; /* Darker orange for title */
+  --tt-text-color: #333;
+  --tt-label-color: #000;
+  --tt-input-border: #ccc;
+  --tt-input-bg: #fff;
+  --tt-input-disabled-bg: #eee;
+  --tt-button-bg: #fb8c00; /* Orange button */
+  --tt-button-text: white;
+  --tt-button-hover-bg: #e65100;
+  --tt-button-disabled-bg: #bdbdbd;
+  --tt-table-header-bg: #fff3e0; /* Light orange header */
+  --tt-table-border: #eee;
+  --tt-table-row-bg: #fff;
+  --tt-status-delayed: #d32f2f; /* Red for delayed time */
+  --tt-status-cancelled: #d32f2f; /* Red for cancelled */
+  --tt-send-button-bg: #4CAF50; /* Green send button */
+  --tt-send-button-hover-bg: #388E3C;
+  --tt-send-button-disabled-bg: #ccc;
+  --tt-info-text: #666;
+  --tt-error-text: red;
+
+  border: 1px solid var(--tt-border-color);
   padding: 15px;
   margin-top: 15px;
   border-radius: 5px;
-  background-color: #fff8e1; /* Lighter background */
-}
-
-.train-timetable-mode h4 {
-  margin-top: 0;
-  text-align: center;
-  color: #e65100; /* Darker orange for title */
-  background-color: #ffe0b2; /* Lighter orange for handle background */
-  padding: 8px;
-  margin: -15px -15px 15px -15px; /* Extend handle to edges */
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
-  border-bottom: 1px solid #ffcc80;
+  background-color: var(--tt-bg-color);
+  color: var(--tt-text-color); /* Default text color */
 }
 
 .station-inputs {
@@ -35,42 +49,45 @@
 }
 
 .station-inputs label {
-  font-weight: bold;
+  font-weight: normal; /* Adjust if needed */
   min-width: 70px; /* Ensure labels align */
   text-align: right;
+  color: var(--tt-label-color);
 }
 
 .station-inputs .crs-input {
   padding: 6px 8px;
   width: 60px; /* Fixed width for 3-char CRS code */
   text-transform: uppercase;
-  border: 1px solid #ccc;
+  border: 1px solid var(--tt-input-border);
   border-radius: 3px;
+  background-color: var(--tt-input-bg);
+  color: var(--tt-text-color);
 }
 .station-inputs .crs-input:disabled {
-    background-color: #eee;
+    background-color: var(--tt-input-disabled-bg);
 }
 
 
 .station-inputs button {
   padding: 6px 12px;
   cursor: pointer;
-  background-color: #fb8c00; /* Orange button */
-  color: white;
+  background-color: var(--tt-button-bg);
+  color: var(--tt-button-text);
   border: none;
   border-radius: 3px;
   transition: background-color 0.2s ease;
 }
 .station-inputs button:hover:not(:disabled) {
-    background-color: #e65100;
+    background-color: var(--tt-button-hover-bg);
 }
 .station-inputs button:disabled {
-    background-color: #bdbdbd;
+    background-color: var(--tt-button-disabled-bg);
     cursor: not-allowed;
 }
 
 .error-message {
-  color: red;
+  color: var(--tt-error-text);
   text-align: center;
   margin-bottom: 10px;
   font-weight: bold;
@@ -84,37 +101,37 @@
 .departures-list h5 {
     text-align: center;
     margin-bottom: 10px;
-    color: #e65100;
+    color: var(--tt-handle-text); /* Use handle text color */
 }
 
 .departures-list table {
   width: 100%;
   border-collapse: collapse;
-  background-color: #fff;
+  background-color: var(--tt-table-row-bg);
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .departures-list th,
 .departures-list td {
-  border: 1px solid #eee;
+  border: 1px solid var(--tt-table-border);
   padding: 8px 10px;
   text-align: left;
   vertical-align: middle;
 }
 
 .departures-list th {
-  background-color: #fff3e0; /* Light orange header */
+  background-color: var(--tt-table-header-bg);
   font-weight: bold;
 }
 
 .departures-list td del {
-    color: #999;
+    color: var(--tt-info-text); /* Use info text color */
     text-decoration: line-through;
     margin-right: 5px;
 }
 .departures-list td span {
     font-weight: bold;
-    color: #d32f2f; /* Red for delayed time */
+    color: var(--tt-status-delayed);
 }
 
 
@@ -122,21 +139,63 @@
     padding: 4px 8px;
     font-size: 0.9em;
     cursor: pointer;
-    background-color: #4CAF50; /* Green send button */
-    color: white;
+    background-color: var(--tt-send-button-bg);
+    color: var(--tt-button-text);
     border: none;
     border-radius: 3px;
 }
 .departures-list .send-button:hover:not(:disabled) {
-    background-color: #388E3C;
+    background-color: var(--tt-send-button-hover-bg);
 }
 .departures-list .send-button:disabled {
-    background-color: #ccc;
+    background-color: var(--tt-send-button-disabled-bg);
     cursor: not-allowed;
 }
 
 .departures-list p { /* For loading/error messages within the list area */
     text-align: center;
-    color: #666;
+    color: var(--tt-info-text);
     padding: 10px;
+}
+
+/* Dark Mode Overrides */
+.dark-mode .train-timetable-mode {
+  --tt-bg-color: #2d3748; /* Dark gray-blue */
+  --tt-border-color: #4a5568; /* Medium gray */
+  --tt-handle-bg: #4a5568; /* Medium gray */
+  --tt-handle-text: #e2e8f0; /* Light gray */
+  --tt-text-color: #e2e8f0; /* Light gray */
+  --tt-label-color: #cbd5e0; /* Lighter gray */
+  --tt-input-border: #4a5568;
+  --tt-input-bg: #1a202c; /* Very dark gray-blue */
+  --tt-input-disabled-bg: #4a5568;
+  --tt-button-bg: #dd6b20; /* Darker orange */
+  --tt-button-text: white;
+  --tt-button-hover-bg: #c05621;
+  --tt-button-disabled-bg: #718096;
+  --tt-table-header-bg: #4a5568;
+  --tt-table-border: #4a5568;
+  --tt-table-row-bg: #2d3748;
+  --tt-status-delayed: #fc8181; /* Lighter red */
+  --tt-status-cancelled: #fc8181;
+  --tt-send-button-bg: #38a169; /* Darker green */
+  --tt-send-button-hover-bg: #2f855a;
+  --tt-send-button-disabled-bg: #718096;
+  --tt-info-text: #a0aec0; /* Gray */
+  --tt-error-text: #fc8181; /* Lighter red */
+}
+
+/* Ensure handle styling is applied */
+.train-timetable-mode h4.draggable-handle {
+  margin-top: 0;
+  text-align: center;
+  color: var(--tt-handle-text);
+  background-color: var(--tt-handle-bg);
+  padding: 8px;
+  margin: -15px -15px 15px -15px; /* Extend handle to edges */
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  border-bottom: 1px solid var(--tt-border-color);
+  cursor: move;
+  user-select: none;
 }
