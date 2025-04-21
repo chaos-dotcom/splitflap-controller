@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { ControlMode, Scene } from '../types'; // Assuming types are in src/types
+import { ControlMode, Scene, Departure, TrainRoutePreset } from '../types'; // Added Departure, TrainRoutePreset
 
 // Define the structure of events from the backend
 interface ServerToClientEvents {
@@ -9,6 +9,11 @@ interface ServerToClientEvents {
     initialState: (state: {
         text: string;
         mode: ControlMode;
+        // Add optional initial state for other modes
+        train?: {
+            route: { fromCRS: string; toCRS?: string } | null;
+            departures: Departure[];
+        };
         stopwatch?: { isRunning: boolean; elapsedTime: number }; // Make stopwatch optional
         // Add other state if needed
     }) => void;
@@ -17,6 +22,7 @@ interface ServerToClientEvents {
     mqttStatus: (status: { status: string; error: string | null }) => void;
     stopwatchUpdate: (data: { elapsedTime: number; isRunning: boolean }) => void;
     sequenceStopped: () => void;
+    trainDataUpdate: (data: { departures?: Departure[]; error?: string }) => void; // Event for train data updates/errors
     error: (data: { message: string }) => void; // General backend errors
 }
 
@@ -31,6 +37,7 @@ interface ClientToServerEvents {
     resetStopwatch: () => void;
     playSequence: (data: { scene: Scene }) => void;
     stopSequence: () => void;
+    startTrainUpdates: (data: { fromCRS: string; toCRS?: string }) => void; // Event to start/update train polling
 }
 
 // Define the socket type
@@ -48,6 +55,7 @@ export const socketService = {
         onModeUpdate: (data: Parameters<ServerToClientEvents['modeUpdate']>[0]) => void, // Corrected type
         onMqttStatus: (status: Parameters<ServerToClientEvents['mqttStatus']>[0]) => void, // Corrected type
         onStopwatchUpdate: (data: Parameters<ServerToClientEvents['stopwatchUpdate']>[0]) => void, // Corrected type
+        onTrainDataUpdate: (data: Parameters<ServerToClientEvents['trainDataUpdate']>[0]) => void, // Add callback for train data
         onSequenceStopped: () => void,
         onConnect: () => void,
         onDisconnect: (reason: string) => void,
@@ -92,6 +100,7 @@ export const socketService = {
         socket.on('modeUpdate', onModeUpdate);
         socket.on('mqttStatus', onMqttStatus);
         socket.on('stopwatchUpdate', onStopwatchUpdate);
+        socket.on('trainDataUpdate', onTrainDataUpdate); // Listen for train data updates
         socket.on('sequenceStopped', onSequenceStopped);
         socket.on('error', (data) => onError(data.message));
 
@@ -130,5 +139,6 @@ export const socketService = {
     emitResetStopwatch: () => socketService.emit('resetStopwatch'),
     emitPlaySequence: (scene: Scene) => socketService.emit('playSequence', { scene }),
     emitStopSequence: () => socketService.emit('stopSequence'),
+    emitStartTrainUpdates: (fromCRS: string, toCRS?: string) => socketService.emit('startTrainUpdates', { fromCRS, toCRS }),
 
 };
