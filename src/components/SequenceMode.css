@@ -178,18 +178,31 @@
     font-size: 0.8em;
     color: #666;
     margin-left: 3px; /* Space after input */
-    margin-right: 5px; /* Space before delete button */
+    margin-right: 5px; /* Space before duplicate button */
 }
 
+/* Common styles for action buttons */
+.line-list li .duplicate-line-btn,
 .line-list li .delete-line-btn {
   background: none;
   border: none;
-  color: red;
   cursor: pointer;
-  font-size: 1.2em;
+  font-size: 1.1em; /* Make icons similar size */
   padding: 0 5px;
-  margin-left: auto; /* Push delete button to the right */
 }
+
+/* Specific styles */
+.line-list li .duplicate-line-btn {
+    color: #007bff; /* Blue */
+    margin-left: 5px; /* Space after duration unit */
+}
+.line-list li .delete-line-btn {
+  color: red;
+  margin-left: auto; /* Push delete button to the far right */
+}
+
+/* Disabled state for both buttons */
+.line-list li .duplicate-line-btn:disabled,
 .line-list li .delete-line-btn:disabled {
     color: #ccc;
     cursor: not-allowed;
