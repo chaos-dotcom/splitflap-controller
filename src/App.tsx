@@ -40,6 +40,8 @@ function App() {
     socketService.connect(
       // onInitialState
       (state) => {
+        // --- START COMMENTING OUT ---
+        /*
         console.log('[App] Received initial state:', state); // Existing log
         try { // <-- ADD TRY BLOCK
           console.log('[App] Setting displayText...');
@@ -66,6 +68,9 @@ function App() {
           // Optionally set an error state here to display to the user
           setBackendError('Error processing initial state from backend.');
         } // <-- END TRY-CATCH
+        */
+       // --- END COMMENTING OUT ---
+       console.log('[App] Received initial state, but processing is currently commented out.'); // Add this log
       },
       // onDisplayUpdate
       (data) => setDisplayText(data.text),
