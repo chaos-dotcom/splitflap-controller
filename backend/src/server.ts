@@ -702,7 +702,7 @@ io.on('connection', (socket: Socket) => {
         console.error(`[Socket.IO] Socket error for client ${socket.id}:`, error);
     });
 
-    console.log(`[Socket.IO] Event listeners set up for ${socket.id}.`); // Added log
+    console.log(`[Socket.IO] Event listeners successfully set up for ${socket.id}.`); // <-- ADD THIS LOG
 });
 
 // Add a listener for server-level connection errors
