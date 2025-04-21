@@ -188,6 +188,19 @@ function App() {
   };
   // --- End Placeholder Emitters ---
 
+  // --- Mode Change Handler ---
+  const handleSetMode = (mode: ControlMode) => {
+      if (isConnectedToBackend) {
+          socketService.emitSetMode(mode);
+          // Note: The actual state update (setCurrentMode) happens
+          // when the backend confirms via the 'modeUpdate' event.
+      } else {
+          console.warn("Cannot change mode: Disconnected from backend.");
+          // Optionally provide user feedback here
+      }
+  };
+  // --- End Mode Change Handler ---
+
 
   return (
     <div className="app-container">
