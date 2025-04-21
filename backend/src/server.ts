@@ -409,30 +409,32 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
         lastFetchedDepartures = response.data as Departure[];
         console.log(`[Train Polling] Fetched ${lastFetchedDepartures.length} departures.`);
 
-        // --- Calculate Concatenated Time String ---
-        // concatenatedTimes declared above
-        let previousHour: number | null = null;
+        // --- Calculate Concatenated Time String FOR AUTOMATIC DISPLAY ---
+        // This string will contain HHMM or "  MM" blocks concatenated.
+        concatenatedTimes = ""; // Ensure it's reset for each fetch
+        let previousHour: number | null = null; // Track the hour of the previously added time block
         for (const dep of lastFetchedDepartures) {
             const displayTimeStr = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
                 ? dep.estimatedTime : dep.scheduledTime;
             const { hour: currentHour, minute: currentMinute } = getHourMinute(displayTimeStr);
            const isSpecialStatus = dep.status.toUpperCase() === 'CANCELLED' || (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime);
 
-           let timePart = '----'; // Default 4 chars for errors or special cases
+           // For the automatic concatenated display, use HHMM or "  MM" format
+           let timePart = '----'; // Default for special status or invalid time
            if (currentHour !== null && currentMinute !== null && !isSpecialStatus) {
                const minuteStr = currentMinute.toString().padStart(2, '0');
-               // Ensure exactly 4 characters are generated
+               // Use "  MM" if hour matches the last displayed hour, otherwise use "HHMM"
                timePart = (currentHour === previousHour)
                    ? `  ${minuteStr}` // "  MM" (4 chars)
                    : `${currentHour.toString().padStart(2, '0')}${minuteStr}`; // "HHMM" (4 chars)
-               previousHour = currentHour;
+               previousHour = currentHour; // Update the last seen hour
            } else {
-               previousHour = null; // Reset hour context for special status or errors to force HHMM next time
+               previousHour = null; // Reset hour context if special status or invalid time
            }
+
             if ((concatenatedTimes + timePart).length <= SPLITFLAP_DISPLAY_LENGTH) {
                 concatenatedTimes += timePart;
             } else {
-                // This 'else' block was misplaced and caused syntax errors
                 break; // Stop adding times if it exceeds display length
             }
         }
