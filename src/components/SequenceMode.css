@@ -1,10 +1,15 @@
 /* src/components/SequenceMode.css */
 
-/* Remove default component styling, rely on GDS utilities and classes */
+/* Apply panel styling to the entire component */
 .sequence-mode {
   /* Keep top margin if needed for separation from mode buttons */
   margin-top: 15px;
-  /* Remove border, padding, background - use GDS padding utility */
+  /* Add GDS panel styles */
+  background-color: var(--govuk-colour-white);
+  padding: var(--govuk-spacing-6); /* Apply padding here */
+  border: 1px solid var(--govuk-border-colour);
+  border-radius: 3px;
+  box-shadow: var(--govuk-shadow-1);
 }
 
 /* Style draggable handle on heading */

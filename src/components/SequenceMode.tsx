@@ -376,7 +376,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onPlay, onStop
     // --- End Drag and Drop Handler ---
 
     return (
-        <div className="sequence-mode govuk-!-padding-4"> {/* Add GDS padding */}
+        <div className="sequence-mode"> {/* Remove GDS padding utility class */}
             <h4 className="govuk-heading-m draggable-handle">Sequence Mode</h4> {/* GDS Heading */}
 
             {/* Scene Loading/Saving - GDS Style */}
