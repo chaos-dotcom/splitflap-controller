@@ -32,26 +32,57 @@ function App() {
     // setCaretPosition(0); // Reset caret when display updates externally for simplicity
   }, [displayText]);
 
+  // --- Socket.IO Connection Effect ---
+  useEffect(() => {
+    socketService.connect(
+      // onInitialState
+      (state) => {
+        console.log('[App] Received initial state:', state);
+        setDisplayText(state.text);
+        setCurrentMode(state.mode);
+        setStopwatchIsRunningBackend(state.stopwatch?.isRunning ?? false); // Handle potential missing stopwatch state
+        // TODO: Add sequence state if needed
+      },
+      // onDisplayUpdate
+      (data) => setDisplayText(data.text),
+      // onModeUpdate
+      (data) => setCurrentMode(data.mode),
+      // onMqttStatus
+      (status) => setDisplayMqttStatus(status),
+      // onStopwatchUpdate
+      (data) => { setStopwatchIsRunningBackend(data.isRunning); /* Display updated via displayUpdate */ },
+      // onSequenceStopped
+      () => { /* Handle sequence stopped if needed */ console.log('Sequence Stopped'); },
+      // onConnect
+      () => {
+        setIsConnectedToBackend(true);
+        setBackendError(null);
+        socketService.emitGetMqttStatus(); // Ask for MQTT status on connect
+      },
+      // onDisconnect
+      (reason) => {
+        setIsConnectedToBackend(false);
+        setBackendError(`Disconnected: ${reason}`);
+        setDisplayMqttStatus({ status: 'unknown', error: null }); // Reset MQTT status
+      },
+      // onError
+      (message) => {
+        setIsConnectedToBackend(false); // Assume disconnect on error
+        setBackendError(message);
+      }
+    );
 
-  // --- Placeholder for Backend Communication ---
-  // This function will eventually emit a WebSocket event
-  const publishMessage = (message: string) => {
-    // if (!isConnectedToBackend) return; // Check backend connection later
-
-    // Ensure message is correct length before publishing
-    const formattedMessage = message.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
-    console.log(`Publishing message to backend: ${formattedMessage}`); // Log intent
-    setDisplayText(formattedMessage); // Update the "official" display state locally
-    // TODO: Replace with socketService.emit('setText', { text: formattedMessage });
-    // Consider resetting caret after sending, or leave it
-    // setCaretPosition(0);
-  };
+    // Cleanup on unmount
+    return () => {
+      socketService.disconnect();
+    };
+  }, []); // Empty dependency array ensures this runs only once on mount
 
 
   // --- Handlers for Interactive Display ---
   const handleDisplayKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    // Only handle keys if in text mode (connection check will be done before sending)
-    if (currentMode !== 'text') return;
+    // Only handle keys if in text mode and connected
+    if (currentMode !== 'text' || !isConnectedToBackend) return;
 
     // Allow basic navigation/selection even if we don't handle the key
     // event.preventDefault(); // Prevent default browser actions ONLY for keys we explicitly handle
@@ -116,10 +147,10 @@ function App() {
     }
   };
 
-  // Basic click handler to set caret position (can be improved)
-  const handleDisplayClick = (event: React.MouseEvent<HTMLDivElement>) => {
-      // Only handle clicks if in text mode (connection check not needed for local caret update)
-      if (currentMode !== 'text') return;
+ // Basic click handler to set caret position (can be improved)
+ const handleDisplayClick = (event: React.MouseEvent<HTMLDivElement>) => {
+     // Only handle clicks if in text mode and connected
+     if (currentMode !== 'text' || !isConnectedToBackend) return;
       // Very basic: try to guess character index based on click position
       // This needs refinement for accuracy based on actual element positions/widths
       const displayRect = event.currentTarget.getBoundingClientRect();
