@@ -71,23 +71,28 @@ export const socketService = {
         onDisconnect: (reason: string) => void,
         onError: (message: string) => void
     ): void => {
-        if (socket && socket.connected) {
-            console.log('[Socket.IO] Already connected.');
+        // --- MODIFIED CHECK ---
+        // Only proceed if socket is truly null (not just disconnected)
+        if (socket !== null) {
+            console.log('[Socket.IO] Connection attempt ignored, socket instance already exists (may be connecting/connected/disconnected).');
+            // If it's disconnected and you want connect to retry, call disconnect() first.
+            // For now, we rely on the initial useEffect mount.
             return;
         }
+        // --- END MODIFIED CHECK ---
+
 
         console.log(`[Socket.IO] Connecting to backend at ${BACKEND_URL}...`);
-        // Ensure previous connection is cleaned up if exists but disconnected
-        if (socket) {
-            socket.disconnect();
-        }
 
-        socket = io(BACKEND_URL, {
+        // --- REMOVE RECONNECTION OPTIONS TEMPORARILY ---
+        socket = io(BACKEND_URL /*, {
             reconnectionAttempts: 5,
             reconnectionDelay: 3000,
-            // Add withCredentials: true if you need cookies/sessions later
-        });
+        } */);
+        // --- END REMOVAL ---
 
+
+        // --- Attach listeners (Keep this block uncommented from previous step) ---
         socket.on('connect', () => {
             console.log(`[Socket.IO] Connected to backend: ${socket?.id}`);
             onConnect();
@@ -95,23 +100,29 @@ export const socketService = {
 
         socket.on('disconnect', (reason) => {
             console.log(`[Socket.IO] Disconnected from backend: ${reason}`);
+            // --- ADD NULLIFICATION ON DISCONNECT ---
+            // Setting socket to null here ensures a new instance is created on next connect() call
+            // Note: This might interfere with automatic reconnection if it were enabled.
+            // socket = null; // Let's try nullifying in disconnect() method instead for better control.
+            // --- END ADDITION ---
             onDisconnect(reason);
         });
 
-        // Store the onError callback in a variable accessible within this scope
         const handleError = onError;
         socket.on('connect_error', (error) => {
             console.error('[Socket.IO] Connection Error:', error.message);
-            // Call the stored callback function
             if (handleError) {
                 handleError(`Connection failed: ${error.message}`);
             } else {
                 console.error('[Socket.IO] onError callback is not defined when connect_error occurred.');
             }
-            // socket.disconnect(); // Prevent constant reconnect attempts on auth errors etc.
+            // --- ADD NULLIFICATION ON CONNECTION ERROR ---
+            // If connection fails outright, nullify to allow a fresh attempt later
+            socket = null;
+            // --- END ADDITION ---
         });
 
-        // --- RESTORE OTHER LISTENERS ---
+        // --- Attach listeners ---
         // Remove the /* and */ surrounding this block
         console.log('[Socket.IO] Attaching application event listeners...'); // Add log
         socket.on('initialState', onInitialState);
@@ -133,7 +144,9 @@ export const socketService = {
         if (socket) {
             console.log('[Socket.IO] Disconnecting from backend...');
             socket.disconnect();
-            socket = null;
+            // --- ADD NULLIFICATION ---
+            socket = null; // Ensure the instance is cleared
+            // --- END ADDITION ---
         }
     },
 
