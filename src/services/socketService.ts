@@ -10,6 +10,11 @@ interface ServerToClientEvents {
         text: string;
         mode: ControlMode;
         stopwatch?: { isRunning: boolean; elapsedTime: number };
+        timer?: { // Add timer state
+            targetMs: number;
+            remainingMs: number;
+            isRunning: boolean;
+        };
         sequence?: { isPlaying: boolean };
         train?: { // Add train initial state
             route: { fromCRS: string; toCRS?: string } | null;
@@ -21,6 +26,7 @@ interface ServerToClientEvents {
     mqttStatus: (status: { status: string; error: string | null }) => void;
     stopwatchUpdate: (data: { elapsedTime: number; isRunning: boolean }) => void;
     trainDataUpdate: (data: { departures?: Departure[]; error?: string }) => void; // Event for train data updates/errors
+    timerUpdate: (data: { targetMs: number; remainingMs: number; isRunning: boolean }) => void; // Event for timer updates
     sequenceStopped: () => void;
     error: (data: { message: string }) => void; // General backend errors
 }
@@ -36,6 +42,10 @@ interface ClientToServerEvents {
     resetStopwatch: () => void;
     playSequence: (data: { scene: Scene }) => void;
     stopSequence: () => void;
+    setTimer: (data: { durationMs: number }) => void; // Event to set timer duration
+    startTimer: () => void; // Event to start timer
+    stopTimer: () => void; // Event to stop timer
+    // resetTimer: () => void; // Optional: Could just use setTimer with original target
     startTrainUpdates: (data: { fromCRS: string; toCRS?: string }) => void; // Event to start/update train polling
 }
 
@@ -54,6 +64,7 @@ export const socketService = {
         onModeUpdate: (data: Parameters<ServerToClientEvents['modeUpdate']>[0]) => void,
         onMqttStatus: (status: Parameters<ServerToClientEvents['mqttStatus']>[0]) => void,
         onStopwatchUpdate: (data: Parameters<ServerToClientEvents['stopwatchUpdate']>[0]) => void,
+        onTimerUpdate: (data: Parameters<ServerToClientEvents['timerUpdate']>[0]) => void, // Add callback for timer
         onTrainDataUpdate: (data: Parameters<ServerToClientEvents['trainDataUpdate']>[0]) => void, // Add callback for train data
         onSequenceStopped: () => void,
         onConnect: () => void,
@@ -99,6 +110,7 @@ export const socketService = {
         socket.on('modeUpdate', onModeUpdate);
         socket.on('mqttStatus', onMqttStatus);
         socket.on('stopwatchUpdate', onStopwatchUpdate);
+        socket.on('timerUpdate', onTimerUpdate); // Listen for timer updates
         socket.on('trainDataUpdate', onTrainDataUpdate); // Listen for train data updates
         socket.on('sequenceStopped', onSequenceStopped);
         socket.on('error', (data) => onError(data.message));
@@ -138,6 +150,10 @@ export const socketService = {
     emitResetStopwatch: () => socketService.emit('resetStopwatch'),
     emitPlaySequence: (scene: Scene) => socketService.emit('playSequence', { scene }),
     emitStopSequence: () => socketService.emit('stopSequence'),
+    emitSetTimer: (durationMs: number) => socketService.emit('setTimer', { durationMs }),
+    emitStartTimer: () => socketService.emit('startTimer'),
+    emitStopTimer: () => socketService.emit('stopTimer'),
+    // emitResetTimer: () => socketService.emit('resetTimer'), // Optional
     emitStartTrainUpdates: (fromCRS: string, toCRS?: string) => socketService.emit('startTrainUpdates', { fromCRS, toCRS }),
 
 };
