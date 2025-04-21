@@ -79,6 +79,9 @@ app.get('/api/departures', async (req: Request, res: Response) => {
         const [result, rawResponse, soapHeaderResponse, rawRequest] = await client.GetDepartureBoardAsync(args);
 
         console.log("Received response from NRE.");
+        // --- DEBUGGING: Log the structure of the parsed result ---
+        console.log("Parsed Result Object:", JSON.stringify(result, null, 2));
+        // --- END DEBUGGING ---
         // console.log("Raw Response Body:", rawResponse); // Uncomment for deep debugging
 
         // --- Process Response ---
@@ -92,9 +95,13 @@ app.get('/api/departures', async (req: Request, res: Response) => {
             throw new Error('Unexpected response structure from NRE API.');
         }
 
+        // --- DEBUGGING: Log the stationBoardResult part ---
+        console.log("Extracted StationBoardResult:", JSON.stringify(stationBoardResult, null, 2));
+        // --- END DEBUGGING ---
+
         // --- Map Data ---
         // Access data directly from the parsed JavaScript object.
-        const trainServices = stationBoardResult.stationBoard?.trainServices?.service;
+        const trainServices = stationBoardResult.stationBoard?.trainServices?.service; // This path might need adjustment
         const departures: Departure[] = [];
 
         if (trainServices) {
