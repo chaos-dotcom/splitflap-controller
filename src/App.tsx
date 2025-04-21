@@ -289,18 +289,18 @@ function App() {
           <button onClick={() => handleSetMode('timer')} disabled={currentMode === 'timer'} className={`govuk-button ${currentMode !== 'timer' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Timer</button>
       </div>
 
-      {/* Mode Specific Controls */}
+      {/* Mode Specific Controls - COMMENT OUT THIS ENTIRE BLOCK */}
+      {/*
       <div className="mode-controls">
-          {/* Temporarily render directly without Draggable */}
-          {currentMode === 'train' && ( // Pass backend connection status, send text handler, and start updates handler
+          {currentMode === 'train' && (
               <TrainTimetableMode
                   isConnected={isConnectedToBackend}
-                  onSendMessage={handleSendText} // For sending individual lines
-                  onStartUpdates={handleStartTrainUpdates} // Pass the handler to trigger backend polling
-                  departures={currentDepartures} // Pass down the departures list
+                  onSendMessage={handleSendText}
+                  onStartUpdates={handleStartTrainUpdates}
+                  departures={currentDepartures}
               />
           )}
-          {currentMode === 'sequence' && ( // Pass backend connection status and specific handlers
+          {currentMode === 'sequence' && (
              <SequenceMode
                 isConnected={isConnectedToBackend}
                 onPlay={handlePlaySequence}
@@ -308,27 +308,22 @@ function App() {
              />
           )}
           {currentMode === 'clock' && (
-             <ClockMode isConnectedToBackend={isConnectedToBackend} /> // Pass connection status
+             <ClockMode isConnectedToBackend={isConnectedToBackend} />
           )}
           {currentMode === 'stopwatch' && (
              <StopwatchMode
                 isConnectedToBackend={isConnectedToBackend}
-                displayTime={displayText} // Pass the main display text
-                isRunningBackend={stopwatchIsRunningBackend} // Pass backend running state
+                displayTime={displayText}
+                isRunningBackend={stopwatchIsRunningBackend}
                 onStart={handleStartStopwatch}
                 onStop={handleStopStopwatch}
                 onReset={handleResetStopwatch}
              />
           )}
-          {/* Add TimerMode placeholder */}
-          {/* {currentMode === 'timer' && (
-             <TimerMode
-                isConnectedToBackend={isConnectedToBackend}
-                // Add necessary props for TimerMode later
-             />
-          )} */}
-          {/* Add other mode components here later */}
-      </div>
+          {/* {currentMode === 'timer' && ( <TimerMode ... /> )} */}
+      {/*</div> */}
+      {/* END OF BLOCK TO COMMENT OUT */}
+
 
       {/* Final conditional paragraph removed */}
 
