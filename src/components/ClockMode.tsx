@@ -22,10 +22,10 @@ const formatTime = (date: Date): string => {
     hour = hour % 12;
     hour = hour ? hour : 12; // Handle midnight (0 becomes 12)
 
-    const hourStr = hour.toString().padStart(2, ' '); // Pad with space for single digit hours like %I
+    const hourStr = hour.toString().padStart(2, '0'); // Pad with ZERO for single digit hours
     const minuteStr = minute.toString().padStart(2, '0'); // Pad minutes with zero like %M
 
-    // Format: 'DDD HHMM  AP' (12 chars total)
+    // Format: 'DDD HHMM AP ' (12 chars total)
     const formatted = `${weekday} ${hourStr}${minuteStr}  ${ampm}`;
 
     // Ensure uppercase and exactly DISPLAY_LENGTH
