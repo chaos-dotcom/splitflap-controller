@@ -46,7 +46,10 @@ function App() {
       // onDisplayUpdate
       (data) => setDisplayText(data.text),
       // onModeUpdate
-      (data) => setCurrentMode(data.mode),
+      (data) => {
+        console.log(`[App] Received modeUpdate from backend: ${data.mode}`); // <-- ADD THIS LOG
+        setCurrentMode(data.mode);
+      },
       // onMqttStatus
       (status) => setDisplayMqttStatus(status),
       // onStopwatchUpdate
@@ -232,21 +235,21 @@ function App() {
 
       {/* Mode Specific Controls */}
       <div className="mode-controls">
-          {currentMode === 'train' && ( // Pass backend connection status and use handleSendText
+          {/* Temporarily render directly without Draggable */}
+          {currentMode === 'train' && (
               <TrainTimetableMode isConnected={isConnectedToBackend} onSendMessage={handleSendText} onPlayScene={handlePlaySequence} />
           )}
-          {currentMode === 'sequence' && ( // Pass backend connection status and specific handlers
+          {currentMode === 'sequence' && (
              <SequenceMode
                 isConnected={isConnectedToBackend}
-                // onSendMessage removed, use onPlay/onStop
                 onPlay={handlePlaySequence}
                 onStop={handleStopSequence}
              />
           )}
-          {currentMode === 'clock' && ( // Pass backend connection status
+          {currentMode === 'clock' && (
              <ClockMode isConnectedToBackend={isConnectedToBackend} />
           )}
-          {currentMode === 'stopwatch' && ( // Pass backend connection status, display text, running status, and handlers
+          {currentMode === 'stopwatch' && (
              <StopwatchMode
                 isConnectedToBackend={isConnectedToBackend}
                 displayTime={displayText} // Pass the main display text
