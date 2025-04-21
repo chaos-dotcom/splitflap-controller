@@ -45,14 +45,11 @@
 /* Remove custom input styles */
 
 
-/* Panel for Line List */
+/* Panel for Line List - Styling removed as outer .sequence-mode now handles the panel */
 .sequence-lines-panel {
-    background-color: var(--govuk-colour-white);
-    padding: var(--govuk-spacing-4); /* GDS padding inside the panel */
-    border: 1px solid var(--govuk-border-colour);
-    border-radius: 3px;
-    box-shadow: var(--govuk-shadow-1);
-    margin-top: var(--govuk-gutter); /* Space above the panel */
+    /* Keep margin-top if spacing is still desired between editor controls and list */
+    margin-top: var(--govuk-gutter);
+    /* Remove background, padding, border, shadow */
 }
 
 /* Line List Styling */
