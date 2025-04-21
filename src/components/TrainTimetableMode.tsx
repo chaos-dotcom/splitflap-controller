@@ -26,25 +26,6 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     const [error, setError] = useState<string | null>(null);
     const [formattedDisplayStrings, setFormattedDisplayStrings] = useState<string[]>([]); // State for formatted strings
 
-    // Function to format a departure into a 12-char string
-    const formatDepartureForDisplay = (dep: Departure): string => {
-        const time = (dep.estimatedTime && dep.estimatedTime !== 'On time' ? dep.estimatedTime : dep.scheduledTime).replace(':', '');
-        let dest = dep.destination.toUpperCase().substring(0, 7); // Max 7 chars for dest
-        let plat = dep.platform ? ` ${dep.platform.padStart(1)}` : '  '; // Ensure 2 chars for plat (space + num or 2 spaces)
-
-        if (dep.status.toUpperCase() === 'CANCELLED') {
-            return `CANCELLED   `.padEnd(DISPLAY_LENGTH);
-        }
-        if (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime) {
-             dest = 'DELAYED'.substring(0,7); // Show delayed status instead of dest
-             plat = '  ';
-        }
-
-        // Combine, ensuring total length is DISPLAY_LENGTH
-        let output = `${time} ${dest}${plat}`;
-        return output.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
-    };
-
     // Helper to get hour and minute from a departure time string (HH:MM)
     const getHourMinute = (timeString: string | undefined): { hour: number | null, minute: number | null } => {
         if (!timeString || !/^\d{2}:\d{2}$/.test(timeString)) {
