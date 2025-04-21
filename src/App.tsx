@@ -1,32 +1,22 @@
 import { useState, useEffect, KeyboardEvent } from 'react'; // Import useEffect, KeyboardEvent
 import './App.css';
 import SplitFlapDisplay from './components/SplitFlapDisplay';
-import SettingsPanel from './components/SettingsPanel';
+// Removed SettingsPanel import
 import TrainTimetableMode from './components/TrainTimetableMode'; // Import placeholder
 import SequenceMode from './components/SequenceMode'; // Import SequenceMode
 import ClockMode from './components/ClockMode'; // Import ClockMode
 import StopwatchMode from './components/StopwatchMode'; // Import StopwatchMode
 import { DISPLAY_LENGTH, ALLOWED_CHARS } from './constants'; // Import ALLOWED_CHARS
-import { mqttService } from './services/mqttService';
-import { ControlMode, MqttSettings } from './types'; // Import types
-import { Buffer } from 'buffer';
-window.Buffer = Buffer; // Polyfill Buffer for the mqtt library in browser if needed
+// Removed mqttService import
+import { ControlMode } from './types'; // Import types (MqttSettings no longer needed here)
+// Removed Buffer polyfill
 
 function App() {
-  const [displayText, setDisplayText] = useState<string>(' '.repeat(DISPLAY_LENGTH));
-  const [draftText, setDraftText] = useState<string>(' '.repeat(DISPLAY_LENGTH)); // State for inline editing
-  const [caretPosition, setCaretPosition] = useState<number>(0); // State for cursor position
+  // --- State for Frontend ---
+  const [displayText, setDisplayText] = useState<string>(' '.repeat(DISPLAY_LENGTH)); // What the display *should* show
+  const [draftText, setDraftText] = useState<string>(' '.repeat(DISPLAY_LENGTH)); // State for inline editing in text mode
+  const [caretPosition, setCaretPosition] = useState<number>(0); // State for cursor position in text mode
   const [currentMode, setCurrentMode] = useState<ControlMode>('text'); // State for current control mode
-  const [isConnected, setIsConnected] = useState<boolean>(false);
-  // Add subscribeTopic to state
-  const [mqttSettings, setMqttSettings] = useState<MqttSettings>({
-    brokerUrl: 'ws://broker.hivemq.com:8000/mqtt', // Public test broker
-    publishTopic: 'splitflap/test/set_text',     // Example topic
-    subscribeTopic: 'splitflap/test/status',   // Example topic
-    username: '',
-    password: '',
-  });
-  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   // Update draft text when display text changes (e.g., from MQTT message or initial load)
   useEffect(() => {
@@ -36,90 +26,25 @@ function App() {
   }, [displayText]);
 
 
-  // MQTT Connection Logic
-  const handleConnect = (settings: MqttSettings) => {
-    console.log('Connecting with settings:', settings);
-    setConnectionError(null); // Clear previous errors
-
-    // Validate Broker URL scheme
-    if (!settings.brokerUrl.startsWith('ws://') && !settings.brokerUrl.startsWith('wss://')) {
-      setConnectionError('Invalid Broker URL: Must start with ws:// or wss://');
-      setIsConnected(false); // Ensure status reflects failure
-      return; // Prevent connection attempt
-    }
- 
-    setMqttSettings(settings); // Store the settings used for connection attempt
- 
-    mqttService.connect({
-      brokerUrl: settings.brokerUrl,
-      subscribeTopic: settings.subscribeTopic,
-      username: settings.username,
-      password: settings.password,
-      onConnectCallback: () => {
-        setIsConnected(true);
-        setConnectionError(null);
-      },
-      onErrorCallback: (error) => {
-        setIsConnected(false);
-        setConnectionError(typeof error === 'string' ? error : error.message);
-        console.error("Connection Error:", error);
-      },
-      onMessageCallback: (topic, message) => {
-        // console.log(`App received message on ${topic}: ${message.toString()}`); // Reduce noise
-        // Example: Update display if message is on subscribe topic
-        if (settings.subscribeTopic && topic === settings.subscribeTopic) { // Check subscribeTopic exists
-          const receivedText = message.toString();
-          // Optionally validate/sanitize receivedText against ALLOWED_CHARS
-          const formattedMessage = receivedText.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
-          setDisplayText(formattedMessage);
-        }
-      },
-      onCloseCallback: () => {
-        // Handle unexpected disconnects
-        if (isConnected) { // Only show error if we thought we were connected
-            setIsConnected(false);
-            setConnectionError("Connection closed unexpectedly.");
-        }
-      }
-    });
-  };
-
-  const handleDisconnect = () => {
-    mqttService.disconnect();
-    setIsConnected(false);
-    setConnectionError(null); // Clear error on manual disconnect
-  };
-
-  // Function to publish a message via MQTT
+  // --- Placeholder for Backend Communication ---
+  // This function will eventually emit a WebSocket event
   const publishMessage = (message: string) => {
-    if (!isConnected || !mqttSettings.publishTopic) return;
+    // if (!isConnectedToBackend) return; // Check backend connection later
 
     // Ensure message is correct length before publishing
     const formattedMessage = message.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
-    console.log(`Publishing message: ${formattedMessage}`);
-    setDisplayText(formattedMessage); // Update the "official" display state
-    mqttService.publish(mqttSettings.publishTopic, formattedMessage);
+    console.log(`Publishing message to backend: ${formattedMessage}`); // Log intent
+    setDisplayText(formattedMessage); // Update the "official" display state locally
+    // TODO: Replace with socketService.emit('setText', { text: formattedMessage });
     // Consider resetting caret after sending, or leave it
     // setCaretPosition(0);
   };
 
-  // Handler for settings changes from the panel
-  const handleSettingsChange = (newSettings: MqttSettings) => {
-    setMqttSettings(newSettings);
-  };
-
-  // Effect for cleanup on component unmount
-  useEffect(() => {
-    // Return a cleanup function
-    return () => {
-      mqttService.disconnect();
-    };
-  }, []); // Empty dependency array means this runs only on mount and unmount
 
   // --- Handlers for Interactive Display ---
   const handleDisplayKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    // Only handle keys if connected AND in text mode
-    if (!isConnected || currentMode !== 'text') return;
+    // Only handle keys if in text mode (connection check will be done before sending)
+    if (currentMode !== 'text') return;
 
     // Allow basic navigation/selection even if we don't handle the key
     // event.preventDefault(); // Prevent default browser actions ONLY for keys we explicitly handle
@@ -186,8 +111,8 @@ function App() {
 
   // Basic click handler to set caret position (can be improved)
   const handleDisplayClick = (event: React.MouseEvent<HTMLDivElement>) => {
-      // Only handle clicks if connected AND in text mode
-      if (!isConnected || currentMode !== 'text') return;
+      // Only handle clicks if in text mode (connection check not needed for local caret update)
+      if (currentMode !== 'text') return;
       // Very basic: try to guess character index based on click position
       // This needs refinement for accuracy based on actual element positions/widths
       const displayRect = event.currentTarget.getBoundingClientRect();
@@ -203,27 +128,16 @@ function App() {
     <div className="app-container">
       <h1>Split-Flap Controller</h1>
 
-      {/* Settings Panel */}
-      <SettingsPanel
-        initialSettings={mqttSettings}
-        isConnected={isConnected}
-        onConnect={handleConnect}
-        onDisconnect={handleDisconnect}
-        onSettingsChange={handleSettingsChange} // Pass the handler
-      />
-      {/* Display connection error */}
-      {connectionError && (
-        <p style={{ color: 'red', textAlign: 'center' }}>Error: {connectionError}</p>
-      )}
+      {/* Removed Settings Panel and connection error display */}
 
 
       {/* Split Flap Display - Now Interactive */}
-      <SplitFlapDisplay
+      <SplitFlapDisplay // Removed isConnected prop
         // Show draft text only when in text mode, otherwise show last published text
         text={currentMode === 'text' ? draftText : displayText}
         caretPosition={caretPosition} // Caret position is only relevant in text mode
         onKeyDown={handleDisplayKeyDown} // Handler checks for mode internally
-        isConnected={isConnected} // To enable/disable interaction style
+        // isConnected prop removed
         onClick={handleDisplayClick} // Handler checks for mode internally
         isInteractive={currentMode === 'text'} // Explicitly pass if display should be interactive
       />
@@ -239,27 +153,23 @@ function App() {
 
       {/* Mode Specific Controls */}
       <div className="mode-controls">
-          {currentMode === 'train' && (
-              <TrainTimetableMode isConnected={isConnected} onSendMessage={publishMessage} />
+          {currentMode === 'train' && ( // Removed isConnected prop
+              <TrainTimetableMode onSendMessage={publishMessage} />
           )}
           {/* Add the conditional rendering for SequenceMode */}
-          {currentMode === 'sequence' && (
-             <SequenceMode isConnected={isConnected} onSendMessage={publishMessage} />
+          {currentMode === 'sequence' && ( // Removed isConnected prop
+             <SequenceMode onSendMessage={publishMessage} />
           )}
-          {currentMode === 'clock' && (
-             <ClockMode isConnected={isConnected} onSendMessage={publishMessage} isActive={currentMode === 'clock'} />
+          {currentMode === 'clock' && ( // Removed isConnected and isActive props
+             <ClockMode onSendMessage={publishMessage} />
           )}
-          {currentMode === 'stopwatch' && (
-             <StopwatchMode isConnected={isConnected} onSendMessage={publishMessage} isActive={currentMode === 'stopwatch'} />
+          {currentMode === 'stopwatch' && ( // Removed isConnected and isActive props
+             <StopwatchMode onSendMessage={publishMessage} />
           )}
           {/* Add other mode components here later */}
       </div>
 
-      {!isConnected && (
-         <p style={{ textAlign: 'center', marginTop: '10px', color: '#555' }}>
-           Connect to MQTT to enable display input.
-         </p>
-      )}
+      {/* Removed conditional paragraph checking !isConnected */}
 
     </div>
   );
