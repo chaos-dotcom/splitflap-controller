@@ -289,7 +289,7 @@ function App() {
           {/* Add other mode components here later */}
       </div>
 
-      {/* Removed conditional paragraph checking !isConnected */}
+      {/* Final conditional paragraph removed */}
 
     </div>
   );
