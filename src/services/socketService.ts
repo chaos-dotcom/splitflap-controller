@@ -111,7 +111,9 @@ export const socketService = {
             // socket.disconnect(); // Prevent constant reconnect attempts on auth errors etc.
         });
 
-        // Listen for backend events
+        // --- TEMPORARILY COMMENT OUT OTHER LISTENERS ---
+        /*
+        console.log('[Socket.IO] Attaching application event listeners...'); // Add log
         socket.on('initialState', onInitialState);
         socket.on('displayUpdate', onDisplayUpdate);
         socket.on('modeUpdate', onModeUpdate);
@@ -120,7 +122,11 @@ export const socketService = {
         socket.on('timerUpdate', onTimerUpdate); // Listen for timer updates
         socket.on('trainDataUpdate', onTrainDataUpdate); // Listen for train data updates
         socket.on('sequenceStopped', onSequenceStopped);
+        // Note: The 'error' event here is for *backend-emitted* errors, distinct from 'connect_error'
         socket.on('error', (data) => onError(data.message));
+        console.log('[Socket.IO] Application event listeners attached.'); // Add log
+        */
+        // --- END TEMPORARY COMMENT OUT ---
 
     },
 
