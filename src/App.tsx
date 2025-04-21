@@ -117,6 +117,7 @@ function App() {
 
     // Cleanup on unmount
     return () => {
+      console.log('[App] useEffect cleanup: Disconnecting socket...'); // <-- ADD THIS LOG
       socketService.disconnect();
     };
   }, []); // Empty dependency array ensures this runs only once on mount
