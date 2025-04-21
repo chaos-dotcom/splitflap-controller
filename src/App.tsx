@@ -8,6 +8,7 @@ import ClockMode from './components/ClockMode'; // Import ClockMode
 import StopwatchMode from './components/StopwatchMode'; // Import StopwatchMode
 import { DISPLAY_LENGTH, ALLOWED_CHARS } from './constants'; // Import ALLOWED_CHARS
 // Removed mqttService import
+// Removed socketService import as it's already present below
 import { socketService } from './services/socketService'; // Import Socket.IO service
 import { ControlMode, Scene } from './types'; // Import types (MqttSettings no longer needed here)
 
@@ -15,10 +16,10 @@ function App() {
   // --- State for Frontend ---
   const [displayText, setDisplayText] = useState<string>(' '.repeat(DISPLAY_LENGTH)); // What the display *should* show
   const [draftText, setDraftText] = useState<string>(' '.repeat(DISPLAY_LENGTH)); // State for inline editing in text mode
-  // --- State related to Backend ---
-  const [isConnectedToBackend, setIsConnectedToBackend] = useState<boolean>(false); // Added
-  const [backendError, setBackendError] = useState<string | null>(null); // Added (Placeholder for future use)
-  const [displayMqttStatus, setDisplayMqttStatus] = useState<{ status: string; error: string | null }>({ status: 'disconnected', error: null }); // Added (Placeholder for future use)
+  // --- State related to Backend Connection & Status ---
+  const [isConnectedToBackend, setIsConnectedToBackend] = useState<boolean>(false);
+  const [backendError, setBackendError] = useState<string | null>(null);
+  const [displayMqttStatus, setDisplayMqttStatus] = useState<{ status: string; error: string | null }>({ status: 'disconnected', error: null });
   const [stopwatchIsRunningBackend, setStopwatchIsRunningBackend] = useState<boolean>(false); // Added
   // --- End Backend State ---
   const [caretPosition, setCaretPosition] = useState<number>(0); // State for cursor position in text mode
@@ -54,6 +55,8 @@ function App() {
       (status) => setDisplayMqttStatus(status),
       // onStopwatchUpdate
       (data) => { setStopwatchIsRunningBackend(data.isRunning); /* Display updated via displayUpdate */ },
+      // onTrainDataUpdate (Add handler - placeholder for now)
+      (data) => { console.log('[App] Received trainDataUpdate', data); /* TODO: Update departures state in TrainTimetableMode or here */ },
       // onSequenceStopped
       () => { /* Handle sequence stopped if needed */ console.log('Sequence Stopped'); },
       // onConnect
@@ -189,7 +192,16 @@ function App() {
   const handleStopSequence = () => {
       socketService.emitStopSequence();
   };
-  // --- End Placeholder Emitters ---
+  // Train Emitter (Placeholder - TrainTimetableMode will call this)
+  const handleStartTrainUpdates = (fromCRS: string, toCRS?: string) => {
+      // This function is passed to TrainTimetableMode, but the actual emit
+      // might be better handled within TrainTimetableMode itself when needed.
+      // For now, keep the emit call here if App is managing the request trigger.
+      // If TrainTimetableMode manages its own data fetching via backend events,
+      // this might just become a prop to indicate activity.
+      console.log(`[App] Requesting train updates for ${fromCRS} -> ${toCRS || 'any'}`);
+      // socketService.emitStartTrainUpdates(fromCRS, toCRS); // Decide if App or TrainMode triggers this
+  };
 
   // --- Mode Change Handler ---
   const handleSetMode = (mode: ControlMode) => {
@@ -236,8 +248,13 @@ function App() {
       {/* Mode Specific Controls */}
       <div className="mode-controls">
           {/* Temporarily render directly without Draggable */}
-          {currentMode === 'train' && ( // Pass backend connection status and use handleSendText
-              <TrainTimetableMode isConnected={isConnectedToBackend} isActive={currentMode === 'train'} onSendMessage={handleSendText} />
+          {currentMode === 'train' && ( // Pass backend connection status, send text handler, and start updates handler
+              <TrainTimetableMode
+                  isConnected={isConnectedToBackend}
+                  isActive={currentMode === 'train'} // Keep isActive for polling logic *within* TrainTimetableMode for now
+                  onSendMessage={handleSendText} // For sending individual lines
+                  // onStartUpdates={handleStartTrainUpdates} // Pass the handler if App triggers updates
+              />
           )}
           {currentMode === 'sequence' && ( // Pass backend connection status and specific handlers
              <SequenceMode
@@ -247,7 +264,7 @@ function App() {
              />
           )}
           {currentMode === 'clock' && (
-             <ClockMode isConnectedToBackend={isConnectedToBackend} />
+             <ClockMode isConnectedToBackend={isConnectedToBackend} /> // Pass connection status
           )}
           {currentMode === 'stopwatch' && (
              <StopwatchMode
