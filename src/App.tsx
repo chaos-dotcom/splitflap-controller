@@ -40,15 +40,32 @@ function App() {
     socketService.connect(
       // onInitialState
       (state) => {
-        console.log('[App] Received initial state:', state);
-        setDisplayText(state.text);
-        setCurrentMode(state.mode);
-        setStopwatchIsRunningBackend(state.stopwatch?.isRunning ?? false); // Handle potential missing stopwatch state
-        // TODO: Add sequence state if needed
-        if (state.train) { // Handle initial train state
+        console.log('[App] Received initial state:', state); // Existing log
+        try { // <-- ADD TRY BLOCK
+          console.log('[App] Setting displayText...');
+          setDisplayText(state.text);
+          console.log('[App] Setting currentMode...');
+          setCurrentMode(state.mode);
+          console.log('[App] Setting stopwatchIsRunningBackend...');
+          setStopwatchIsRunningBackend(state.stopwatch?.isRunning ?? false);
+          // TODO: Add sequence state if needed (check if state.sequence exists)
+          console.log('[App] Processing train state...');
+          if (state.train) {
+            console.log('[App] Setting currentDepartures:', state.train.departures);
+            // Ensure departures is always an array, even if null/undefined is received unexpectedly
             setCurrentDepartures(state.train.departures || []);
             // Optionally set from/to station based on state.train.route if needed for UI consistency
-        }
+            console.log('[App] Train state processed.');
+          } else {
+            console.log('[App] No train state received in initial state.');
+            setCurrentDepartures([]); // Ensure it's an empty array if no train state
+          }
+          console.log('[App] Initial state processing complete.'); // <-- ADD SUCCESS LOG
+        } catch (error) { // <-- ADD CATCH BLOCK
+          console.error('[App] Error processing initial state:', error);
+          // Optionally set an error state here to display to the user
+          setBackendError('Error processing initial state from backend.');
+        } // <-- END TRY-CATCH
       },
       // onDisplayUpdate
       (data) => setDisplayText(data.text),
@@ -68,6 +85,7 @@ function App() {
       // onTrainDataUpdate (Add handler)
       (data) => {
           console.log('[App] Received trainDataUpdate', data);
+          // Ensure departures is always an array
           setCurrentDepartures(data.departures || []); // Update departures list
           if (data.error) { setBackendError(`Train Data Error: ${data.error}`); } // Show error if backend sent one
       },
