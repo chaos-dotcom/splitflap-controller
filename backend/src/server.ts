@@ -20,12 +20,12 @@ interface Departure {
   estimatedTime?: string;
 }
 
-// NRE LDBWS Endpoint (for POST requests) - Use the latest version endpoint
-const NRE_LDBWS_ENDPOINT = 'https://lite.realtime.nationalrail.co.uk/OpenLDBWS/ldb12.asmx';
+// NRE LDBWS Endpoint (for POST requests) - Use the older version endpoint
+const NRE_LDBWS_ENDPOINT = 'https://lite.realtime.nationalrail.co.uk/OpenLDBWS/ldb6.asmx';
 // Namespaces needed for the SOAP request
 const SOAP_ENV_NS = 'http://schemas.xmlsoap.org/soap/envelope/';
 const TOKEN_TYPES_NS = 'http://thalesgroup.com/RTTI/2013-11-28/Token/types';
-const LDB_NS = 'http://thalesgroup.com/RTTI/2021-11-01/ldb/'; // Use the latest LDB namespace version from WSDL
+const LDB_NS = 'http://thalesgroup.com/RTTI/2010-11-01/ldb/'; // Use an older LDB namespace version likely associated with ldb6
 
 // Enable CORS for all origins (adjust for production later)
 app.use(cors());
@@ -80,8 +80,8 @@ app.get('/api/departures', async (req: Request, res: Response) => {
 
         const requestHeaders = {
             'Content-Type': 'text/xml;charset=UTF-8',
-            // Try adding quotes around the standard SOAPAction value
-            'SOAPAction': `"http://thalesgroup.com/RTTI/2021-11-01/ldb/GetDepartureBoard"`,
+            // Use the older namespace for the SOAPAction, keep quotes
+            'SOAPAction': `"${LDB_NS}GetDepartureBoard"`,
             'Accept-Encoding': 'identity', // Explicitly state we don't want compressed responses
         };
         console.log('Request Headers:', requestHeaders); // Log headers
