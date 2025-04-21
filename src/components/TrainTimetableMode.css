@@ -11,6 +11,10 @@
 .train-timetable-mode h4 {
   margin-top: 0;
   color: #cc8400;
+  /* Add styles for the handle */
+  background-color: #fff3cd;
+  padding: 8px;
+  margin-bottom: 15px;
 }
 
 .train-timetable-mode div {

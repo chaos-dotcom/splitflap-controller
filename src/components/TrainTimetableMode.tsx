@@ -18,7 +18,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
 
     return (
         <div className="train-timetable-mode">
-            <h4>Train Timetable Controls</h4>
+            <h4 className="draggable-handle">Train Timetable Controls</h4> {/* Add handle class */}
             <p>(Train timetable UI will go here)</p>
             {/* Example: Placeholder for station inputs */}
             <div>
