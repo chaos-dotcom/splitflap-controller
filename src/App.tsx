@@ -6,7 +6,7 @@ import TrainTimetableMode from './components/TrainTimetableMode'; // Import plac
 import SequenceMode from './components/SequenceMode'; // Import SequenceMode
 import ClockMode from './components/ClockMode';
 import StopwatchMode from './components/StopwatchMode';
-// import TimerMode from './components/TimerMode'; // Import TimerMode placeholder (add later)
+import TimerMode from './components/TimerMode'; // <-- IMPORT TimerMode
 import { SPLITFLAP_DISPLAY_LENGTH, ALLOWED_CHARS } from './constants';
 import { socketService } from './services/socketService';
 import { ControlMode, Scene, Departure } from './types';
@@ -21,6 +21,11 @@ function App() {
   const [backendError, setBackendError] = useState<string | null>(null);
   const [displayMqttStatus, setDisplayMqttStatus] = useState<{ status: string; error: string | null }>({ status: 'disconnected', error: null });
   const [stopwatchIsRunningBackend, setStopwatchIsRunningBackend] = useState<boolean>(false); // Added
+  // --- Timer State ---
+  const [timerIsRunningBackend, setTimerIsRunningBackend] = useState<boolean>(false); // <-- ADD
+  const [timerRemainingMs, setTimerRemainingMs] = useState<number>(0); // <-- ADD
+  const [timerTargetMs, setTimerTargetMs] = useState<number>(0); // <-- ADD (Initial duration set)
+  // --- End Timer State ---
   // Add state for train departures list
   const [currentDepartures, setCurrentDepartures] = useState<Departure[]>([]);
   // --- End Backend State ---
@@ -39,10 +44,60 @@ function App() {
   useEffect(() => {
     console.log('[App] useEffect: Calling socketService.connect...'); // Add log before connect
     socketService.connect(
-      // onInitialState (still commented out)
+      // onInitialState (UNCOMMENT BODY and add timer handling)
       (state) => {
-        /* ... commented out body ... */
-       console.log('[App] Received initial state, but processing is currently commented out.');
+        // --- START UNCOMMENTING ---
+        console.log('[App] Received initial state:', state);
+        try {
+          console.log('[App] Setting displayText...');
+          setDisplayText(state.text);
+          console.log('[App] Setting currentMode...');
+          setCurrentMode(state.mode); // Set initial mode
+
+          // Stopwatch State
+          console.log('[App] Setting stopwatch state...');
+          setStopwatchIsRunningBackend(state.stopwatch?.isRunning ?? false);
+          // Note: Initial stopwatch display text comes from state.text if mode is stopwatch
+
+          // Sequence State
+          console.log('[App] Setting sequence state...');
+          // setIsSequencePlayingBackend(state.sequence?.isPlaying ?? false); // Add if needed
+
+          // Train State
+          console.log('[App] Processing train state...');
+          if (state.train) {
+            console.log('[App] Setting currentDepartures:', state.train.departures);
+            setCurrentDepartures(state.train.departures || []);
+            // Optionally set from/to station based on state.train.route if needed for UI consistency
+            // setFromStationInput(state.train.route?.fromCRS || '');
+            // setToStationInput(state.train.route?.toCRS || '');
+            console.log('[App] Train state processed.');
+          } else {
+            console.log('[App] No train state received in initial state.');
+            setCurrentDepartures([]);
+          }
+
+          // Timer State <-- ADD THIS BLOCK
+          console.log('[App] Setting timer state...');
+          if (state.timer) {
+              setTimerIsRunningBackend(state.timer.isRunning ?? false);
+              setTimerRemainingMs(state.timer.remainingMs ?? 0);
+              setTimerTargetMs(state.timer.targetMs ?? 0);
+              console.log('[App] Timer state processed:', state.timer);
+          } else {
+              console.log('[App] No timer state received in initial state.');
+              setTimerIsRunningBackend(false);
+              setTimerRemainingMs(0);
+              setTimerTargetMs(0);
+          }
+          // --- END TIMER BLOCK ---
+
+          console.log('[App] Initial state processing complete.');
+        } catch (error) {
+          console.error('[App] Error processing initial state:', error);
+          setBackendError('Error processing initial state from backend.');
+        }
+        // --- END UNCOMMENTING ---
       },
       // onDisplayUpdate (Restore original logic)
       (data) => setDisplayText(data.text), // <-- RESTORE
@@ -59,8 +114,14 @@ function App() {
           // Display is updated via displayUpdate, but we could force it here if needed
           // setDisplayText(formatStopwatchTime(data.elapsedTime)); // Requires formatStopwatchTime here
       }, // <-- RESTORE BLOCK
-      // onTimerUpdate (Restore original logic - assuming it exists)
-      (data) => { /* Handle timer update if needed */ console.log('[App] Received timerUpdate', data); }, // <-- RESTORE (or add placeholder)
+      // onTimerUpdate (UPDATE to set timer state)
+      (data) => { // <-- UPDATE BLOCK
+          console.log('[App] Received timerUpdate', data);
+          setTimerIsRunningBackend(data.isRunning);
+          setTimerRemainingMs(data.remainingMs);
+          setTimerTargetMs(data.targetMs);
+          // Display is updated via displayUpdate from backend
+      }, // <-- UPDATE BLOCK
       // onTrainDataUpdate (Restore original logic)
       (data) => { // <-- RESTORE BLOCK
           console.log('[App] Received trainDataUpdate', data);
@@ -217,6 +278,22 @@ function App() {
       console.log(`[App] Requesting train updates for ${fromCRS} -> ${toCRS || 'any'}`);
       socketService.emitStartTrainUpdates(fromCRS, toCRS); // Decide if App or TrainMode triggers this
   };
+
+  // --- Timer Emitters --- <-- ADD THIS BLOCK
+  const handleSetTimer = (durationMinutes: number) => {
+      const durationMs = durationMinutes * 60 * 1000;
+      console.log(`[App] Setting timer duration: ${durationMinutes} mins (${durationMs} ms)`);
+      socketService.emitSetTimer(durationMs);
+  };
+  const handleStartTimer = () => {
+      console.log('[App] Starting timer');
+      socketService.emitStartTimer();
+  };
+  const handleStopTimer = () => {
+      console.log('[App] Stopping timer');
+      socketService.emitStopTimer();
+  };
+  // --- End Timer Emitters ---
 
   // --- Mode Change Handler ---
   const handleSetMode = (mode: ControlMode) => {

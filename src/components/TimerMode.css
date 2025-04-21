@@ -1,0 +1,53 @@
+/* src/components/TimerMode.css */
+.timer-mode {
+  border: 1px solid #b3d4fc; /* Similar to sequence */
+  padding: 15px;
+  margin-top: 15px;
+  border-radius: 5px;
+  background-color: #f0f8ff; /* Similar to sequence */
+  text-align: center;
+}
+
+.timer-mode h4 {
+  margin-top: 0;
+  color: #0056b3;
+  background-color: #cfe2ff; /* Lighter blue handle */
+  padding: 8px;
+  margin: -15px -15px 15px -15px; /* Extend handle */
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  border-bottom: 1px solid #b3d4fc;
+  cursor: move;
+  user-select: none;
+}
+
+.timer-display {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 2.5rem; /* Large display */
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #e9ecef;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.timer-controls {
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px; /* Space between label, input, button */
+}
+
+.timer-controls .govuk-label {
+    margin-bottom: 0; /* Override default GDS label margin */
+}
+
+.timer-start-stop {
+    /* Button group handles spacing */
+}
+
+.timer-mode .connection-warning {
+    margin-top: 15px;
+    /* GDS warning text styles handle color etc. */
+}
