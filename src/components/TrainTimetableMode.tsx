@@ -24,6 +24,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     const [departures, setDepartures] = useState<Departure[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false); // Keep loading state for manual refresh
     const [error, setError] = useState<string | null>(null);
+    const [formattedDisplayStrings, setFormattedDisplayStrings] = useState<string[]>([]); // State for formatted strings
 
     // Function to format a departure into a 12-char string
     const formatDepartureForDisplay = (dep: Departure): string => {
@@ -43,6 +44,59 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
         let output = `${time} ${dest}${plat}`;
         return output.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
     };
+
+    // Helper to get hour and minute from a departure time string (HH:MM)
+    const getHourMinute = (timeString: string | undefined): { hour: number | null, minute: number | null } => {
+        if (!timeString || !/^\d{2}:\d{2}$/.test(timeString)) {
+            return { hour: null, minute: null };
+        }
+        const parts = timeString.split(':');
+        return { hour: parseInt(parts[0], 10), minute: parseInt(parts[1], 10) };
+    };
+
+    // Effect to calculate formatted display strings whenever departures change
+    useEffect(() => {
+        let previousHour: number | null = null;
+        const newFormattedStrings = departures.map(dep => {
+            // Determine the time to display and its hour/minute
+            const displayTimeStr = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
+                ? dep.estimatedTime
+                : dep.scheduledTime;
+            const { hour: currentHour, minute: currentMinute } = getHourMinute(displayTimeStr);
+
+            let timePart: string;
+
+            if (dep.status.toUpperCase() === 'CANCELLED') {
+                timePart = 'CANC'.padEnd(4); // Use first 4 chars for time slot (Adjusted from CANCELLED)
+                previousHour = null; // Reset hour context after cancelled
+            } else if (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime) {
+                 timePart = 'DLAY'; // Use first 4 chars for time slot
+                 previousHour = null; // Reset hour context after delayed
+            } else if (currentHour !== null && currentMinute !== null) {
+                const minuteStr = currentMinute.toString().padStart(2, '0');
+                if (currentHour === previousHour) {
+                    timePart = `  ${minuteStr}`; // Hour is same, show space-space-minute-minute
+                } else {
+                    timePart = currentHour.toString().padStart(2, '0') + minuteStr; // Hour is different, show hour-hour-minute-minute
+                    previousHour = currentHour; // Update previous hour
+                }
+            } else {
+                timePart = '----'; // Fallback if time is invalid
+                previousHour = null; // Reset hour context
+            }
+
+            // Combine with destination/platform (reuse existing logic, adapt if needed)
+            // Format: TTTT DEST... P (4 + 1 space + 7 = 12)
+            let dest = dep.destination.toUpperCase().substring(0, 7); // Max 7 chars for dest
+            let plat = dep.platform ? `${dep.platform.padStart(1)}` : ' '; // Ensure 1 char for plat (space or num) - Adjusted for new time format
+            // Ensure destination doesn't overwrite platform if too long
+            dest = dest.padEnd(7 - plat.length); // Pad dest to fill remaining space before platform
+
+            let output = `${timePart} ${dest}${plat}`;
+            return output.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
+        });
+        setFormattedDisplayStrings(newFormattedStrings);
+    }, [departures]); // Recalculate when departures data changes
 
     // Placeholder function to simulate fetching data from the backend
     const fetchDepartures = async () => {
@@ -92,10 +146,10 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     };
 
     // Function to send a specific departure line to the display
-    const handleSendDeparture = (departure: Departure) => {
-        if (!isConnected) return;
-        const displayString = formatDepartureForDisplay(departure);
-        onSendMessage(displayString);
+    // Now uses the pre-formatted string based on index
+    const handleSendDeparture = (index: number) => {
+        if (!isConnected || index < 0 || index >= formattedDisplayStrings.length) return;
+        onSendMessage(formattedDisplayStrings[index]); // Send pre-formatted string
     };
 
 
@@ -155,17 +209,17 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                             </tr>
                         </thead>
                         <tbody>
-                            {departures.map((dep) => (
+                            {departures.map((dep, index) => ( // Add index here
                                 <tr key={dep.id}>
                                     <td>{dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime ? <del>{dep.scheduledTime}</del> : dep.scheduledTime} {dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime && dep.estimatedTime !== 'On time' ? <span>{dep.estimatedTime}</span> : ''}</td>
                                     <td>{dep.destination}</td>
                                     <td>{dep.platform || '-'}</td>
                                     <td>{dep.status}</td>
                                     <td>
-                                        <button
-                                            onClick={() => handleSendDeparture(dep)}
+                                        <button // Use index to send correct formatted string
+                                            onClick={() => handleSendDeparture(index)}
                                             disabled={!isConnected}
-                                            title={`Send to display: ${formatDepartureForDisplay(dep)}`}
+                                            title={`Send to display: ${formattedDisplayStrings[index] || ''}`} // Use pre-formatted string in title
                                             className="send-button"
                                         >
                                             Send
