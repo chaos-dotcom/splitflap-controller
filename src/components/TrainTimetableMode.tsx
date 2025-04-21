@@ -113,6 +113,9 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
         setError(null);
         console.log(`Fetching departures from backend: from=${fetchFromCRS}, to=${fetchToCRS || 'any'}`);
 
+        // --- Add Log ---
+        console.log(`[fetchDepartures] Making API call with From=${fetchFromCRS}, To=${fetchToCRS}`);
+
         // Construct the API URL
         const backendUrl = 'http://localhost:3001'; // Assuming backend runs on port 3001
         const apiUrl = new URL('/api/departures', backendUrl);
