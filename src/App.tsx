@@ -15,10 +15,17 @@ function App() {
   // --- State for Frontend ---
   const [displayText, setDisplayText] = useState<string>(' '.repeat(DISPLAY_LENGTH)); // What the display *should* show
   const [draftText, setDraftText] = useState<string>(' '.repeat(DISPLAY_LENGTH)); // State for inline editing in text mode
+  // --- State related to Backend ---
+  const [isConnectedToBackend, setIsConnectedToBackend] = useState<boolean>(false); // Added
+  const [backendError, setBackendError] = useState<string | null>(null); // Added (Placeholder for future use)
+  const [displayMqttStatus, setDisplayMqttStatus] = useState<{ status: string; error: string | null }>({ status: 'disconnected', error: null }); // Added (Placeholder for future use)
+  const [stopwatchIsRunningBackend, setStopwatchIsRunningBackend] = useState<boolean>(false); // Added
+  // --- End Backend State ---
   const [caretPosition, setCaretPosition] = useState<number>(0); // State for cursor position in text mode
   const [currentMode, setCurrentMode] = useState<ControlMode>('text'); // State for current control mode
 
-  // Update draft text when display text changes (e.g., from MQTT message or initial load)
+
+  // Update draft text when display text changes (e.g., from backend or initial load)
   useEffect(() => {
     setDraftText(displayText);
     // Optionally reset caret, or try to maintain position if practical
@@ -123,6 +130,34 @@ function App() {
       event.currentTarget.focus(); // Ensure display gets focus on click
   };
 
+  // --- Placeholder Emitters (to be connected to socketService) ---
+  const handleSendText = (text: string) => {
+      // TODO: Replace with socketService.emitSetText(text);
+      console.log(`[Placeholder] Emitting setText: ${text}`);
+      publishMessage(text); // Keep updating local display for now
+  };
+  const handleStartStopwatch = () => {
+      // TODO: Replace with socketService.emitStartStopwatch();
+      console.log('[Placeholder] Emitting startStopwatch');
+  };
+  const handleStopStopwatch = () => {
+      // TODO: Replace with socketService.emitStopStopwatch();
+      console.log('[Placeholder] Emitting stopStopwatch');
+  };
+  const handleResetStopwatch = () => {
+      // TODO: Replace with socketService.emitResetStopwatch();
+      console.log('[Placeholder] Emitting resetStopwatch');
+  };
+  const handlePlaySequence = (scene: any /* Use Scene type later */) => {
+      // TODO: Replace with socketService.emitPlaySequence(scene);
+      console.log(`[Placeholder] Emitting playSequence: ${scene.name}`);
+  };
+  const handleStopSequence = () => {
+      // TODO: Replace with socketService.emitStopSequence();
+      console.log('[Placeholder] Emitting stopSequence');
+  };
+  // --- End Placeholder Emitters ---
+
 
   return (
     <div className="app-container">
@@ -153,18 +188,29 @@ function App() {
 
       {/* Mode Specific Controls */}
       <div className="mode-controls">
-          {currentMode === 'train' && ( // Removed isConnected prop
-              <TrainTimetableMode onSendMessage={publishMessage} />
+          {currentMode === 'train' && ( // Pass backend connection status and use handleSendText
+              <TrainTimetableMode isConnected={isConnectedToBackend} onSendMessage={handleSendText} />
           )}
-          {/* Add the conditional rendering for SequenceMode */}
-          {currentMode === 'sequence' && ( // Removed isConnected prop
-             <SequenceMode onSendMessage={publishMessage} />
+          {currentMode === 'sequence' && ( // Pass backend connection status and specific handlers
+             <SequenceMode
+                isConnected={isConnectedToBackend}
+                // onSendMessage removed, use onPlay/onStop
+                onPlay={handlePlaySequence}
+                onStop={handleStopSequence}
+             />
           )}
-          {currentMode === 'clock' && ( // Removed isConnected and isActive props
-             <ClockMode onSendMessage={publishMessage} />
+          {currentMode === 'clock' && ( // Pass backend connection status
+             <ClockMode isConnectedToBackend={isConnectedToBackend} />
           )}
-          {currentMode === 'stopwatch' && ( // Removed isConnected and isActive props
-             <StopwatchMode onSendMessage={publishMessage} />
+          {currentMode === 'stopwatch' && ( // Pass backend connection status, display text, running status, and handlers
+             <StopwatchMode
+                isConnectedToBackend={isConnectedToBackend}
+                displayTime={displayText} // Pass the main display text
+                isRunningBackend={stopwatchIsRunningBackend} // Pass backend running state
+                onStart={handleStartStopwatch}
+                onStop={handleStopStopwatch}
+                onReset={handleResetStopwatch}
+             />
           )}
           {/* Add other mode components here later */}
       </div>
