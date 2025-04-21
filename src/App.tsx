@@ -4,12 +4,12 @@ import SplitFlapDisplay from './components/SplitFlapDisplay';
 // Removed SettingsPanel import
 import TrainTimetableMode from './components/TrainTimetableMode'; // Import placeholder
 import SequenceMode from './components/SequenceMode'; // Import SequenceMode
-import ClockMode from './components/ClockMode'; // Import ClockMode
-import StopwatchMode from './components/StopwatchMode'; // Import StopwatchMode
-import { SPLITFLAP_DISPLAY_LENGTH, ALLOWED_CHARS } from './constants'; // Import renamed constant
-// Removed mqttService import
-import { socketService } from './services/socketService'; // Import Socket.IO service
-import { ControlMode, Scene, Departure } from './types'; // Import types (MqttSettings no longer needed here)
+import ClockMode from './components/ClockMode';
+import StopwatchMode from './components/StopwatchMode';
+// import TimerMode from './components/TimerMode'; // Import TimerMode placeholder (add later)
+import { SPLITFLAP_DISPLAY_LENGTH, ALLOWED_CHARS } from './constants';
+import { socketService } from './services/socketService';
+import { ControlMode, Scene, Departure } from './types';
 
 
 function App() {
@@ -267,6 +267,8 @@ function App() {
           <button onClick={() => handleSetMode('sequence')} disabled={currentMode === 'sequence'} className={`govuk-button ${currentMode !== 'sequence' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Sequence</button>
           <button onClick={() => handleSetMode('clock')} disabled={currentMode === 'clock'} className={`govuk-button ${currentMode !== 'clock' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Clock</button>
           <button onClick={() => handleSetMode('stopwatch')} disabled={currentMode === 'stopwatch'} className={`govuk-button ${currentMode !== 'stopwatch' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Stopwatch</button>
+          {/* Add Timer Button */}
+          <button onClick={() => handleSetMode('timer')} disabled={currentMode === 'timer'} className={`govuk-button ${currentMode !== 'timer' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Timer</button>
       </div>
 
       {/* Mode Specific Controls */}
@@ -300,6 +302,13 @@ function App() {
                 onReset={handleResetStopwatch}
              />
           )}
+          {/* Add TimerMode placeholder */}
+          {/* {currentMode === 'timer' && (
+             <TimerMode
+                isConnectedToBackend={isConnectedToBackend}
+                // Add necessary props for TimerMode later
+             />
+          )} */}
           {/* Add other mode components here later */}
       </div>
 

@@ -546,12 +546,14 @@ const stopBackendSequence = () => {
 
 // --- Socket.IO Connection Handling ---
 io.on('connection', (socket: Socket) => {
-    console.log(`[Socket.IO] Client connected: ${socket.id}`);
+    console.log(`[Socket.IO] Client connected: ${socket.id}. Setting up listeners...`); // Added detail
 
-    // Send current state to newly connected client
-    socket.emit('initialState', {
-        text: currentDisplayText,
-        mode: currentAppMode,
+    try { // Add try block
+        console.log(`[Socket.IO] Emitting initialState for ${socket.id}...`);
+        // Send current state to newly connected client
+        socket.emit('initialState', {
+            text: currentDisplayText,
+            mode: currentAppMode,
         stopwatch: {
             elapsedTime: stopwatchElapsedTime, // Send current elapsed time
             isRunning: isStopwatchRunning, // Send current running status
@@ -563,10 +565,20 @@ io.on('connection', (socket: Socket) => {
         train: { // Send initial train state
             route: currentTrainRoute,
             departures: lastFetchedDepartures,
-        }
-    });
-    socket.emit('mqttStatus', mqttClient.getDisplayConnectionStatus()); // Send MQTT status
+        });
+        console.log(`[Socket.IO] Emitted initialState for ${socket.id}.`);
 
+        console.log(`[Socket.IO] Emitting mqttStatus for ${socket.id}...`);
+        socket.emit('mqttStatus', mqttClient.getDisplayConnectionStatus()); // Send MQTT status
+        console.log(`[Socket.IO] Emitted mqttStatus for ${socket.id}.`);
+
+    } catch (error) { // Add catch block
+        console.error(`[Socket.IO] Error emitting initial state or status for ${socket.id}:`, error);
+        // Optionally disconnect the client if initial state fails critically
+        // socket.disconnect(true);
+    }
+
+    console.log(`[Socket.IO] Setting up event listeners for ${socket.id}...`); // Added log
     // --- Handle events from the client ---
 
     socket.on('getMqttStatus', () => {
@@ -681,9 +693,26 @@ io.on('connection', (socket: Socket) => {
     });
     // --- End Mode Handlers ---
 
-    socket.on('disconnect', () => {
-        console.log(`[Socket.IO] Client disconnected: ${socket.id}`);
+    socket.on('disconnect', (reason) => { // Add reason parameter
+        console.log(`[Socket.IO] Client disconnected: ${socket.id}. Reason: ${reason}`); // Log reason
     });
+
+    // Add a listener for socket-level errors
+    socket.on('error', (error) => {
+        console.error(`[Socket.IO] Socket error for client ${socket.id}:`, error);
+    });
+
+    console.log(`[Socket.IO] Event listeners set up for ${socket.id}.`); // Added log
+});
+
+// Add a listener for server-level connection errors
+io.engine.on("connection_error", (err) => {
+    console.error("[Socket.IO Engine] Connection Error:");
+    console.error("  Code:", err.code);
+    console.error("  Message:", err.message);
+    if (err.context) {
+        console.error("  Context:", err.context);
+    }
 });
 
 // --- Start Servers ---
