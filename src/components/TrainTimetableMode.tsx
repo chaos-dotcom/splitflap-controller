@@ -19,8 +19,10 @@ interface Departure {
 // Define the props for the component
 interface TrainTimetableModeProps {
     isConnected: boolean;
-    isActive: boolean; // Add isActive back to control polling
+    // isActive removed
     onSendMessage: (message: string) => void; // For sending single lines
+    onStartUpdates: (fromCRS: string, toCRS?: string) => void; // Callback to trigger backend polling
+    departures: Departure[]; // Receive departures list from App state
 }
 
 const POLLING_INTERVAL_MS = 60000; // Poll every 60 seconds

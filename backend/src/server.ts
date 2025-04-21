@@ -359,6 +359,101 @@ const resetBackendStopwatch = () => {
     io.emit('stopwatchUpdate', { elapsedTime: 0, isRunning: false }); // Broadcast reset state
 };
 
+// Helper to get hour and minute from a departure time string (HH:MM) - Moved from TrainTimetableMode
+const getHourMinute = (timeString: string | undefined): { hour: number | null, minute: number | null } => {
+    if (!timeString || !/^\d{2}:\d{2}$/.test(timeString)) {
+        return { hour: null, minute: null };
+    }
+    const parts = timeString.split(':');
+    return { hour: parseInt(parts[0], 10), minute: parseInt(parts[1], 10) };
+};
+
+// --- Train Mode Logic ---
+const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: string }) => {
+    if (!route || !route.fromCRS) {
+        console.warn('[Train Polling] Attempted fetch without a valid route.');
+        return;
+    }
+    console.log(`[Train Polling] Fetching for route: ${route.fromCRS} -> ${route.toCRS || 'any'}`);
+    // Use the existing /api/departures logic (could be refactored later)
+    try {
+        // Simulate calling our own API endpoint internally for now
+        // In production, you might call the NRE logic directly here instead of via HTTP
+        const response = await axios.get(`http://localhost:${port}/api/departures`, {
+            params: { from: route.fromCRS, to: route.toCRS }
+        });
+        lastFetchedDepartures = response.data as Departure[];
+        console.log(`[Train Polling] Fetched ${lastFetchedDepartures.length} departures.`);
+
+        // --- Calculate Concatenated Time String ---
+        let concatenatedTimes = "";
+        let previousHour: number | null = null;
+        for (const dep of lastFetchedDepartures) {
+            const displayTimeStr = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
+                ? dep.estimatedTime : dep.scheduledTime;
+            const { hour: currentHour, minute: currentMinute } = getHourMinute(displayTimeStr);
+            const isSpecialStatus = dep.status.toUpperCase() === 'CANCELLED' || (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime);
+
+            let timePart = '----'; // Default for errors or special cases not handled below
+            if (currentHour !== null && currentMinute !== null && !isSpecialStatus) {
+                const minuteStr = currentMinute.toString().padStart(2, '0');
+                timePart = (currentHour === previousHour) ? `  ${minuteStr}` : `${currentHour.toString().padStart(2, '0')}${minuteStr}`;
+                previousHour = currentHour;
+            } else {
+                previousHour = null; // Reset hour context for special status or errors
+            }
+
+            if ((concatenatedTimes + timePart).length <= SPLITFLAP_DISPLAY_LENGTH) {
+                concatenatedTimes += timePart;
+            } else {
+                break; // Stop adding times if it exceeds display length
+            }
+        }
+        // --- End Calculation ---
+
+        // Update display with the concatenated string, padded if necessary
+        if (concatenatedTimes) {
+            updateDisplayAndBroadcast(concatenatedTimes.padEnd(SPLITFLAP_DISPLAY_LENGTH), 'train');
+        } else {
+            updateDisplayAndBroadcast(`${route.fromCRS} NO DEPT`.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH), 'train'); // Show no departures message
+        }
+
+        // Send full data to clients interested in the table view
+        io.emit('trainDataUpdate', { departures: lastFetchedDepartures });
+    } catch (error: any) {
+        console.error(`[Train Polling] Error fetching departures for ${route.fromCRS}:`, error.message);
+        updateDisplayAndBroadcast(`${route.fromCRS} ERROR`.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH), 'train'); // Show error on display
+        io.emit('trainDataUpdate', { error: error.message }); // Send error to clients
+    }
+};
+
+const startTrainPolling = (route: { fromCRS: string; toCRS?: string }) => {
+    stopTrainPolling(); // Stop any previous polling first
+    console.log(`[Train Polling] Starting polling for route: ${route.fromCRS} -> ${route.toCRS || 'any'}`);
+    currentTrainRoute = route;
+    fetchAndProcessDepartures(route); // Fetch immediately
+    trainPollingInterval = setInterval(() => {
+        // Ensure we only poll if still in train mode and route is set
+        if (currentAppMode === 'train' && currentTrainRoute) {
+            fetchAndProcessDepartures(currentTrainRoute);
+        } else {
+             // This should ideally not happen if stopTrainPolling is called correctly on mode change
+             console.warn('[Train Polling] Interval fired but mode is not train or route is null. Stopping poll.');
+             stopTrainPolling();
+        }
+    }, POLLING_INTERVAL_MS);
+};
+
+const stopTrainPolling = () => {
+    if (trainPollingInterval) {
+        console.log('[Train Polling] Stopping polling.');
+        clearInterval(trainPollingInterval);
+        trainPollingInterval = null;
+    }
+    // Don't reset currentTrainRoute here, keep it so we can resume if user switches back
+    // currentTrainRoute = null;
+};
+
 // --- Sequence Mode Logic ---
 const playNextSequenceLine = () => {
     // This function is intended to be called via setTimeout
