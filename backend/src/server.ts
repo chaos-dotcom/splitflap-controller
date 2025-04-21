@@ -100,16 +100,6 @@ app.use(cors()); // For HTTP requests like NRE API proxy
 app.use(express.json());
 
 // --- NRE API Endpoint (Existing Code) ---
-// Define the structure for departure data (matching frontend)
-interface Departure {
-  id: string;
-  scheduledTime: string;
-  destination: string;
-  platform?: string;
-  status: string;
-  estimatedTime?: string;
-}
-
 // NRE LDBWS WSDL URL - Use the latest version
 const NRE_LDBWS_WSDL_URL = 'https://lite.realtime.nationalrail.co.uk/OpenLDBWS/wsdl.aspx?ver=2021-11-01';
 
