@@ -233,7 +233,7 @@ function App() {
       {/* Mode Specific Controls */}
       <div className="mode-controls">
           {currentMode === 'train' && ( // Pass backend connection status and use handleSendText
-              <TrainTimetableMode isConnected={isConnectedToBackend} onSendMessage={handleSendText} />
+              <TrainTimetableMode isConnected={isConnectedToBackend} onSendMessage={handleSendText} onPlayScene={handlePlaySequence} />
           )}
           {currentMode === 'sequence' && ( // Pass backend connection status and specific handlers
              <SequenceMode

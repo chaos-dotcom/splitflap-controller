@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DISPLAY_LENGTH } from '../constants'; // Import display length
 import './TrainTimetableMode.css';
+import { Scene, SceneLine } from '../../src/types'; // Import Scene types
 
 // Define the structure for departure data (as discussed)
 interface Departure {
@@ -15,13 +16,15 @@ interface Departure {
 // Define the props for the component
 interface TrainTimetableModeProps {
     isConnected: boolean;
-    onSendMessage: (message: string) => void;
+    onSendMessage: (message: string) => void; // For sending single lines
+    onPlayScene: (scene: Scene) => void; // For sending sequences
 }
 
-const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, onSendMessage }) => {
+const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, onSendMessage, onPlayScene }) => {
     const [fromStation, setFromStation] = useState<string>(''); // e.g., KGX
     const [toStation, setToStation] = useState<string>('');   // e.g., EDB (optional)
     const [departures, setDepartures] = useState<Departure[]>([]);
+    const [selectedDepartureIds, setSelectedDepartureIds] = useState<Set<string>>(new Set()); // State for selected rows
     const [isLoading, setIsLoading] = useState<boolean>(false); // Keep loading state for manual refresh
     const [error, setError] = useState<string | null>(null);
     const [formattedDisplayStrings, setFormattedDisplayStrings] = useState<string[]>([]); // State for formatted strings
@@ -77,6 +80,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
             return output.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
         });
         setFormattedDisplayStrings(newFormattedStrings);
+        setSelectedDepartureIds(new Set()); // Clear selection when departures refresh
     }, [departures]); // Recalculate when departures data changes
 
     // Placeholder function to simulate fetching data from the backend
@@ -133,6 +137,48 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
         onSendMessage(formattedDisplayStrings[index]); // Send pre-formatted string
     };
 
+    // Handler for checkbox changes
+    const handleSelectionChange = (departureId: string, isSelected: boolean) => {
+        setSelectedDepartureIds(prevSelected => {
+            const newSelected = new Set(prevSelected);
+            if (isSelected) {
+                newSelected.add(departureId);
+            } else {
+                newSelected.delete(departureId);
+            }
+            return newSelected;
+        });
+    };
+
+    // Handler for sending the sequence of selected times
+    const handleSendSelectedTimesSequence = () => {
+        if (!isConnected || selectedDepartureIds.size === 0) return;
+
+        const selectedDepartures = departures.filter(dep => selectedDepartureIds.has(dep.id));
+        // Sort selected departures by scheduled time
+        selectedDepartures.sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || ''));
+
+        const timeStrings = selectedDepartures.map(dep => {
+            const time = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
+                ? dep.estimatedTime
+                : dep.scheduledTime;
+            return time?.replace(':', '') || '----'; // HHMM format or fallback
+        });
+
+        const sceneLines: SceneLine[] = [];
+        for (let i = 0; i < timeStrings.length; i += 3) {
+            const chunk = timeStrings.slice(i, i + 3).join(''); // Concatenate HHMMHHMMHHMM
+            sceneLines.push({
+                id: `train-time-${i}`, // Simple ID
+                text: chunk.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH),
+                durationMs: 2000 // Default duration for each time chunk display
+            });
+        }
+
+        const scene: Scene = { name: `Times from ${fromStation}`, lines: sceneLines };
+        onPlayScene(scene); // Send the generated scene to the backend
+    };
+
 
     return (
         <div className="train-timetable-mode">
@@ -170,6 +216,15 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                 </button>
             </div>
 
+            {/* Button to send selected times sequence */}
+            {departures.length > 0 && (
+                <div className="sequence-send-controls">
+                    <button onClick={handleSendSelectedTimesSequence} disabled={!isConnected || selectedDepartureIds.size === 0}>
+                        Send Selected Times Sequence ({selectedDepartureIds.size})
+                    </button>
+                </div>
+            )}
+
             {error && <p className="error-message">Error: {error}</p>}
 
             <div className="departures-list">
@@ -182,6 +237,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                     <table>
                         <thead>
                             <tr>
+                                <th>Select</th> {/* Header for checkboxes */}
                                 <th>Time</th>
                                 <th>Destination</th>
                                 <th>Plat</th>
@@ -192,6 +248,14 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                         <tbody>
                             {departures.map((dep, index) => ( // Add index here
                                 <tr key={dep.id}>
+                                    <td> {/* Checkbox cell */}
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedDepartureIds.has(dep.id)}
+                                            onChange={(e) => handleSelectionChange(dep.id, e.target.checked)}
+                                            disabled={!isConnected}
+                                        />
+                                    </td>
                                     <td>{dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime ? <del>{dep.scheduledTime}</del> : dep.scheduledTime} {dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime && dep.estimatedTime !== 'On time' ? <span>{dep.estimatedTime}</span> : ''}</td>
                                     <td>{dep.destination}</td>
                                     <td>{dep.platform || '-'}</td>
