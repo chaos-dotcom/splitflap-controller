@@ -17,6 +17,7 @@ import {
     useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { MdDragIndicator as DragHandleIcon, MdDeleteForever as DeleteIcon, MdContentCopy as DuplicateIcon } from "react-icons/md"; // Import icons
 import { Scene, SceneLine } from '../types';
 import { SPLITFLAP_DISPLAY_LENGTH } from '../constants'; // Use renamed constant
 import './SequenceMode.css';
