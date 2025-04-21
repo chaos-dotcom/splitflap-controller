@@ -1,8 +1,7 @@
 import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import axios from 'axios'; // Import axios
-import { parseStringPromise } from 'xml2js'; // Import xml2js parser
+import { createClientAsync, Client } from 'soap'; // Import soap client
 
 // Load environment variables from .env file
 dotenv.config();
@@ -20,12 +19,8 @@ interface Departure {
   estimatedTime?: string;
 }
 
-// NRE LDBWS Endpoint (for POST requests) - Use the older version endpoint
-const NRE_LDBWS_ENDPOINT = 'https://lite.realtime.nationalrail.co.uk/OpenLDBWS/ldb6.asmx';
-// Namespaces needed for the SOAP request
-const SOAP_ENV_NS = 'http://schemas.xmlsoap.org/soap/envelope/'; // Correct
-const LDB_TOKEN_NS = 'http://thalesgroup.com/RTTI/2010-11-01/ldb/commontypes'; // From Postman example for Token
-const LDB_BODY_NS = 'http://thalesgroup.com/RTTI/2014-02-20/ldb/'; // From Postman example for Body
+// NRE LDBWS WSDL URL - Use the latest version
+const NRE_LDBWS_WSDL_URL = 'https://lite.realtime.nationalrail.co.uk/OpenLDBWS/wsdl.aspx?ver=2021-11-01';
 
 // Enable CORS for all origins (adjust for production later)
 app.use(cors());
@@ -53,102 +48,100 @@ app.get('/api/departures', async (req: Request, res: Response) => {
         return res.status(500).json({ error: 'Server configuration error: API token missing.' });
     }
 
-    // --- Construct SOAP Request Body ---
-    const soapRequestBody = `
-        <soapenv:Envelope xmlns:soapenv="${SOAP_ENV_NS}" xmlns:typ="${LDB_TOKEN_NS}" xmlns:ldb="${LDB_BODY_NS}">
-           <soapenv:Header>
-              <typ:AccessToken>
-                 <typ:TokenValue>${apiToken}</typ:TokenValue>
-              </typ:AccessToken>
-           </soapenv:Header>
-           <soapenv:Body>
-              <ldb:GetDepartureBoardRequest> <!-- Use ldb prefix matching LDB_BODY_NS -->
-                 <ldb:numRows>${numRows}</ldb:numRows>
-                 <ldb:crs>${fromStation}</ldb:crs>
-                 <!-- Optional filter -->
-                 ${toStation ? `<ldb:filterCrs>${toStation}</ldb:filterCrs><ldb:filterType>to</ldb:filterType>` : ''}
-              </ldb:GetDepartureBoardRequest>
-           </soapenv:Body>
-        </soapenv:Envelope>
-    `.trim(); // Use trim() to remove leading/trailing whitespace
-
-    // --- NRE API Call ---
+    // --- NRE API Call using 'soap' library ---
     try {
-        // Log the request body (masking token) for debugging
-        const maskedRequestBody = soapRequestBody.replace(apiToken, '********-****-****-****-************');
-        console.log(`Calling NRE LDBWS via POST for station: ${fromStation}\nRequest Body:\n${maskedRequestBody}`);
+        console.log(`Creating SOAP client for WSDL: ${NRE_LDBWS_WSDL_URL}`);
+        const client: Client = await createClientAsync(NRE_LDBWS_WSDL_URL);
 
-        const requestHeaders = {
-            'Content-Type': 'text/xml;charset=UTF-8',
-            // Use the LDB Body Namespace for SOAPAction, WITHOUT quotes first
-            'SOAPAction': `${LDB_BODY_NS}GetDepartureBoard`,
-            'Accept-Encoding': 'identity', // Explicitly state we don't want compressed responses
+        // Add the AccessToken SOAP header
+        // The namespace 'http://thalesgroup.com/RTTI/2013-11-28/Token/types' is typically associated with 'typ' or similar prefix in examples.
+        const soapHeader = {
+            'AccessToken': {
+                'TokenValue': apiToken
+            }
         };
-        console.log('Request Headers:', requestHeaders); // Log headers
+        // Provide the namespace explicitly for the AccessToken element. The prefix ('typ') is arbitrary here but helps clarity.
+        client.addSoapHeader(soapHeader, '', 'typ', 'http://thalesgroup.com/RTTI/2013-11-28/Token/types');
 
-        const apiResponse = await axios.post(NRE_LDBWS_ENDPOINT, soapRequestBody, {
-            headers: requestHeaders,
-            // Axios might automatically parse XML if content-type indicates it,
-            // but we'll parse manually for robustness.
-            responseType: 'text' // Get the raw XML string
-        });
+        // Prepare arguments for the GetDepartureBoard operation
+        const args = {
+            numRows: numRows,
+            crs: fromStation,
+            // Add filterCrs and filterType if toStation is provided
+            ...(toStation && { filterCrs: toStation, filterType: 'to' })
+        };
 
-        // --- Parse Response (Assuming XML for now, as JSON isn't guaranteed) ---
-        // Check content type, default to XML parsing
-        console.log("Received XML response from NRE, parsing...");
-        const parsedXml = await parseStringPromise(apiResponse.data, {
-            explicitArray: false, // Simplify structure
-            // Keep namespace prefixes for now to match potential structure
-        });
-        // Navigate through the SOAP structure
-        // Use the correct namespace prefix (ldb) based on the body definition
-        const stationBoardResult = parsedXml?.['soapenv:Envelope']?.['soapenv:Body']?.['ldb:GetDepartureBoardResponse']?.['ldb:GetStationBoardResult'];
+        console.log(`Calling GetDepartureBoardAsync for station: ${fromStation} with args:`, args);
 
+        // Call the SOAP method (method name usually matches WSDL operation + 'Async')
+        // The library handles the POST request, SOAPAction header, and XML construction/parsing.
+        // The result is typically the first element of the returned array.
+        const [result, rawResponse, soapHeaderResponse, rawRequest] = await client.GetDepartureBoardAsync(args);
+
+        console.log("Received response from NRE.");
+        // console.log("Raw Response Body:", rawResponse); // Uncomment for deep debugging
+
+        // --- Process Response ---
+        // The 'soap' library parses the response into a JavaScript object.
+        // Navigate the object structure based on the WSDL/XML response.
+        const stationBoardResult = result?.GetStationBoardResult;
 
         if (!stationBoardResult) {
-            console.error('Could not find GetStationBoardResult in NRE response structure:', JSON.stringify(parsedXml, null, 2));
-            // Check for SOAP Fault
-            const soapFault = parsedXml?.['soap:Envelope']?.['soap:Body']?.['soap:Fault'];
-            if (soapFault) {
-                 const faultString = soapFault.faultstring || 'Unknown SOAP Fault';
-                 console.error('Received SOAP Fault:', faultString);
-                 throw new Error(`NRE API Fault: ${faultString}`);
-            }
+            console.error('Could not find GetStationBoardResult in NRE response structure:', JSON.stringify(result, null, 2));
+            // Note: SOAP Faults are typically thrown as errors by the library, caught in the catch block.
             throw new Error('Unexpected response structure from NRE API.');
         }
 
         // --- Map Data ---
-        // Access data using the 'ldb:' prefix (or adjust if xml2js handles it differently without tagNameProcessors)
-        const trainServices = stationBoardResult['ldb:stationBoard']?.['ldb:trainServices']?.['ldb:service'];
+        // Access data directly from the parsed JavaScript object.
+        const trainServices = stationBoardResult.stationBoard?.trainServices?.service;
         const departures: Departure[] = [];
 
         if (trainServices) {
+            // Ensure trainServices is an array, even if only one service is returned
             const servicesArray = Array.isArray(trainServices) ? trainServices : [trainServices];
 
             servicesArray.forEach((service: any) => {
-                const destination = service['ldb:destination']?.['ldb:location'];
+                // Access properties directly, assuming 'soap' library parsed correctly
+                const destination = service.destination?.location;
+                // Destination can sometimes be an array if there are multiple via points, take the first/primary.
                 const destinationName = Array.isArray(destination)
-                    ? destination[0]?.['ldb:locationName'] || 'Unknown'
-                    : destination?.['ldb:locationName'] || 'Unknown';
+                    ? destination[0]?.locationName || 'Unknown'
+                    : destination?.locationName || 'Unknown';
 
-                const status = service.etd === 'On time' ? 'On time' : service.etd || service.std || 'Unknown'; // etd can be 'Delayed', 'Cancelled', or a time
+                // Determine status: etd can be 'On time', 'Delayed', 'Cancelled', or an estimated time.
+                let status = 'Unknown';
+                let estimatedTime: string | undefined = undefined;
+                if (service.etd === 'On time') {
+                    status = 'On time';
+                } else if (service.etd === 'Delayed') {
+                    status = 'Delayed';
+                } else if (service.etd === 'Cancelled') {
+                    status = 'Cancelled';
+                } else if (service.etd) { // It's an estimated time
+                    status = 'On time'; // Or potentially 'Delayed' if etd > std, but API usually handles this
+                    estimatedTime = service.etd;
+                } else { // No etd, rely on std
+                    status = 'On time'; // Assume on time if no other info
+                }
+
 
                 const departure: Departure = {
                     id: service.serviceID, // Unique ID for the service run
                     scheduledTime: service.std || '??:??', // Scheduled time of departure
-                    destination: destinationName, // Assuming destinationName is correct structure
+                    destination: destinationName,
                     platform: service.platform || undefined, // Platform might be missing
                     status: status,
-                    estimatedTime: (service.etd && service.etd !== 'On time' && service.etd !== 'Cancelled' && service.etd !== 'Delayed') ? service.etd : undefined, // Only set if it's an actual time
+                    estimatedTime: estimatedTime,
                 };
                 departures.push(departure);
             });
-        } else if (stationBoardResult['ldb:stationBoard']) { // Check if stationBoard exists but services are missing
+        } else if (stationBoardResult.stationBoard) { // Check if stationBoard exists but services are missing
             console.log(`No train services found for ${fromStation} in the response.`);
-            // Check for specific messages like "No services found" if the API provides them
+            // Check for informational messages from NRCC
             if (stationBoardResult.nrccMessages?.message) {
-                 // Handle informational messages if needed, maybe return them?
-                 console.log("NRCC Messages:", stationBoardResult.nrccMessages.message);
+                 const messages = Array.isArray(stationBoardResult.nrccMessages.message) ? stationBoardResult.nrccMessages.message : [stationBoardResult.nrccMessages.message];
+                 messages.forEach((msg: any) => console.log("NRCC Message:", typeof msg === 'string' ? msg : JSON.stringify(msg)));
             }
         }
 
@@ -156,26 +149,14 @@ app.get('/api/departures', async (req: Request, res: Response) => {
         res.json(departures); // Send the mapped data to the frontend
 
     } catch (error: any) {
-        console.error('Error fetching or processing NRE data:', error);
-        // Provide more specific error messages if possible
+        console.error('Error calling NRE LDBWS:', error);
         let errorMessage = 'Failed to fetch train data.';
-        if (axios.isAxiosError(error)) {
-            console.error('Axios Error Status:', error.response?.status);
-            console.error('Axios Error Response:', error.response?.data);
-            errorMessage = `API Request Failed (${error.response?.status || 'Network Error'}).`;
-            // Check for specific NRE error messages within error.response.data if XML/JSON
-             // Attempt to parse SOAP fault from error response data
-             if (error.response?.data) {
-                try {
-                    const parsedErrorXml = await parseStringPromise(error.response.data, { explicitArray: false, ignoreAttrs: true });
-                    const faultString = parsedErrorXml?.['soap:Envelope']?.['soap:Body']?.['soap:Fault']?.faultstring;
-                    if (faultString) {
-                        errorMessage = `NRE API Error: ${faultString}`;
-                    }
-                } catch (parseErr) { /* Ignore if error response isn't parseable XML */ }
-             }
-
+        // Check if it's a SOAP Fault returned by the 'soap' library
+        if (error.Fault) {
+            console.error('SOAP Fault:', error.Fault);
+            errorMessage = `NRE API Fault: ${error.Fault.faultstring || error.Fault.reason || 'Unknown SOAP Fault'}`;
         } else if (error.message) {
+            // General error (network, WSDL parsing, etc.)
             errorMessage = error.message;
         }
         res.status(500).json({ error: errorMessage });
