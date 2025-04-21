@@ -260,13 +260,13 @@ function App() {
       />
 
       {/* Mode Selector */}
-      <div className="mode-selector">
+      <div className="mode-selector govuk-button-group"> {/* Add GDS button group class */}
           {/* Use handleSetMode to request change via backend */}
-          <button onClick={() => handleSetMode('text')} disabled={currentMode === 'text'}>Text Input</button>
-          <button onClick={() => handleSetMode('train')} disabled={currentMode === 'train'}>Train Times</button>
-          <button onClick={() => handleSetMode('sequence')} disabled={currentMode === 'sequence'}>Sequence</button>
-          <button onClick={() => handleSetMode('clock')} disabled={currentMode === 'clock'}>Clock</button>
-          <button onClick={() => handleSetMode('stopwatch')} disabled={currentMode === 'stopwatch'}>Stopwatch</button>
+          <button onClick={() => handleSetMode('text')} disabled={currentMode === 'text'} className={`govuk-button ${currentMode !== 'text' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Text Input</button>
+          <button onClick={() => handleSetMode('train')} disabled={currentMode === 'train'} className={`govuk-button ${currentMode !== 'train' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Train Times</button>
+          <button onClick={() => handleSetMode('sequence')} disabled={currentMode === 'sequence'} className={`govuk-button ${currentMode !== 'sequence' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Sequence</button>
+          <button onClick={() => handleSetMode('clock')} disabled={currentMode === 'clock'} className={`govuk-button ${currentMode !== 'clock' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Clock</button>
+          <button onClick={() => handleSetMode('stopwatch')} disabled={currentMode === 'stopwatch'} className={`govuk-button ${currentMode !== 'stopwatch' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Stopwatch</button>
       </div>
 
       {/* Mode Specific Controls */}

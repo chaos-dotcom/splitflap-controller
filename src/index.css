@@ -1,3 +1,9 @@
+/* Import GOV.UK Frontend FIRST */
+@import 'govuk-frontend/dist/govuk/govuk-frontend.min.css';
+
+/* Keep other base styles from your current index.css if needed, */
+/* but remove default button styles */
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -35,6 +41,8 @@ h1 {
   line-height: 1.1;
 }
 
+/* REMOVE default button styles */
+/*
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -53,6 +61,7 @@ button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
+*/
 
 @media (prefers-color-scheme: light) {
   :root {
@@ -62,7 +71,8 @@ button:focus-visible {
   a:hover {
     color: #747bff;
   }
-  button {
+  /* Remove default light button style */
+  /* button {
     background-color: #f9f9f9;
-  }
+  } */
 }
