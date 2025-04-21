@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'; // Import useRef
-import { DISPLAY_LENGTH } from '../constants'; // Import display length
+import { SPLITFLAP_DISPLAY_LENGTH } from '../constants'; // Use renamed constant
 import './TrainTimetableMode.css';
 import { Departure, TrainRoutePreset } from '../types'; // Import types
  
@@ -198,7 +198,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, is
             output = `${timePart} ${dest}${plat}`; // TTTT + space + DEST(6/7) + P(1/0) = 12
         }
 
-        onSendMessage(output.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH)); // Send the calculated string
+        onSendMessage(output.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH)); // Send the calculated string
     };
 
     // --- Preset Handlers ---
