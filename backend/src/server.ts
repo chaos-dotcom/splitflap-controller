@@ -561,7 +561,7 @@ io.on('connection', (socket: Socket) => {
         sequence: {
             isPlaying: isSequencePlaying,
             // Optionally send current line index or scene name if needed
-        },
+        }, // <-- Add comma here
         train: { // Send initial train state
             route: currentTrainRoute,
             departures: lastFetchedDepartures,
