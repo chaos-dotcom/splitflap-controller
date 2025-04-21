@@ -98,9 +98,16 @@ export const socketService = {
             onDisconnect(reason);
         });
 
+        // Store the onError callback in a variable accessible within this scope
+        const handleError = onError;
         socket.on('connect_error', (error) => {
             console.error('[Socket.IO] Connection Error:', error.message);
-            onError(`Connection failed: ${error.message}`);
+            // Call the stored callback function
+            if (handleError) {
+                handleError(`Connection failed: ${error.message}`);
+            } else {
+                console.error('[Socket.IO] onError callback is not defined when connect_error occurred.');
+            }
             // socket.disconnect(); // Prevent constant reconnect attempts on auth errors etc.
         });
 
