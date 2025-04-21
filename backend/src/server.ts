@@ -554,17 +554,17 @@ io.on('connection', (socket: Socket) => {
         socket.emit('initialState', {
             text: currentDisplayText,
             mode: currentAppMode,
-        stopwatch: {
-            elapsedTime: stopwatchElapsedTime, // Send current elapsed time
-            isRunning: isStopwatchRunning, // Send current running status
-        },
-        sequence: {
-            isPlaying: isSequencePlaying,
-            // Optionally send current line index or scene name if needed
-        }, // <-- Add comma here
-        train: { // Send initial train state
-            route: currentTrainRoute,
-            departures: lastFetchedDepartures,
+        // stopwatch: { // Temporarily commented out for debugging
+        //     elapsedTime: stopwatchElapsedTime,
+        //     isRunning: isStopwatchRunning,
+        // },
+        // sequence: { // Temporarily commented out for debugging
+        //     isPlaying: isSequencePlaying,
+        // },
+        // train: { // Temporarily commented out for debugging
+        //     route: currentTrainRoute,
+        //     departures: lastFetchedDepartures,
+        // }
         });
         console.log(`[Socket.IO] Emitted initialState for ${socket.id}.`);
 
