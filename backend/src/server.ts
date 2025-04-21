@@ -410,27 +410,29 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
         console.log(`[Train Polling] Fetched ${lastFetchedDepartures.length} departures.`);
 
         // --- Calculate Concatenated Time String FOR AUTOMATIC DISPLAY ---
-        // This string will contain HHMM or "  MM" blocks concatenated.
+        // This string will contain HHMM or MM blocks concatenated, no spaces in between.
         concatenatedTimes = ""; // Ensure it's reset for each fetch
         let previousHour: number | null = null; // Track the hour of the previously added time block
         for (const dep of lastFetchedDepartures) {
             const displayTimeStr = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
                 ? dep.estimatedTime : dep.scheduledTime;
             const { hour: currentHour, minute: currentMinute } = getHourMinute(displayTimeStr);
-           const isSpecialStatus = dep.status.toUpperCase() === 'CANCELLED' || (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime);
+            const isSpecialStatus = dep.status.toUpperCase() === 'CANCELLED' || (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime);
 
-           // For the automatic concatenated display, use HHMM or "  MM" format
-           let timePart = '----'; // Default for special status or invalid time
-           if (currentHour !== null && currentMinute !== null && !isSpecialStatus) {
-               const minuteStr = currentMinute.toString().padStart(2, '0');
-               // Use "  MM" if hour matches the last displayed hour, otherwise use "HHMM"
-               timePart = (currentHour === previousHour)
-                   ? `  ${minuteStr}` // "  MM" (4 chars)
-                   : `${currentHour.toString().padStart(2, '0')}${minuteStr}`; // "HHMM" (4 chars)
-               previousHour = currentHour; // Update the last seen hour
-           } else {
-               previousHour = null; // Reset hour context if special status or invalid time
-           }
+            // Skip special status trains for this dense view
+            if (isSpecialStatus || currentHour === null || currentMinute === null) {
+                previousHour = null; // Reset hour context if skipping
+                continue; // Go to the next departure
+            }
+
+            let timePart: string;
+            if (currentHour === previousHour) {
+                const minuteStr = currentMinute.toString().padStart(2, '0');
+                timePart = minuteStr; // Just "MM" (2 chars)
+            } else {
+                timePart = `${currentHour.toString().padStart(2, '0')}${currentMinute.toString().padStart(2, '0')}`; // "HHMM" (4 chars)
+                previousHour = currentHour; // Update the last seen hour only when HH is shown
+            }
 
             if ((concatenatedTimes + timePart).length <= SPLITFLAP_DISPLAY_LENGTH) {
                 concatenatedTimes += timePart;
