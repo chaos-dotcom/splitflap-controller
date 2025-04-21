@@ -193,6 +193,9 @@
   /* Remove border */
   border-bottom: none;
   padding-bottom: 0;
+  /* Add padding to prevent buttons touching edges */
+  padding-left: var(--govuk-spacing-4);
+  padding-right: var(--govuk-spacing-4);
 }
 /* Remove custom play/stop button styles */
 
