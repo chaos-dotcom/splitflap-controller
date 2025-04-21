@@ -1,0 +1,39 @@
+/* src/components/ClockMode.css */
+.clock-mode {
+  border: 1px solid #a2d2ff; /* Light blue border */
+  padding: 15px;
+  margin-top: 15px;
+  border-radius: 5px;
+  background-color: #f0f7ff; /* Light blue background */
+  text-align: center;
+}
+
+.clock-mode h4 {
+  margin-top: 0;
+  color: #0056b3; /* Darker blue */
+  background-color: #bde0fe; /* Medium blue background for handle */
+  padding: 8px;
+  margin-bottom: 15px;
+  cursor: move; /* Ensure handle cursor */
+  user-select: none;
+}
+
+.clock-mode p {
+    margin-bottom: 5px;
+}
+
+.clock-mode .current-time-display {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 1.2em;
+    background-color: #e9ecef;
+    padding: 5px 10px;
+    border-radius: 3px;
+    display: inline-block; /* Allow background */
+    letter-spacing: 0.1em;
+}
+
+.clock-mode .connection-warning {
+    color: #dc3545;
+    font-size: 0.9em;
+    margin-top: 10px;
+}

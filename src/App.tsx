@@ -4,6 +4,7 @@ import SplitFlapDisplay from './components/SplitFlapDisplay';
 import SettingsPanel from './components/SettingsPanel';
 import TrainTimetableMode from './components/TrainTimetableMode'; // Import placeholder
 import SequenceMode from './components/SequenceMode'; // Import SequenceMode
+import ClockMode from './components/ClockMode'; // Import ClockMode
 import { DISPLAY_LENGTH, ALLOWED_CHARS } from './constants'; // Import ALLOWED_CHARS
 import { mqttService } from './services/mqttService';
 import { ControlMode, MqttSettings } from './types'; // Import types
@@ -230,8 +231,8 @@ function App() {
       <div className="mode-selector">
           <button onClick={() => setCurrentMode('text')} disabled={currentMode === 'text'}>Text Input Mode</button>
           <button onClick={() => setCurrentMode('train')} disabled={currentMode === 'train'}>Train Timetable Mode</button>
-          {/* Add the button for Sequence Mode */}
           <button onClick={() => setCurrentMode('sequence')} disabled={currentMode === 'sequence'}>Sequence Mode</button>
+          <button onClick={() => setCurrentMode('clock')} disabled={currentMode === 'clock'}>Clock Mode</button>
       </div>
 
       {/* Mode Specific Controls */}
@@ -242,6 +243,9 @@ function App() {
           {/* Add the conditional rendering for SequenceMode */}
           {currentMode === 'sequence' && (
              <SequenceMode isConnected={isConnected} onSendMessage={publishMessage} />
+          )}
+          {currentMode === 'clock' && (
+             <ClockMode isConnected={isConnected} onSendMessage={publishMessage} isActive={currentMode === 'clock'} />
           )}
           {/* Add other mode components here later */}
       </div>

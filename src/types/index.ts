@@ -1,4 +1,4 @@
-export type ControlMode = 'text' | 'train' | 'sequence'; // Add sequence mode
+export type ControlMode = 'text' | 'train' | 'sequence' | 'clock'; // Add clock mode
 
 export interface MqttSettings {
   brokerUrl: string;
