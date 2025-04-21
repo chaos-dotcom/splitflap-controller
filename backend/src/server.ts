@@ -372,6 +372,7 @@ const setBackendMode = (newMode: ControlMode, source: 'socket' | 'mqtt') => {
     mqttClient.publish(haModeStateTopic, currentAppMode, { retain: true }); // Publish retained state
 
     // --- Broadcast mode change to Socket.IO clients ---
+    console.log(`[Socket.IO] Emitting modeUpdate event to all clients: ${currentAppMode}`); // <-- ADD LOG
     io.emit('modeUpdate', { mode: currentAppMode });
 
     console.log(`[Mode Change] Successfully switched to ${currentAppMode}.`);

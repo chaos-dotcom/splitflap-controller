@@ -102,10 +102,10 @@ function App() {
       // onDisplayUpdate (Restore original logic)
       (data) => setDisplayText(data.text), // <-- RESTORE
       // onModeUpdate (Restore original logic)
-      (data) => { // <-- RESTORE BLOCK
-        console.log(`[App] Received modeUpdate from backend: ${data.mode}`);
+      (data) => {
+        console.log(`[App] Received modeUpdate event from backend with mode: ${data.mode}`); // <-- ADD LOG
         setCurrentMode(data.mode);
-      }, // <-- RESTORE BLOCK
+      },
       // onMqttStatus (Restore original logic)
       (status) => setDisplayMqttStatus(status), // <-- RESTORE
       // onStopwatchUpdate (Restore original logic)
