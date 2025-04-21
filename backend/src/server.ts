@@ -74,12 +74,15 @@ app.get('/api/departures', async (req: Request, res: Response) => {
 
     // --- NRE API Call ---
     try {
-        console.log(`Calling NRE LDBWS via POST for station: ${fromStation}`);
+        // Log the request body (masking token) for debugging
+        const maskedRequestBody = soapRequestBody.replace(apiToken, '********-****-****-****-************');
+        console.log(`Calling NRE LDBWS via POST for station: ${fromStation}\nRequest Body:\n${maskedRequestBody}`);
 
         const apiResponse = await axios.post(NRE_LDBWS_ENDPOINT, soapRequestBody, {
             headers: {
                 'Content-Type': 'text/xml;charset=UTF-8',
                 'SOAPAction': `${LDB_NS}GetDepartureBoard`, // SOAPAction often required
+                'Accept-Encoding': 'identity', // Explicitly state we don't want compressed responses
                 // Ensure no compression is requested by default (axios usually doesn't)
             },
             // Axios might automatically parse XML if content-type indicates it,
