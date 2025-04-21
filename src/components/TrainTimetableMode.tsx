@@ -178,8 +178,8 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                 )}
             </div>
 
-             <p style={{fontSize: '0.8em', color: '#666', marginTop: '15px'}}>
-                Note: This uses mock data from the backend service. The backend needs National Rail Enquiries integration for live data. Polling is active when mode is selected, connected, and 'From' station is set.
+             <p style={{fontSize: '0.8em', color: 'var(--tt-info-text, #666)', marginTop: '15px'}}>
+                Note: This uses mock data from the backend service. The backend needs National Rail Enquiries integration for live data. Click 'Refresh Now' to fetch data.
             </p>
         </div>
     );
