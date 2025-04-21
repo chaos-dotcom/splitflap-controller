@@ -365,13 +365,15 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                                 <tr key={dep.id}>
                                     {/* Removed Checkbox cell */}
                                     {/* This logic displays STD crossed out and ETD if available and different */}
-                                    <td>
-                                        {dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime && dep.status !== 'Cancelled' && dep.status !== 'Delayed'
+                                    <td className="time-cell"> {/* Add class for potential styling */}
+                                        {/* Show scheduled time, cross out if estimate exists and differs */}
+                                        {dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime
                                             ? <del>{dep.scheduledTime}</del>
                                             : dep.scheduledTime
                                         }
                                         {' '}
-                                        {dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime && dep.status !== 'Cancelled' && dep.status !== 'Delayed'
+                                        {/* Show estimated time if it exists and differs from scheduled */}
+                                        {dep.estimatedTime && dep.estimatedTime !== dep.scheduledTime
                                             ? <span>{dep.estimatedTime}</span>
                                             : ''
                                         }
