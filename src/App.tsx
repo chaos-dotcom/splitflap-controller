@@ -173,7 +173,6 @@ function App() {
       socketService.emitStartStopwatch();
   };
   const handleStopStopwatch = () => {
-      // TODO: Replace with socketService.emitStopStopwatch();
       socketService.emitStopStopwatch();
   };
   const handleResetStopwatch = () => {
@@ -185,8 +184,7 @@ function App() {
       socketService.emitPlaySequence(scene);
   };
   const handleStopSequence = () => {
-      // TODO: Replace with socketService.emitStopSequence();
-      console.log('[Placeholder] Emitting stopSequence');
+      socketService.emitStopSequence();
   };
   // --- End Placeholder Emitters ---
 
@@ -199,12 +197,12 @@ function App() {
 
 
       {/* Split Flap Display - Now Interactive */}
-      <SplitFlapDisplay // Removed isConnected prop
+      <SplitFlapDisplay
         // Show draft text only when in text mode, otherwise show last published text
         text={currentMode === 'text' ? draftText : displayText}
         caretPosition={caretPosition} // Caret position is only relevant in text mode
         onKeyDown={handleDisplayKeyDown} // Handler checks for mode internally
-        // isConnected prop removed
+        isConnected={isConnectedToBackend} // Pass backend connection status
         onClick={handleDisplayClick} // Handler checks for mode internally
         isInteractive={currentMode === 'text'} // Explicitly pass if display should be interactive
       />
