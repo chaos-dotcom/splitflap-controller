@@ -8,8 +8,8 @@ import ClockMode from './components/ClockMode'; // Import ClockMode
 import StopwatchMode from './components/StopwatchMode'; // Import StopwatchMode
 import { DISPLAY_LENGTH, ALLOWED_CHARS } from './constants'; // Import ALLOWED_CHARS
 // Removed mqttService import
-import { ControlMode } from './types'; // Import types (MqttSettings no longer needed here)
-// Removed Buffer polyfill
+import { socketService } from './services/socketService'; // Import Socket.IO service
+import { ControlMode, Scene } from './types'; // Import types (MqttSettings no longer needed here)
 
 function App() {
   // --- State for Frontend ---
