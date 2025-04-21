@@ -81,7 +81,8 @@ app.get('/api/departures', async (req: Request, res: Response) => {
         const apiResponse = await axios.post(NRE_LDBWS_ENDPOINT, soapRequestBody, {
             headers: {
                 'Content-Type': 'text/xml;charset=UTF-8',
-                'SOAPAction': `${LDB_NS}GetDepartureBoard`, // SOAPAction often required
+                // Try a commonly accepted SOAPAction format for this service
+                'SOAPAction': 'http://thalesgroup.com/RTTI/2012-01-13/ldb/GetDepartureBoard',
                 'Accept-Encoding': 'identity', // Explicitly state we don't want compressed responses
                 // Ensure no compression is requested by default (axios usually doesn't)
             },
