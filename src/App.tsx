@@ -379,7 +379,19 @@ function App() {
                 onReset={handleResetStopwatch}
              />
           )}
-          {/* {currentMode === 'timer' && ( <TimerMode ... /> )} */} {/* Keep Timer commented if not implemented */}
+          {/* --- UNCOMMENT AND UPDATE TimerMode --- */}
+          {currentMode === 'timer' && (
+             <TimerMode
+                isConnectedToBackend={isConnectedToBackend}
+                isRunningBackend={timerIsRunningBackend}
+                remainingMsBackend={timerRemainingMs}
+                targetMsBackend={timerTargetMs}
+                onSetTimer={handleSetTimer}
+                onStartTimer={handleStartTimer}
+                onStopTimer={handleStopTimer}
+             />
+          )}
+          {/* --- END TimerMode --- */}
       </div>
       {/* END OF BLOCK TO UNCOMMENT */}
 
