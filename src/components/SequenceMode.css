@@ -89,10 +89,19 @@
    background-color: #e6f0ff; /* Lighter blue background for editing */
 }
 
-.line-list li .line-number {
+/* Updated from .line-number to .drag-handle */
+.line-list li .drag-handle {
     min-width: 25px;
     color: #666;
     font-size: 0.9em;
+    cursor: grab; /* Indicate draggable handle */
+    display: inline-flex; /* Align icon/text if needed */
+    align-items: center;
+    padding-right: 5px; /* Space between handle and display/input */
+    user-select: none; /* Prevent text selection */
+}
+.line-list li .drag-handle:active {
+    cursor: grabbing;
 }
 
 /* Ensure the small display takes up appropriate space */
