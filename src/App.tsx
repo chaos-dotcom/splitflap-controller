@@ -93,7 +93,8 @@ function App() {
     let handled = false; // Flag to track if we processed the key
 
     if (key === 'Enter') {
-      publishMessage(draftText); // Send the current draft text
+      // Send text via WebSocket
+      socketService.emitSetText(draftText);
       handled = true;
     } else if (key === 'Backspace') {
       if (newCaretPos > 0) {
@@ -162,26 +163,26 @@ function App() {
   };
 
   // --- Placeholder Emitters (to be connected to socketService) ---
+  // Wrapper for modes that just send a single text message (like Train Timetable 'Send' button)
   const handleSendText = (text: string) => {
-      // TODO: Replace with socketService.emitSetText(text);
-      console.log(`[Placeholder] Emitting setText: ${text}`);
-      publishMessage(text); // Keep updating local display for now
+      socketService.emitSetText(text);
   };
+
+  // Stopwatch Emitters
   const handleStartStopwatch = () => {
-      // TODO: Replace with socketService.emitStartStopwatch();
-      console.log('[Placeholder] Emitting startStopwatch');
+      socketService.emitStartStopwatch();
   };
   const handleStopStopwatch = () => {
       // TODO: Replace with socketService.emitStopStopwatch();
-      console.log('[Placeholder] Emitting stopStopwatch');
+      socketService.emitStopStopwatch();
   };
   const handleResetStopwatch = () => {
-      // TODO: Replace with socketService.emitResetStopwatch();
-      console.log('[Placeholder] Emitting resetStopwatch');
+      socketService.emitResetStopwatch();
   };
-  const handlePlaySequence = (scene: any /* Use Scene type later */) => {
-      // TODO: Replace with socketService.emitPlaySequence(scene);
-      console.log(`[Placeholder] Emitting playSequence: ${scene.name}`);
+
+  // Sequence Emitters
+  const handlePlaySequence = (scene: Scene) => { // Use correct Scene type
+      socketService.emitPlaySequence(scene);
   };
   const handleStopSequence = () => {
       // TODO: Replace with socketService.emitStopSequence();
