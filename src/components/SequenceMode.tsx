@@ -287,25 +287,13 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
                                     <SplitFlapDisplay
                                         size="small"
                                         text={line.text}
-                                        isInteractive={false}
-                                        isConnected={false} // Not relevant for static display
-                                        caretPosition={-1} // Not relevant
-                                                    />
-                                                ) : (
-                                                    <div className="line-display-clickable" onClick={() => handleLineClick(line.id)} title="Click to edit text">
-                                                        {/* Pass minimal props for static display */}
-                                                        <SplitFlapDisplay
-                                                            size="small"
-                                                            text={line.text}
-                                                            isInteractive={false}
-                                                            isConnected={false} // Not relevant for static display
-                                                            caretPosition={-1} // Not relevant
-                                                        />
-                                                    </div>
-                                                )}
-                                                <input
-                                                    type="number"
-                                                    className="line-duration-input"
+                                        // Removed unnecessary props for static display
+                                    />
+                                </div>
+                            )}
+                            <input
+                                type="number"
+                                className="line-duration-input"
                                                     value={line.durationMs ?? 1000} // Use default if undefined
                                                     onChange={(e) => handleDurationChange(line.id, parseInt(e.target.value, 10))}
                                                     min="100"
