@@ -100,28 +100,29 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     }, [departures]); // Recalculate when departures data changes
 
     // Placeholder function to simulate fetching data from the backend
-    // Modified to accept station codes as arguments
-    const fetchDepartures = async (fetchFromCRS: string, fetchToCRS?: string) => {
-        if (!fetchFromCRS) {
+    // Now reads directly from state
+    const fetchDepartures = async () => {
+        // Use component state directly
+        if (!fromStation || fromStation.length !== 3) {
             setError("Please enter a 'From' station CRS code.");
-            setDepartures([]);
+            // setDepartures([]); // Don't clear departures here, let the error display
             return;
         }
         // Removed state updates from here, handled by inputs/presets
 
         setIsLoading(true);
-        setError(null);
-        console.log(`Fetching departures from backend: from=${fetchFromCRS}, to=${fetchToCRS || 'any'}`);
-
+        setError(null); // Clear previous errors before fetching
+        console.log(`Fetching departures from backend: from=${fromStation}, to=${toStation || 'any'}`);
         // --- Add Log ---
-        console.log(`[fetchDepartures] Making API call with From=${fetchFromCRS}, To=${fetchToCRS}`);
+        // Log the state values *just before* the fetch call
+        console.log(`[fetchDepartures] Making API call with From=${fromStation}, To=${toStation || undefined}`);
 
         // Construct the API URL
         const backendUrl = 'http://localhost:3001'; // Assuming backend runs on port 3001
         const apiUrl = new URL('/api/departures', backendUrl);
-        apiUrl.searchParams.append('from', fetchFromCRS);
-        if (fetchToCRS) {
-            apiUrl.searchParams.append('to', fetchToCRS);
+        apiUrl.searchParams.append('from', fromStation); // Use state variable
+        if (toStation) { // Use state variable 'toStation' here
+            apiUrl.searchParams.append('to', toStation);
         }
 
         try {
@@ -270,6 +271,18 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
         }
     };
     // --- End Preset Handlers ---
+
+    // --- Input Change Handlers ---
+    const handleFromStationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFromStation(e.target.value.toUpperCase());
+        setError(null); // Clear error on input change
+    };
+
+    const handleToStationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setToStation(e.target.value.toUpperCase());
+        setError(null); // Clear error on input change
+    };
+    // --- End Input Change Handlers ---
 
     return (
         <div className="train-timetable-mode">
