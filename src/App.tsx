@@ -214,7 +214,7 @@ function App() {
       // If TrainTimetableMode manages its own data fetching via backend events,
       // this might just become a prop to indicate activity.
       console.log(`[App] Requesting train updates for ${fromCRS} -> ${toCRS || 'any'}`);
-      // socketService.emitStartTrainUpdates(fromCRS, toCRS); // Decide if App or TrainMode triggers this
+      socketService.emitStartTrainUpdates(fromCRS, toCRS); // Decide if App or TrainMode triggers this
   };
 
   // --- Mode Change Handler ---
