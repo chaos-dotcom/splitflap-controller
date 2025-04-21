@@ -33,6 +33,20 @@
     color: #1a202c; /* Very dark gray */
 }
 
+.stopwatch-options {
+    margin-bottom: 15px;
+    font-size: 0.9em;
+    color: #4a5568;
+}
+
+.stopwatch-options label {
+    cursor: pointer;
+}
+.stopwatch-options input[type="checkbox"] {
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
 .stopwatch-controls button {
   padding: 10px 20px;
   margin: 0 10px;

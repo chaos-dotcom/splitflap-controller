@@ -8,19 +8,22 @@ interface StopwatchModeProps {
     isActive: boolean; // Prop to know if this mode is currently selected
 }
 
-// Helper function to format milliseconds into MM:SS.T
-const formatStopwatchTime = (timeMs: number): string => {
+// Helper function to format milliseconds into MM:SS.T or MM:SS
+const formatStopwatchTime = (timeMs: number, includeTenths: boolean): string => {
     const totalSeconds = Math.floor(timeMs / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    const tenths = Math.floor((timeMs % 1000) / 100);
 
     const mm = minutes.toString().padStart(2, '0');
     const ss = seconds.toString().padStart(2, '0');
-    const t = tenths.toString(); // Single digit
 
-    // Format: "  MM:SS.T   " (12 chars)
-    const formatted = `  ${mm}:${ss}.${t}   `;
+    let formatted: string;
+    if (includeTenths) {
+        const tenths = Math.floor((timeMs % 1000) / 100);
+        formatted = `  ${mm}:${ss}.${tenths}   `; // Format: "  MM:SS.T   " (12 chars)
+    } else {
+        formatted = `   ${mm}:${ss}    `; // Format: "   MM:SS    " (12 chars)
+    }
 
     // Ensure exactly DISPLAY_LENGTH
     return formatted.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
@@ -29,6 +32,7 @@ const formatStopwatchTime = (timeMs: number): string => {
 const StopwatchMode: React.FC<StopwatchModeProps> = ({ isConnected, onSendMessage, isActive }) => {
     const [elapsedTime, setElapsedTime] = useState<number>(0); // Time in milliseconds
     const [isRunning, setIsRunning] = useState<boolean>(false);
+    const [includeTenths, setIncludeTenths] = useState<boolean>(true); // State for formatting option
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const startTimeRef = useRef<number>(0); // Timestamp when the stopwatch was last started/resumed
 
@@ -61,11 +65,11 @@ const StopwatchMode: React.FC<StopwatchModeProps> = ({ isConnected, onSendMessag
     // Effect to send updates via MQTT when elapsedTime changes and mode is active/connected
     useEffect(() => {
         if (isActive && isConnected) {
-            onSendMessage(formatStopwatchTime(elapsedTime));
+            onSendMessage(formatStopwatchTime(elapsedTime, includeTenths)); // Pass includeTenths
         }
         // If mode becomes inactive, send a final update or clear message?
         // For now, it just stops sending. The main display will hold the last value.
-    }, [elapsedTime, isActive, isConnected, onSendMessage]);
+    }, [elapsedTime, isActive, isConnected, onSendMessage, includeTenths]); // Add includeTenths dependency
 
     // Effect to stop the timer if the mode becomes inactive
     useEffect(() => {
@@ -109,11 +113,11 @@ const StopwatchMode: React.FC<StopwatchModeProps> = ({ isConnected, onSendMessag
         startTimeRef.current = 0; // Reset start time ref
         // Send reset state immediately if connected
         if (isConnected && isActive) {
-             onSendMessage(formatStopwatchTime(0));
+             onSendMessage(formatStopwatchTime(0, includeTenths)); // Pass includeTenths
         }
     };
 
-    const formattedDisplayTime = formatStopwatchTime(elapsedTime);
+    const formattedDisplayTime = formatStopwatchTime(elapsedTime, includeTenths);
 
     return (
         <div className="stopwatch-mode">
@@ -121,6 +125,19 @@ const StopwatchMode: React.FC<StopwatchModeProps> = ({ isConnected, onSendMessag
             <div className="stopwatch-display">
                 {/* Display time locally */}
                 <code>{formattedDisplayTime}</code>
+            </div>
+            {/* Formatting Option */}
+            <div className="stopwatch-options">
+                 <label htmlFor="includeTenthsCheckbox">
+                     <input
+                         type="checkbox"
+                         id="includeTenthsCheckbox"
+                         checked={includeTenths}
+                         onChange={(e) => setIncludeTenths(e.target.checked)}
+                         disabled={isRunning || !isConnected} // Disable while running or disconnected
+                     />
+                     Show Tenths (.T)
+                 </label>
             </div>
             <div className="stopwatch-controls">
                 <button onClick={handleStartStop} disabled={!isConnected}>
