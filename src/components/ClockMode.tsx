@@ -15,8 +15,8 @@ const ClockMode: React.FC<ClockModeProps> = ({ isConnectedToBackend }) => {
 
     return (
         <div className="clock-mode">
-            <h4 className="draggable-handle">Clock Mode</h4>
-            <p>The main display should show the current time.</p>
+            <h4 className="draggable-handle govuk-heading-m">Clock Mode</h4> {/* Added GDS heading class */}
+            <p className="govuk-body">The main display should show the current time.</p> {/* Added GDS body class */}
             {/* Display is handled by App.tsx based on backend updates */}
             {/* <code className="current-time-display">{...}</code> */}
             {!isConnectedToBackend && (

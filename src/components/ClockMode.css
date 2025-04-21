@@ -20,7 +20,7 @@
 
 .clock-mode p {
     margin-bottom: 5px;
-    color: var(--govuk-text-colour); /* Explicitly use GDS text color */
+    /* color: var(--govuk-text-colour); */ /* REMOVE - Rely on govuk-body class */
 }
 
 .clock-mode .current-time-display {

@@ -10,8 +10,8 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* color: rgba(255, 255, 255, 0.87); */ /* REMOVE - Let GDS handle text color */
+  /* background-color: #242424; */ /* REMOVE - Let GDS handle background */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -65,8 +65,8 @@ button:focus-visible {
 
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    /* color: #213547; */ /* REMOVE */
+    /* background-color: #ffffff; */ /* REMOVE */
   }
   a:hover {
     color: #747bff;
