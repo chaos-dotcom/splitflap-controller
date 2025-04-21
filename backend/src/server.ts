@@ -78,14 +78,16 @@ app.get('/api/departures', async (req: Request, res: Response) => {
         const maskedRequestBody = soapRequestBody.replace(apiToken, '********-****-****-****-************');
         console.log(`Calling NRE LDBWS via POST for station: ${fromStation}\nRequest Body:\n${maskedRequestBody}`);
 
+        const requestHeaders = {
+            'Content-Type': 'text/xml;charset=UTF-8',
+            // Use the LDB namespace declared for the body + Operation Name
+            'SOAPAction': `${LDB_NS}GetDepartureBoard`,
+            'Accept-Encoding': 'identity', // Explicitly state we don't want compressed responses
+        };
+        console.log('Request Headers:', requestHeaders); // Log headers
+
         const apiResponse = await axios.post(NRE_LDBWS_ENDPOINT, soapRequestBody, {
-            headers: {
-                'Content-Type': 'text/xml;charset=UTF-8',
-                // Try a commonly accepted SOAPAction format for this service
-                'SOAPAction': 'http://thalesgroup.com/RTTI/2012-01-13/ldb/GetDepartureBoard',
-                'Accept-Encoding': 'identity', // Explicitly state we don't want compressed responses
-                // Ensure no compression is requested by default (axios usually doesn't)
-            },
+            headers: requestHeaders,
             // Axios might automatically parse XML if content-type indicates it,
             // but we'll parse manually for robustness.
             responseType: 'text' // Get the raw XML string
