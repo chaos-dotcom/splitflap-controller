@@ -6,15 +6,95 @@ import { createServer } from 'http'; // Import http server
 import { Server as SocketIOServer, Socket } from 'socket.io'; // Import socket.io
 import * as mqttClient from './mqttClient'; // Import our MQTT client module
 // Adjust the path below if your 'src' and 'backend' folders have a different relationship
-import { ControlMode, Scene } from '../../src/types'; // Import shared types
+// Assuming types are now defined ONLY in the frontend's src/types
+// If you create a shared types package later, adjust this import
+import { ControlMode, Scene, SceneLine } from '../../src/types';
 
 // Load environment variables from .env file
 dotenv.config();
 
-const app: Express = express();
-const httpServer = createServer(app); // Create HTTP server for Socket.IO
-const port = process.env.PORT || 3001; // Use port from .env or default to 3001
+// --- Constants ---
+const DISPLAY_LENGTH = 12;
+// Sequence of colors to use as separators (copied from frontend constants)
+const SEPARATOR_COLORS: ReadonlyArray<string> = ['r', 'o', 'y', 'g', 'b', 'v', 'p', 't', 'w'];
 
+// --- Formatting Helpers ---
+
+// Clock Formatter (copied and adapted from frontend ClockMode)
+const formatClockTime = (date: Date): string => {
+    // Use a specific timezone relevant to the display's location or user preference
+    // Example: 'Europe/London'. Adjust as needed.
+    const options: Intl.DateTimeFormatOptions = {
+        weekday: 'short', // e.g., 'Mon'
+        hour: '2-digit', // e.g., '05'
+        minute: '2-digit', // e.g., '30'
+        hour12: true, // Use AM/PM
+        timeZone: 'Europe/London', // IMPORTANT: Set your target timezone
+    };
+    const formatter = new Intl.DateTimeFormat('en-GB', options);
+    const parts = formatter.formatToParts(date);
+
+    let weekday = parts.find(p => p.type === 'weekday')?.value.substring(0, 3) || '???';
+    let hour = parts.find(p => p.type === 'hour')?.value || '00';
+    let minute = parts.find(p => p.type === 'minute')?.value || '00';
+    let dayPeriod = parts.find(p => p.type === 'dayPeriod')?.value || '??';
+
+    // Format: 'DDD HHMM  AP' (12 chars total)
+    const formatted = `${weekday} ${hour}${minute}  ${dayPeriod}`;
+
+    return formatted.toUpperCase().padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
+};
+
+
+// Stopwatch Formatter (copied and adapted from frontend StopwatchMode)
+const formatStopwatchTime = (timeMs: number): string => {
+    const totalSeconds = Math.floor(timeMs / 1000);
+    const totalMinutes = Math.floor(totalSeconds / 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const seconds = totalSeconds % 60;
+
+    // Get separator colors based on hours and minutes
+    const separatorColor1 = SEPARATOR_COLORS[hours % SEPARATOR_COLORS.length];
+    const separatorColor2 = SEPARATOR_COLORS[minutes % SEPARATOR_COLORS.length];
+
+    const hh = hours.toString().padStart(2, '0');
+    const mm = minutes.toString().padStart(2, '0');
+    const ss = seconds.toString().padStart(2, '0');
+    // Format: "  HHcHMcSS  " (12 chars) - 2 spaces left, 2 spaces right for 8 chars
+    const formatted = `  ${hh}${separatorColor1}${mm}${separatorColor2}${ss}  `;
+
+    // Ensure exactly DISPLAY_LENGTH
+    return formatted.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
+};
+
+
+// --- Express App Setup ---
+const app: Express = express();
+const httpServer = createServer(app);
+const port = process.env.PORT || 3001;
+
+// --- Application State ---
+// Use DISPLAY_LENGTH from constants if available, otherwise hardcode or import differently
+// const DISPLAY_LENGTH = 12; // Assuming default length for now - MOVED TO CONSTANTS
+let currentDisplayText: string = ' '.repeat(DISPLAY_LENGTH);
+let currentAppMode: ControlMode = 'text';
+let clockInterval: NodeJS.Timeout | null = null;
+let stopwatchInterval: NodeJS.Timeout | null = null;
+let stopwatchElapsedTime: number = 0; // Stored in milliseconds
+let stopwatchStartTime: number = 0; // Timestamp when stopwatch was last started/resumed
+let isStopwatchRunning: boolean = false;
+let sequenceTimeout: NodeJS.Timeout | null = null;
+let isSequencePlaying: boolean = false;
+let currentSequence: SceneLine[] = []; // Store the lines of the currently playing sequence
+let currentSequenceIndex: number = 0;
+// --- End Application State ---
+
+// --- Middleware ---
+app.use(cors()); // For HTTP requests like NRE API proxy
+app.use(express.json());
+
+// --- NRE API Endpoint (Existing Code) ---
 // Define the structure for departure data (matching frontend)
 interface Departure {
   id: string;
@@ -220,34 +300,111 @@ const updateDisplayAndBroadcast = (newText: string) => {
 
 // Function to stop all timed modes
 const stopAllTimedModes = (options: { resetStopwatch?: boolean } = {}) => {
+    console.log('[Timer] Stopping all timed modes...');
     if (clockInterval) clearInterval(clockInterval);
     if (stopwatchInterval) clearInterval(stopwatchInterval);
     if (sequenceTimeout) clearTimeout(sequenceTimeout);
     clockInterval = null;
     stopwatchInterval = null;
     sequenceTimeout = null;
-    isStopwatchRunning = false;
-    isSequencePlaying = false;
+    isStopwatchRunning = false; // Ensure stopwatch state is updated
+    isSequencePlaying = false; // Ensure sequence state is updated
 
     if (options.resetStopwatch) {
+        console.log('[Timer] Resetting stopwatch state.');
         stopwatchElapsedTime = 0;
         stopwatchStartTime = 0;
-        // updateDisplayAndBroadcast(formatStopwatchTime(stopwatchElapsedTime)); // Update display only if mode is stopwatch
     }
+    // No automatic display update here, the calling function should handle it
 };
 
-// Helper function - Placeholder (Refine formatting as needed)
-function formatStopwatchTime(timeMs: number): string {
-    const totalSeconds = Math.floor(timeMs / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    const mm = minutes.toString().padStart(2, '0');
-    const ss = seconds.toString().padStart(2, '0');
-    // Example: "   MM:SS    "
-    return `   ${mm}:${ss}    `.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
-}
+// --- Clock Mode Logic ---
+const startBackendClock = () => {
+    stopAllTimedModes(); // Ensure other modes are stopped
+    console.log('[Clock] Starting backend clock interval.');
+    const update = () => {
+        updateDisplayAndBroadcast(formatClockTime(new Date()));
+    };
+    update(); // Initial update
+    clockInterval = setInterval(update, 1000); // Update every second
+};
+
+// --- Stopwatch Mode Logic ---
+const startBackendStopwatch = () => {
+    if (isStopwatchRunning) return; // Already running
+    stopAllTimedModes(); // Ensure other modes are stopped
+    console.log('[Stopwatch] Starting backend stopwatch interval.');
+    isStopwatchRunning = true;
+    stopwatchStartTime = Date.now() - stopwatchElapsedTime; // Adjust for resuming
+    stopwatchInterval = setInterval(() => {
+        stopwatchElapsedTime = Date.now() - stopwatchStartTime;
+        updateDisplayAndBroadcast(formatStopwatchTime(stopwatchElapsedTime));
+        // Also broadcast the raw state for potential UI updates
+        io.emit('stopwatchUpdate', { elapsedTime: stopwatchElapsedTime, isRunning: isStopwatchRunning });
+    }, 100); // Update frequently for smooth display (e.g., 100ms)
+    // Broadcast initial running state
+    io.emit('stopwatchUpdate', { elapsedTime: stopwatchElapsedTime, isRunning: isStopwatchRunning });
+};
+
+const stopBackendStopwatch = () => {
+    if (!isStopwatchRunning) return; // Already stopped
+    console.log('[Stopwatch] Stopping backend stopwatch interval.');
+    if (stopwatchInterval) clearInterval(stopwatchInterval);
+    stopwatchInterval = null;
+    isStopwatchRunning = false;
+    stopwatchElapsedTime = Date.now() - stopwatchStartTime; // Capture final elapsed time
+    // Display remains showing the stopped time (updated by last interval)
+    io.emit('stopwatchUpdate', { elapsedTime: stopwatchElapsedTime, isRunning: isStopwatchRunning }); // Broadcast stopped state
+};
+
+const resetBackendStopwatch = () => {
+    console.log('[Stopwatch] Resetting backend stopwatch.');
+    stopAllTimedModes({ resetStopwatch: true }); // Stops interval, sets isRunning=false, resets time
+    updateDisplayAndBroadcast(formatStopwatchTime(0)); // Update display to 00:00
+    io.emit('stopwatchUpdate', { elapsedTime: 0, isRunning: false }); // Broadcast reset state
+};
+
+// --- Sequence Mode Logic ---
+const playNextSequenceLine = () => {
+    if (!isSequencePlaying || currentSequenceIndex >= currentSequence.length) {
+        console.log('[Sequence] Playback finished or stopped.');
+        stopAllTimedModes(); // Clears timeout and sets isSequencePlaying = false
+        io.emit('sequenceStopped'); // Inform clients
+        // Optionally clear display or leave last line?
+        // updateDisplayAndBroadcast(' '.repeat(DISPLAY_LENGTH));
+        return;
+    }
+
+    const line = currentSequence[currentSequenceIndex];
+    console.log(`[Sequence] Displaying line ${currentSequenceIndex + 1}/${currentSequence.length}: "${line.text}" for ${line.durationMs ?? 1000}ms`);
+    updateDisplayAndBroadcast(line.text);
+
+    const duration = line.durationMs ?? 1000; // Use line duration or default
+    currentSequenceIndex++; // Move to next line index
+
+    // Schedule the next call
+    sequenceTimeout = setTimeout(playNextSequenceLine, duration);
+};
+
+const startBackendSequence = (scene: Scene) => {
+    if (isSequencePlaying || scene.lines.length === 0) return;
+    stopAllTimedModes();
+    console.log(`[Sequence] Starting sequence: ${scene.name}`);
+    isSequencePlaying = true;
+    currentSequence = scene.lines;
+    currentSequenceIndex = 0;
+    playNextSequenceLine(); // Start the playback chain
+};
+
+const stopBackendSequence = () => {
+    if (!isSequencePlaying) return;
+    console.log('[Sequence] Stopping sequence playback.');
+    stopAllTimedModes(); // Clears timeout and sets isSequencePlaying = false
+    io.emit('sequenceStopped'); // Inform clients
+};
 
 
+// --- Socket.IO Connection Handling ---
 io.on('connection', (socket: Socket) => {
     console.log(`[Socket.IO] Client connected: ${socket.id}`);
 
@@ -256,10 +413,13 @@ io.on('connection', (socket: Socket) => {
         text: currentDisplayText,
         mode: currentAppMode,
         stopwatch: {
-            elapsedTime: stopwatchElapsedTime,
-            isRunning: isStopwatchRunning,
+            elapsedTime: stopwatchElapsedTime, // Send current elapsed time
+            isRunning: isStopwatchRunning, // Send current running status
         },
-        // Add other relevant state like sequence status if needed
+        sequence: {
+            isPlaying: isSequencePlaying, // Send sequence playing status
+            // Optionally send current line index or scene name if needed
+        }
     });
     socket.emit('mqttStatus', mqttClient.getDisplayConnectionStatus()); // Send MQTT status
 
@@ -276,11 +436,12 @@ io.on('connection', (socket: Socket) => {
             currentAppMode = mode;
             // Handle mode-specific initial actions AFTER stopping old mode timers
             if (mode === 'clock') {
-                // Start clock logic (implementation needed in next step)
-                console.log('[State] Switched to Clock mode. Needs implementation.');
+                startBackendClock(); // Start the clock interval
             } else if (mode === 'stopwatch') {
                 // Send current stopwatch state immediately
                 updateDisplayAndBroadcast(formatStopwatchTime(stopwatchElapsedTime));
+                // Send running state too
+                socket.emit('stopwatchUpdate', { elapsedTime: stopwatchElapsedTime, isRunning: isStopwatchRunning });
             } else if (mode === 'text') {
                 // Ensure display shows current text state
                 updateDisplayAndBroadcast(currentDisplayText);
@@ -304,57 +465,42 @@ io.on('connection', (socket: Socket) => {
         }
     });
 
-    // --- Placeholder Handlers (To be implemented) ---
-    socket.on('startClock', () => {
-        console.log(`[Socket.IO] Received startClock from ${socket.id}. Needs implementation.`);
-        if (currentAppMode !== 'clock') return;
-        stopAllTimedModes();
-        // TODO: Implement clock logic using setInterval and updateDisplayAndBroadcast
-    });
+    // --- Implement Clock/Stopwatch/Sequence Handlers ---
+    // Clock is handled implicitly by setMode('clock') now
+    // socket.on('startClock', () => { ... }); // No longer needed
 
     socket.on('startStopwatch', () => {
-        console.log(`[Socket.IO] Received startStopwatch from ${socket.id}. Needs implementation.`);
-        if (currentAppMode !== 'stopwatch' || isStopwatchRunning) return;
-        stopAllTimedModes();
-        isStopwatchRunning = true;
-        // TODO: Implement stopwatch logic using setInterval and updateDisplayAndBroadcast
-        stopwatchStartTime = Date.now() - stopwatchElapsedTime; // Resume from previous time
-        // Start interval...
+        console.log(`[Socket.IO] Received startStopwatch from ${socket.id}.`);
+        if (currentAppMode === 'stopwatch') {
+            startBackendStopwatch();
+        }
     });
     socket.on('stopStopwatch', () => {
-        console.log(`[Socket.IO] Received stopStopwatch from ${socket.id}. Needs implementation.`);
-        if (currentAppMode !== 'stopwatch' || !isStopwatchRunning) return;
-        if (stopwatchInterval) clearInterval(stopwatchInterval);
-        stopwatchInterval = null;
-        isStopwatchRunning = false;
-        stopwatchElapsedTime = Date.now() - stopwatchStartTime; // Record elapsed time
-        // No display update here, just stops the timer. Display shows paused time.
-        io.emit('stopwatchUpdate', { elapsedTime: stopwatchElapsedTime, isRunning: isStopwatchRunning }); // Inform clients
+        console.log(`[Socket.IO] Received stopStopwatch from ${socket.id}.`);
+        if (currentAppMode === 'stopwatch') {
+            stopBackendStopwatch();
+        }
     });
     socket.on('resetStopwatch', () => {
-        console.log(`[Socket.IO] Received resetStopwatch from ${socket.id}. Needs implementation.`);
-        if (currentAppMode !== 'stopwatch') return;
-        stopAllTimedModes({ resetStopwatch: true }); // Stop and reset
-        updateDisplayAndBroadcast(formatStopwatchTime(stopwatchElapsedTime)); // Show 00:00
-        io.emit('stopwatchUpdate', { elapsedTime: stopwatchElapsedTime, isRunning: isStopwatchRunning }); // Inform clients
+        console.log(`[Socket.IO] Received resetStopwatch from ${socket.id}.`);
+        if (currentAppMode === 'stopwatch') {
+            resetBackendStopwatch();
+        }
     });
 
     socket.on('playSequence', (data: { scene: Scene }) => {
-        console.log(`[Socket.IO] Received playSequence: ${data.scene.name} from ${socket.id}. Needs implementation.`);
-        if (currentAppMode !== 'sequence' || isSequencePlaying) return;
-        stopAllTimedModes();
-        isSequencePlaying = true;
-        // TODO: Implement sequence logic using setTimeout chain and updateDisplayAndBroadcast
+        console.log(`[Socket.IO] Received playSequence: ${data.scene.name} from ${socket.id}.`);
+        if (currentAppMode === 'sequence') {
+            startBackendSequence(data.scene);
+        }
     });
     socket.on('stopSequence', () => {
-        console.log(`[Socket.IO] Received stopSequence from ${socket.id}. Needs implementation.`);
-        if (currentAppMode !== 'sequence' || !isSequencePlaying) return;
-        stopAllTimedModes(); // This already clears sequenceTimeout and sets isSequencePlaying = false
-        // Optionally send a final display update (e.g., back to spaces or last text)
-        // updateDisplayAndBroadcast(' '.repeat(DISPLAY_LENGTH));
-        io.emit('sequenceStopped'); // Inform clients
+        console.log(`[Socket.IO] Received stopSequence from ${socket.id}.`);
+        if (currentAppMode === 'sequence') {
+            stopBackendSequence();
+        }
     });
-    // --- End Placeholder Handlers ---
+    // --- End Mode Handlers ---
 
     socket.on('disconnect', () => {
         console.log(`[Socket.IO] Client disconnected: ${socket.id}`);
