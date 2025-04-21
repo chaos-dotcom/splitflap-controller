@@ -286,7 +286,7 @@ const updateDisplayAndBroadcast = (newText: string) => {
 
 // Function to stop all timed modes
 const stopAllTimedModes = (options: { resetStopwatch?: boolean } = {}) => {
-    console.log('[Timer] Stopping all timed modes...');
+    console.log(`[Timer] Stopping all timed modes... (Reset Stopwatch: ${!!options.resetStopwatch}, Current Mode: ${currentAppMode})`); // Add context
     if (clockInterval) clearInterval(clockInterval);
     if (stopwatchInterval) clearInterval(stopwatchInterval);
     if (sequenceTimeout) clearTimeout(sequenceTimeout);
@@ -352,6 +352,9 @@ const resetBackendStopwatch = () => {
 
 // --- Sequence Mode Logic ---
 const playNextSequenceLine = () => {
+    // This function is intended to be called via setTimeout
+    console.log(`[Sequence] playNextSequenceLine called. Index: ${currentSequenceIndex}, isPlaying: ${isSequencePlaying}`);
+
     if (!isSequencePlaying || currentSequenceIndex >= currentSequence.length) {
         console.log('[Sequence] Playback finished or stopped.');
         stopAllTimedModes(); // Clears timeout and sets isSequencePlaying = false
@@ -369,7 +372,10 @@ const playNextSequenceLine = () => {
     currentSequenceIndex++; // Move to next line index
 
     // Schedule the next call
-    sequenceTimeout = setTimeout(playNextSequenceLine, duration);
+    sequenceTimeout = setTimeout(() => {
+        console.log(`[Sequence] setTimeout fired for next line (index ${currentSequenceIndex}) after ${duration}ms`); // Log when timeout fires
+        playNextSequenceLine();
+    }, duration);
 };
 
 const startBackendSequence = (scene: Scene) => {
@@ -377,9 +383,10 @@ const startBackendSequence = (scene: Scene) => {
     stopAllTimedModes();
     console.log(`[Sequence] Starting sequence: ${scene.name}`);
     isSequencePlaying = true;
-    currentSequence = scene.lines;
+    currentSequence = [...scene.lines]; // Make a copy
     currentSequenceIndex = 0;
-    playNextSequenceLine(); // Start the playback chain
+    // Use setTimeout for the very first line as well to ensure consistency
+    sequenceTimeout = setTimeout(playNextSequenceLine, 50); // Start after a tiny delay
 };
 
 const stopBackendSequence = () => {
@@ -418,7 +425,11 @@ io.on('connection', (socket: Socket) => {
     socket.on('setMode', (mode: ControlMode) => {
         console.log(`[Socket.IO] Received setMode: ${mode} from ${socket.id}`);
         if (currentAppMode !== mode) {
-            stopAllTimedModes({ resetStopwatch: false }); // Stop timers, don't reset stopwatch just by switching mode
+            console.log(`[Mode Change] Switching from ${currentAppMode} to ${mode}`);
+            // Stop previous timed modes *before* setting the new mode
+            // This prevents starting a new mode's logic while the old one might still be stopping
+            stopAllTimedModes({ resetStopwatch: false });
+
             currentAppMode = mode;
             // Handle mode-specific initial actions AFTER stopping old mode timers
             if (mode === 'clock') {
