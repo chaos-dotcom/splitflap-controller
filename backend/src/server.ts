@@ -561,10 +561,10 @@ io.on('connection', (socket: Socket) => {
         sequence: { // Restore sequence state
             isPlaying: isSequencePlaying,
         },
-        // train: { // Temporarily commented out for debugging
-        //     route: currentTrainRoute,
-        //     departures: lastFetchedDepartures,
-        // }
+        train: { // Restore train state
+            route: currentTrainRoute,
+            departures: lastFetchedDepartures,
+        }
         });
         console.log(`[Socket.IO] Emitted initialState for ${socket.id}.`);
 
