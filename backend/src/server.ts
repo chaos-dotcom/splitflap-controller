@@ -9,7 +9,7 @@ import axios from 'axios'; // Import axios for internal API call
 // Adjust the path below if your 'src' and 'backend' folders have a different relationship
 // Assuming types are now defined ONLY in the frontend's src/types
 // If you create a shared types package later, adjust this import
-import { ControlMode, Scene, SceneLine, Departure } from '../../src/types'; // Added Departure
+import { ControlMode, Scene, SceneLine, Departure } from '../../src/types'; // Added Departure, Timer types implicitly used
 
 // Load environment variables from .env file
 dotenv.config();
@@ -44,6 +44,22 @@ const formatClockTime = (date: Date): string => {
     const formatted = `${weekday} ${hour}${minute}  ${dayPeriod}`;
 
     return formatted.toUpperCase().padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH);
+};
+
+// Timer Formatter (copied and adapted from frontend TimerMode)
+const formatTimerTime = (ms: number): string => {
+    if (ms < 0) ms = 0; // Ensure time doesn't go negative
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    // Format: "MM:SS" centered with spaces (12 chars total)
+    // Example: "   05:30    "
+    const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    const paddingNeeded = SPLITFLAP_DISPLAY_LENGTH - timeStr.length;
+    const leftPadding = Math.floor(paddingNeeded / 2);
+    const rightPadding = paddingNeeded - leftPadding;
+    const formatted = `${' '.repeat(leftPadding)}${timeStr}${' '.repeat(rightPadding)}`;
+    return formatted.substring(0, SPLITFLAP_DISPLAY_LENGTH); // Ensure length constraint
 };
 
 
@@ -93,6 +109,11 @@ const POLLING_INTERVAL_MS = 60000; // Poll every 60 seconds
 let currentTrainRoute: { fromCRS: string; toCRS?: string } | null = null;
 let lastFetchedDepartures: Departure[] = [];
 let trainPollingInterval: NodeJS.Timeout | null = null;
+// --- Timer Mode State ---
+let timerInterval: NodeJS.Timeout | null = null;
+let timerTargetMs: number = 0; // The duration the timer was set for
+let timerRemainingMs: number = 0; // How much time is left
+let timerIsRunning: boolean = false;
 // --- End Application State ---
 
 // --- Middleware ---
@@ -292,11 +313,14 @@ const stopAllTimedModes = (options: { resetStopwatch?: boolean } = {}) => {
     stopwatchInterval = null;
     sequenceTimeout = null;
     isStopwatchRunning = false; // Ensure stopwatch state is updated
+    if (timerInterval) clearInterval(timerInterval); // Stop timer interval
+    timerInterval = null;
+    timerIsRunning = false; // Ensure timer state is updated
     stopTrainPolling(); // Stop train polling as well
     isSequencePlaying = false; // Ensure sequence state is updated
 
     if (options.resetStopwatch) {
-        console.log('[Timer] Resetting stopwatch state.');
+        console.log('[Stopwatch] Resetting stopwatch state.'); // Corrected log context
         stopwatchElapsedTime = 0;
         stopwatchStartTime = 0;
     }
@@ -348,6 +372,87 @@ const resetBackendStopwatch = () => {
     updateDisplayAndBroadcast(formatStopwatchTime(0)); // Update display to 00:00
     io.emit('stopwatchUpdate', { elapsedTime: 0, isRunning: false }); // Broadcast reset state
 };
+
+// --- Timer Mode Logic ---
+const setBackendTimer = (durationMs: number) => {
+    console.log(`[Timer] Setting timer duration: ${durationMs}ms`);
+    stopAllTimedModes(); // Stop everything else, including any existing timer
+
+    timerTargetMs = durationMs > 0 ? durationMs : 0; // Ensure non-negative
+    timerRemainingMs = timerTargetMs;
+    timerIsRunning = false; // Timer is set, but not running yet
+
+    // Update display to show the set time
+    updateDisplayAndBroadcast(formatTimerTime(timerRemainingMs), 'timer');
+
+    // Broadcast the new timer state to all clients
+    io.emit('timerUpdate', {
+        targetMs: timerTargetMs,
+        remainingMs: timerRemainingMs,
+        isRunning: timerIsRunning
+    });
+};
+
+const startBackendTimer = () => {
+    if (timerIsRunning || timerRemainingMs <= 0) {
+        console.log(`[Timer] Start ignored. Running: ${timerIsRunning}, Remaining: ${timerRemainingMs}`);
+        return; // Already running or nothing to run
+    }
+    stopAllTimedModes(); // Ensure other modes are stopped
+    console.log('[Timer] Starting backend timer countdown.');
+    timerIsRunning = true;
+    const startTime = Date.now();
+    const expectedEndTime = startTime + timerRemainingMs;
+
+    // Broadcast initial running state
+    io.emit('timerUpdate', {
+        targetMs: timerTargetMs,
+        remainingMs: timerRemainingMs,
+        isRunning: timerIsRunning
+    });
+
+    timerInterval = setInterval(() => {
+        const now = Date.now();
+        const newRemainingMs = expectedEndTime - now;
+        timerRemainingMs = newRemainingMs > 0 ? newRemainingMs : 0; // Clamp at 0
+
+        // Update display
+        updateDisplayAndBroadcast(formatTimerTime(timerRemainingMs), 'timer');
+
+        // Broadcast current state
+        io.emit('timerUpdate', {
+            targetMs: timerTargetMs,
+            remainingMs: timerRemainingMs,
+            isRunning: timerIsRunning
+        });
+
+        if (timerRemainingMs <= 0) {
+            console.log('[Timer] Countdown finished.');
+            stopBackendTimer(); // Stop the interval and update state
+            // Optionally: Play a sound or flash display? (Future enhancement)
+        }
+    }, 250); // Update display ~4 times per second
+};
+
+const stopBackendTimer = () => {
+    if (!timerIsRunning && !timerInterval) { // Check interval too in case it finished itself
+        console.log('[Timer] Stop ignored. Not running.');
+        return; // Already stopped
+    }
+    console.log('[Timer] Stopping backend timer.');
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = null;
+    timerIsRunning = false;
+    // Remaining time is already updated by the interval, or stays where it was stopped
+
+    // Broadcast the stopped state
+    io.emit('timerUpdate', {
+        targetMs: timerTargetMs,
+        remainingMs: timerRemainingMs,
+        isRunning: timerIsRunning
+    });
+};
+
 
 // --- Train Mode Logic ---
 
@@ -554,13 +659,18 @@ io.on('connection', (socket: Socket) => {
         socket.emit('initialState', {
             text: currentDisplayText,
             mode: currentAppMode,
-        stopwatch: { // Restore stopwatch state
-            elapsedTime: stopwatchElapsedTime,
-            isRunning: isStopwatchRunning,
-        },
-        sequence: { // Restore sequence state
-            isPlaying: isSequencePlaying,
-        },
+            stopwatch: { // Restore stopwatch state
+                elapsedTime: stopwatchElapsedTime,
+                isRunning: isStopwatchRunning,
+            },
+            timer: { // Restore timer state
+                targetMs: timerTargetMs,
+                remainingMs: timerRemainingMs,
+                isRunning: timerIsRunning,
+            },
+            sequence: { // Restore sequence state
+                isPlaying: isSequencePlaying,
+            },
         train: { // Restore train state
             route: currentTrainRoute,
             departures: lastFetchedDepartures,
@@ -617,6 +727,15 @@ io.on('connection', (socket: Socket) => {
             } else if (mode === 'sequence') {
                  // Ensure display shows current text state (or maybe last line of sequence?)
                  updateDisplayAndBroadcast(currentDisplayText); // Manual update source
+            } else if (mode === 'timer') {
+                // Send current timer state immediately
+                updateDisplayAndBroadcast(formatTimerTime(timerRemainingMs), 'timer');
+                // Send running state too
+                socket.emit('timerUpdate', {
+                    targetMs: timerTargetMs,
+                    remainingMs: timerRemainingMs,
+                    isRunning: timerIsRunning
+                });
             }
             // Broadcast mode change to all clients so UI can update if needed
             io.emit('modeUpdate', { mode: currentAppMode });
@@ -675,6 +794,28 @@ io.on('connection', (socket: Socket) => {
             stopBackendSequence();
         }
     });
+
+    // --- Timer Handlers ---
+    socket.on('setTimer', (data: { durationMs: number }) => {
+        console.log(`[Socket.IO] Received setTimer: ${data.durationMs}ms from ${socket.id}.`);
+        if (currentAppMode === 'timer') {
+            setBackendTimer(data.durationMs);
+        }
+    });
+    socket.on('startTimer', () => {
+        console.log(`[Socket.IO] Received startTimer from ${socket.id}.`);
+        if (currentAppMode === 'timer') {
+            startBackendTimer();
+        }
+    });
+    socket.on('stopTimer', () => {
+        console.log(`[Socket.IO] Received stopTimer from ${socket.id}.`);
+        if (currentAppMode === 'timer') {
+            stopBackendTimer();
+        }
+    });
+    // --- End Timer Handlers ---
+
 
     socket.on('startTrainUpdates', (data: { fromCRS: string; toCRS?: string }) => {
         console.log(`[Socket.IO] Received startTrainUpdates: ${data.fromCRS} -> ${data.toCRS || 'any'} from ${socket.id}`);
