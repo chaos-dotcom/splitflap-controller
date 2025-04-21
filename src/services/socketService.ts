@@ -85,10 +85,14 @@ export const socketService = {
         console.log(`[Socket.IO] Connecting to backend at ${BACKEND_URL}...`);
 
         // --- REMOVE RECONNECTION OPTIONS TEMPORARILY ---
-        socket = io(BACKEND_URL /*, {
+        // --- ADD WEBSOCKET TRANSPORT OPTION ---
+        socket = io(BACKEND_URL, {
+             transports: ['websocket'] // Force WebSocket transport
+        } /*, { // Keep reconnection options commented out for now
             reconnectionAttempts: 5,
             reconnectionDelay: 3000,
         } */);
+        // --- END ADDITION ---
         // --- END REMOVAL ---
 
 
