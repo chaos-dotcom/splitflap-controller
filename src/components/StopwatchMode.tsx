@@ -23,8 +23,8 @@ const formatStopwatchTime = (timeMs: number): string => {
     const hh = hours.toString().padStart(2, '0');
     const mm = minutes.toString().padStart(2, '0');
     const ss = seconds.toString().padStart(2, '0');
-    // Format: " HHcHMcSS " (12 chars) - 1 space left, 1 space right for 10 chars
-    const formatted = ` ${hh}${separatorColor1}${mm}${separatorColor2}${ss} `;
+    // Format: "  HHcHMcSS  " (12 chars) - 2 spaces left, 2 spaces right for 8 chars
+    const formatted = `  ${hh}${separatorColor1}${mm}${separatorColor2}${ss}  `;
 
     // Ensure exactly DISPLAY_LENGTH
     return formatted.padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
