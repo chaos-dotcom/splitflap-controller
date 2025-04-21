@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd'; // Import dnd components
 import { Scene, SceneLine } from '../types';
 import { DISPLAY_LENGTH } from '../constants';
 import './SequenceMode.css';
 import SplitFlapDisplay from './SplitFlapDisplay'; // Import the display component
-import InteractiveTextInput from './InteractiveTextInput'; // Import the new component
+import InteractiveTextInput from './InteractiveTextInput';
 
 interface SequenceModeProps {
     isConnected: boolean;
@@ -100,6 +101,25 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
         setEditingLineId(null); // Stop editing when Enter is pressed
     };
     // --- End In-place Editing Handlers ---
+
+    // --- Drag and Drop Handler ---
+    const handleDragEnd = (result: DropResult) => {
+        const { source, destination } = result;
+
+        // Dropped outside the list or in the same position
+        if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) {
+            return;
+        }
+
+        // Reorder the lines
+        const linesCopy = Array.from(currentLines);
+        const [removed] = linesCopy.splice(source.index, 1); // Remove item from source
+        linesCopy.splice(destination.index, 0, removed); // Insert item at destination
+
+        setCurrentLines(linesCopy);
+        setEditingLineId(null); // Stop editing after reorder
+    };
+    // --- End Drag and Drop Handler ---
 
 
     const handleSaveScene = () => {
@@ -224,13 +244,35 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
                         disabled={isPlaying}
                     />
                 </div>
-                <ul className="line-list">
-                    {currentLines.map((line, index) => (
-                        <li key={line.id} className={editingLineId === line.id ? 'editing' : ''}>
-                            <span className="line-number">{index + 1}:</span>
-                            {/* Conditionally render Display or Input */}
-                            {editingLineId === line.id ? (
-                                <InteractiveTextInput
+                {/* Wrap list in DragDropContext and Droppable */}
+                <DragDropContext onDragEnd={handleDragEnd}>
+                    <Droppable droppableId="sequenceLines">
+                        {(provided) => (
+                            <ul
+                                className="line-list"
+                                {...provided.droppableProps}
+                                ref={provided.innerRef}
+                            >
+                                {currentLines.map((line, index) => (
+                                    <Draggable key={line.id} draggableId={line.id} index={index} isDragDisabled={isPlaying || !!editingLineId}>
+                                        {(providedDraggable) => (
+                                            <li
+                                                ref={providedDraggable.innerRef}
+                                                {...providedDraggable.draggableProps}
+                                                // Do not spread dragHandleProps here if using a specific handle
+                                                className={editingLineId === line.id ? 'editing' : ''}
+                                            >
+                                                {/* Drag Handle */}
+                                                <span
+                                                    className="drag-handle"
+                                                    {...providedDraggable.dragHandleProps} // Attach handle props here
+                                                    title="Drag to reorder"
+                                                >
+                                                    {index + 1}:
+                                                </span>
+                                                {/* Conditionally render Display or Input */}
+                                                {editingLineId === line.id ? (
+                                                    <InteractiveTextInput
                                     value={line.text}
                                     onChange={(newText) => handleLineTextChange(line.id, newText)}
                                     onEnter={handleLineEnter}
@@ -248,25 +290,41 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
                                         isInteractive={false}
                                         isConnected={false} // Not relevant for static display
                                         caretPosition={-1} // Not relevant
-                                    />
-                                </div>
-                            )}
-                            <input
-                                type="number"
-                                className="line-duration-input"
-                                value={line.durationMs ?? 1000} // Use default if undefined
-                                onChange={(e) => handleDurationChange(line.id, parseInt(e.target.value, 10))}
-                                min="100"
-                                step="100"
-                                disabled={isPlaying}
-                                title="Line display duration (ms)"
-                            />
-                            <span className="duration-unit">ms</span>
-                            <button className="delete-line-btn" onClick={() => handleDeleteLine(line.id)} disabled={isPlaying} title="Delete Line">×</button>
-                        </li>
-                    ))}
-                     {currentLines.length === 0 && <li className="no-lines">Add lines to create a scene.</li>}
-                </ul>
+                                                    />
+                                                ) : (
+                                                    <div className="line-display-clickable" onClick={() => handleLineClick(line.id)} title="Click to edit text">
+                                                        {/* Pass minimal props for static display */}
+                                                        <SplitFlapDisplay
+                                                            size="small"
+                                                            text={line.text}
+                                                            isInteractive={false}
+                                                            isConnected={false} // Not relevant for static display
+                                                            caretPosition={-1} // Not relevant
+                                                        />
+                                                    </div>
+                                                )}
+                                                <input
+                                                    type="number"
+                                                    className="line-duration-input"
+                                                    value={line.durationMs ?? 1000} // Use default if undefined
+                                                    onChange={(e) => handleDurationChange(line.id, parseInt(e.target.value, 10))}
+                                                    min="100"
+                                                    step="100"
+                                                    disabled={isPlaying || !!editingLineId} // Disable if editing text too
+                                                    title="Line display duration (ms)"
+                                                />
+                                                <span className="duration-unit">ms</span>
+                                                <button className="delete-line-btn" onClick={() => handleDeleteLine(line.id)} disabled={isPlaying || !!editingLineId} title="Delete Line">×</button>
+                                            </li>
+                                        )}
+                                    </Draggable>
+                                ))}
+                                {provided.placeholder} {/* Important for dnd */}
+                                {currentLines.length === 0 && <li className="no-lines">Add lines to create a scene.</li>}
+                            </ul>
+                        )}
+                    </Droppable>
+                </DragDropContext>
             </div>
             {/* Play/Stop Controls */}
             <div className="scene-controls">
