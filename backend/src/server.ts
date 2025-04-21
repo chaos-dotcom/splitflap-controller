@@ -25,7 +25,7 @@ const NRE_LDBWS_ENDPOINT = 'https://lite.realtime.nationalrail.co.uk/OpenLDBWS/l
 // Namespaces needed for the SOAP request
 const SOAP_ENV_NS = 'http://schemas.xmlsoap.org/soap/envelope/';
 const TOKEN_TYPES_NS = 'http://thalesgroup.com/RTTI/2013-11-28/Token/types';
-const LDB_NS = 'http://thalesgroup.com/RTTI/2017-10-01/ldb/'; // Use a recent LDB namespace version
+const LDB_NS = 'http://thalesgroup.com/RTTI/2015-11-27/ldb/'; // Try an older, common LDB namespace version
 
 // Enable CORS for all origins (adjust for production later)
 app.use(cors());
