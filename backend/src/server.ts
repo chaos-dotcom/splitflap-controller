@@ -735,10 +735,7 @@ const publishHaDiscoveryConfig = () => {
         manufacturer: "Split-Flap Controller Backend",
         model: "Software Controller v1.0",
         sw_version: "1.0.0", // Example version
-        // Add availability topic for the device itself
-        availability_topic: HA_AVAILABILITY_TOPIC,
-        payload_available: "online",
-        payload_not_available: "offline",
+        // Availability is defined at the entity level, not needed here
     };
 
     // Define origin info (recommended for discovery)
@@ -752,6 +749,7 @@ const publishHaDiscoveryConfig = () => {
     const configPayload = {
         name: HA_MODE_SELECTOR_NAME, // Name shown in HA UI
         unique_id: HA_MODE_SELECTOR_ID, // Unique ID for this entity
+        object_id: HA_MODE_SELECTOR_ID, // Add object_id, often same as unique_id
         device: devicePayload, // Link to the device
         state_topic: haModeStateTopic, // Topic to read the current mode from
         command_topic: haModeCommandTopic, // Topic to send mode change commands to
