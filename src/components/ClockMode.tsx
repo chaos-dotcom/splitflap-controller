@@ -25,8 +25,8 @@ const formatTime = (date: Date): string => {
     const hourStr = hour.toString().padStart(2, '0'); // Pad with ZERO for single digit hours
     const minuteStr = minute.toString().padStart(2, '0'); // Pad minutes with zero like %M
 
-    // Format: 'DDD HHMM AP ' (12 chars total)
-    const formatted = `${weekday} ${hourStr}${minuteStr} ${ampm} `;
+    // Format: 'DDD HHMM  AP' (12 chars total) - Two spaces before AM/PM
+    const formatted = `${weekday} ${hourStr}${minuteStr}  ${ampm}`;
 
     // Ensure uppercase and exactly DISPLAY_LENGTH
     return formatted.toUpperCase().padEnd(DISPLAY_LENGTH).substring(0, DISPLAY_LENGTH);
