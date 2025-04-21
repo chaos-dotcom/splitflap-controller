@@ -40,11 +40,21 @@
 /* Remove custom input styles */
 
 
+/* Panel for Line List */
+.sequence-lines-panel {
+    background-color: var(--govuk-colour-white);
+    padding: var(--govuk-spacing-4); /* GDS padding inside the panel */
+    border: 1px solid var(--govuk-border-colour);
+    border-radius: 3px;
+    box-shadow: var(--govuk-shadow-1);
+    margin-top: var(--govuk-gutter); /* Space above the panel */
+}
+
 /* Line List Styling */
 .line-list {
   list-style: none;
   padding: 0;
-  margin: var(--govuk-gutter) 0 0 0; /* GDS spacing */
+  margin: 0; /* Remove margin, padding is handled by panel */
   /* Remove max-height/overflow or adjust as needed */
   /* max-height: 200px; */
   /* overflow-y: auto; */

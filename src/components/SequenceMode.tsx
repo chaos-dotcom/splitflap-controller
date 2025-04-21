@@ -448,10 +448,42 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onPlay, onStop
                     {/* Add button is implicit via Enter key in InteractiveTextInput */}
                 </div>
 
-                {/* dnd-kit List */}
-                <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
+                {/* Panel Wrapper for the Line List */}
+                <div className="sequence-lines-panel">
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <SortableContext
+                            items={currentLines} // Pass array of items with unique 'id'
+                            strategy={verticalListSortingStrategy}
+                        >
+                            <ul className="line-list">
+                                {currentLines.map((line) => (
+                                    // Render the separate SortableLineItem component
+                                    <SortableLineItem
+                                        key={line.id}
+                                        line={line}
+                                        isPlaying={isPlaying}
+                                        editingLineId={editingLineId}
+                                        handleLineClick={handleLineClick}
+                                        handleLineTextChange={handleLineTextChange}
+                                        handleLineEnter={handleFinishEditing} // Pass combined handler
+                                        handleLineBlur={handleFinishEditing} // Pass combined handler
+                                        handleDurationChange={handleDurationChange}
+                                        handleDeleteLine={handleDeleteLine}
+                                        handleDuplicateLine={handleDuplicateLine} // Pass duplicate handler
+                                    />
+                                ))}
+                                {currentLines.length === 0 && <li className="no-lines">Add lines to create a scene.</li>}
+                            </ul>
+                        </SortableContext>
+                    </DndContext>
+                </div>
+            </div>
+            {/* Play/Stop Controls - GDS Style */}
+            <div className="scene-controls govuk-button-group govuk-!-margin-top-6">
                     onDragEnd={handleDragEnd}
                 >
                     <SortableContext
