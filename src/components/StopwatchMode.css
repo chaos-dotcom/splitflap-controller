@@ -1,0 +1,76 @@
+/* src/components/StopwatchMode.css */
+.stopwatch-mode {
+  border: 1px solid #a0aec0; /* Gray border */
+  padding: 15px;
+  margin-top: 15px;
+  border-radius: 5px;
+  background-color: #f7fafc; /* Light gray background */
+  text-align: center;
+}
+
+.stopwatch-mode h4 {
+  margin-top: 0;
+  color: #2d3748; /* Dark gray */
+  background-color: #e2e8f0; /* Medium gray background for handle */
+  padding: 8px;
+  margin-bottom: 15px;
+  cursor: move; /* Ensure handle cursor */
+  user-select: none;
+}
+
+.stopwatch-display {
+    margin-bottom: 15px;
+}
+
+.stopwatch-display code {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 1.8em; /* Larger display for stopwatch time */
+    background-color: #edf2f7;
+    padding: 8px 15px;
+    border-radius: 4px;
+    display: inline-block;
+    letter-spacing: 0.1em;
+    color: #1a202c; /* Very dark gray */
+}
+
+.stopwatch-controls button {
+  padding: 10px 20px;
+  margin: 0 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+}
+
+.stopwatch-controls button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.stopwatch-controls button:first-of-type:not(:disabled) { /* Start/Stop button */
+    background-color: #48bb78; /* Green */
+    color: white;
+}
+.stopwatch-controls button:first-of-type:not(:disabled):active {
+    background-color: #38a169;
+}
+/* Style specifically for Stop state if needed */
+.stopwatch-mode button:first-of-type:contains("Stop") { /* Might need JS class toggle instead */
+    /* background-color: #f56565; */ /* Red for stop */
+}
+
+
+.stopwatch-controls button:last-of-type:not(:disabled) { /* Reset button */
+    background-color: #f7fafc;
+    color: #4a5568;
+}
+.stopwatch-controls button:last-of-type:not(:disabled):active {
+    background-color: #e2e8f0;
+}
+
+
+.stopwatch-mode .connection-warning {
+    color: #718096; /* Muted gray for info */
+    font-size: 0.9em;
+    margin-top: 15px;
+}

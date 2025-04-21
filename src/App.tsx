@@ -5,6 +5,7 @@ import SettingsPanel from './components/SettingsPanel';
 import TrainTimetableMode from './components/TrainTimetableMode'; // Import placeholder
 import SequenceMode from './components/SequenceMode'; // Import SequenceMode
 import ClockMode from './components/ClockMode'; // Import ClockMode
+import StopwatchMode from './components/StopwatchMode'; // Import StopwatchMode
 import { DISPLAY_LENGTH, ALLOWED_CHARS } from './constants'; // Import ALLOWED_CHARS
 import { mqttService } from './services/mqttService';
 import { ControlMode, MqttSettings } from './types'; // Import types
@@ -233,6 +234,7 @@ function App() {
           <button onClick={() => setCurrentMode('train')} disabled={currentMode === 'train'}>Train Timetable Mode</button>
           <button onClick={() => setCurrentMode('sequence')} disabled={currentMode === 'sequence'}>Sequence Mode</button>
           <button onClick={() => setCurrentMode('clock')} disabled={currentMode === 'clock'}>Clock Mode</button>
+          <button onClick={() => setCurrentMode('stopwatch')} disabled={currentMode === 'stopwatch'}>Stopwatch Mode</button>
       </div>
 
       {/* Mode Specific Controls */}
@@ -246,6 +248,9 @@ function App() {
           )}
           {currentMode === 'clock' && (
              <ClockMode isConnected={isConnected} onSendMessage={publishMessage} isActive={currentMode === 'clock'} />
+          )}
+          {currentMode === 'stopwatch' && (
+             <StopwatchMode isConnected={isConnected} onSendMessage={publishMessage} isActive={currentMode === 'stopwatch'} />
           )}
           {/* Add other mode components here later */}
       </div>
