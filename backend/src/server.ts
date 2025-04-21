@@ -398,6 +398,7 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
         return;
     }
     console.log(`[Train Polling] Fetching for route: ${route.fromCRS} -> ${route.toCRS || 'any'}`);
+    let concatenatedTimes = ""; // Declare outside the try block
     // Use the existing /api/departures logic (could be refactored later)
     try {
         // Simulate calling our own API endpoint internally for now
@@ -409,7 +410,7 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
         console.log(`[Train Polling] Fetched ${lastFetchedDepartures.length} departures.`);
 
         // --- Calculate Concatenated Time String ---
-        let concatenatedTimes = "";
+        // concatenatedTimes declared above
         let previousHour: number | null = null;
         for (const dep of lastFetchedDepartures) {
             const displayTimeStr = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
@@ -431,12 +432,10 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
             if ((concatenatedTimes + timePart).length <= SPLITFLAP_DISPLAY_LENGTH) {
                 concatenatedTimes += timePart;
             } else {
+                // This 'else' block was misplaced and caused syntax errors
                 break; // Stop adding times if it exceeds display length
             }
-           } else {
-               break; // Stop adding times if it exceeds display length
-           }
-       }
+        }
        // --- End Calculation ---
 
        const finalPaddedString = concatenatedTimes.padEnd(SPLITFLAP_DISPLAY_LENGTH);
