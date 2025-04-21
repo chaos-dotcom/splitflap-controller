@@ -320,6 +320,22 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                </button>
             </div>
 
+            {/* Preset Management */}
+            <div className="preset-management">
+                <select id="presetSelector" onChange={handleSelectPreset} disabled={isLoading}>
+                    <option value="">-- Select Preset --</option>
+                    {savedPresets.map(preset => (
+                        <option key={preset.name} value={preset.name}>{preset.name}</option>
+                    ))}
+                </select>
+                <button onClick={handleSavePreset} disabled={!isConnected || !fromStation || fromStation.length !== 3 || isLoading} title="Save current From/To as a preset">
+                    💾 Save Preset
+                </button>
+                <button onClick={handleDeletePreset} disabled={!isConnected || isLoading} title="Delete selected preset">
+                    🗑️ Delete Preset
+                </button>
+            </div>
+
             {/* Button to send selected times sequence */}
             {departures.length > 0 && (
                 <div className="sequence-send-controls">
