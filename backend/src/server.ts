@@ -359,7 +359,9 @@ const resetBackendStopwatch = () => {
     io.emit('stopwatchUpdate', { elapsedTime: 0, isRunning: false }); // Broadcast reset state
 };
 
-// Helper to get hour and minute from a departure time string (HH:MM) - Moved from TrainTimetableMode
+// --- Train Mode Logic ---
+
+// Helper to get hour and minute from a departure time string (HH:MM)
 const getHourMinute = (timeString: string | undefined): { hour: number | null, minute: number | null } => {
     if (!timeString || !/^\d{2}:\d{2}$/.test(timeString)) {
         return { hour: null, minute: null };
@@ -368,7 +370,38 @@ const getHourMinute = (timeString: string | undefined): { hour: number | null, m
     return { hour: parseInt(parts[0], 10), minute: parseInt(parts[1], 10) };
 };
 
-// --- Train Mode Logic ---
+// Function to calculate the condensed display string for a single departure (Not used for polling display, but useful elsewhere)
+const formatSingleDepartureForDisplay = (dep: Departure, prevDep: Departure | null): string => {
+    const displayTimeStr = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
+        ? dep.estimatedTime : dep.scheduledTime;
+    const { hour: currentHour, minute: currentMinute } = getHourMinute(displayTimeStr);
+
+    const prevDisplayTimeStr = prevDep ? ((prevDep.estimatedTime && prevDep.estimatedTime !== 'On time' && prevDep.estimatedTime !== 'Delayed' && prevDep.estimatedTime !== 'Cancelled') ? prevDep.estimatedTime : prevDep.scheduledTime) : null;
+    const { hour: previousHour } = prevDisplayTimeStr ? getHourMinute(prevDisplayTimeStr) : { hour: null };
+    const prevWasSpecialStatus = prevDep && (prevDep.status.toUpperCase() === 'CANCELLED' || (prevDep.status.toUpperCase() === 'DELAYED' && !prevDep.estimatedTime));
+
+    let timePart: string;
+    if (dep.status.toUpperCase() === 'CANCELLED') timePart = 'CANC';
+    else if (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime) timePart = 'DLAY';
+    else if (currentHour !== null && currentMinute !== null) {
+        const minuteStr = currentMinute.toString().padStart(2, '0');
+        if (currentHour === previousHour && !prevWasSpecialStatus) timePart = `  ${minuteStr}`;
+        else timePart = currentHour.toString().padStart(2, '0') + minuteStr;
+    } else timePart = '----';
+
+    let output: string;
+    if (timePart === 'CANC') output = 'CANCELLED   ';
+    else if (timePart === 'DLAY') output = 'DELAYED     ';
+    else {
+        const plat = dep.platform ? dep.platform.slice(-1) : ' ';
+        const maxDestLength = 7;
+        let dest = dep.destination.toUpperCase().substring(0, maxDestLength - plat.length);
+        dest = dest.padEnd(maxDestLength - plat.length);
+        output = `${timePart} ${dest}${plat}`;
+    }
+    return output.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH);
+};
+
 const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: string }) => {
     if (!route || !route.fromCRS) {
         console.warn('[Train Polling] Attempted fetch without a valid route.');
@@ -451,6 +484,7 @@ const stopTrainPolling = () => {
         trainPollingInterval = null;
     }
     // Don't reset currentTrainRoute here, keep it so we can resume if user switches back
+    // Don't reset currentTrainRoute here, keep it so we can resume if user switches back
     // currentTrainRoute = null;
 };
 
@@ -464,7 +498,7 @@ const playNextSequenceLine = () => {
         stopAllTimedModes(); // Clears timeout and sets isSequencePlaying = false
         io.emit('sequenceStopped'); // Inform clients
         // Optionally clear display or leave last line?
-        // updateDisplayAndBroadcast(' '.repeat(DISPLAY_LENGTH));
+        // updateDisplayAndBroadcast(' '.repeat(SPLITFLAP_DISPLAY_LENGTH)); // Use constant
         return;
     }
 
@@ -502,6 +536,7 @@ const stopBackendSequence = () => {
     if (!isSequencePlaying) return;
     console.log('[Sequence] Stopping sequence playback.');
     stopAllTimedModes(); // Clears timeout and sets isSequencePlaying = false
+    // isSequencePlaying = false; // stopAllTimedModes should handle this
     io.emit('sequenceStopped'); // Inform clients
 };
 
@@ -519,7 +554,7 @@ io.on('connection', (socket: Socket) => {
             isRunning: isStopwatchRunning, // Send current running status
         },
         sequence: {
-            isPlaying: isSequencePlaying, // Send sequence playing status
+            isPlaying: isSequencePlaying,
             // Optionally send current line index or scene name if needed
         },
         train: { // Send initial train state
@@ -549,7 +584,7 @@ io.on('connection', (socket: Socket) => {
                 startBackendClock(); // Start the clock interval
             } else if (mode === 'train') {
                 // Send last known departure data when switching TO train mode
-                if (currentTrainRoute) { // If a route was previously active, refresh its display
+                if (currentTrainRoute) { // If a route was previously active, fetch and update display
                     fetchAndProcessDepartures(currentTrainRoute); // This will update display and emit trainDataUpdate
                 } else { // Otherwise send last known display text or blank
                     updateDisplayAndBroadcast(currentDisplayText); // Send current text (might be from another mode)

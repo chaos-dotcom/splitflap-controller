@@ -22,6 +22,16 @@ export interface Scene {
     // delayMs is removed, now part of SceneLine
 }
 
+// --- Add or Ensure Departure is Exported ---
+// Define the structure for departure data (matching frontend/backend)
+export interface Departure {
+  id: string; // Unique identifier for the service
+  scheduledTime: string; // e.g., "10:30"
+  destination: string; // Destination name
+  platform?: string; // Platform number (optional)
+  status: string; // e.g., "On time", "Delayed", "Cancelled"
+  estimatedTime?: string; // Estimated time if not on time (e.g., "10:42")
+}
 // Interface for saved train route presets
 export interface TrainRoutePreset {
     name: string; // User-defined name (e.g., "Home to Work")
