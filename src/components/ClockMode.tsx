@@ -25,8 +25,8 @@ const formatTime = (date: Date): string => {
 
     const hourStr = hour.toString().padStart(2, '0'); // Pad with ZERO for single digit hours
     const minuteStr = minute.toString().padStart(2, '0');
-    // Get separator color based on the second (changes every second)
-    const separatorColor = SEPARATOR_COLORS[second % SEPARATOR_COLORS.length];
+    // Get separator color based on the minute (changes every minute)
+    const separatorColor = SEPARATOR_COLORS[minute % SEPARATOR_COLORS.length];
 
     // Format: 'DDD HHcMM AP' (12 chars total) - c is the color separator
     // Example: MON 01r31 AM

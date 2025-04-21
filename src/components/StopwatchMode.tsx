@@ -13,8 +13,8 @@ const formatStopwatchTime = (timeMs: number, includeTenths: boolean): string => 
     const totalSeconds = Math.floor(timeMs / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    // Get separator color based on the current second of the stopwatch
-    const separatorColor = SEPARATOR_COLORS[seconds % SEPARATOR_COLORS.length];
+    // Get separator color based on the current minute of the stopwatch
+    const separatorColor = SEPARATOR_COLORS[minutes % SEPARATOR_COLORS.length];
 
     const mm = minutes.toString().padStart(2, '0');
     const ss = seconds.toString().padStart(2, '0');
