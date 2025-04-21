@@ -1,5 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
-// Removed react-beautiful-dnd imports
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Scene, SceneLine } from '../types';
 import { DISPLAY_LENGTH } from '../constants';
 import './SequenceMode.css';
@@ -22,6 +38,12 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [editingLineId, setEditingLineId] = useState<string | null>(null); // State to track which line is being edited
     const timeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref to store timeout ID
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     // Load saved scenes from localStorage on mount
     useEffect(() => {
@@ -192,6 +214,90 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
         setIsPlaying(false);
     };
 
+    // --- Drag and Drop Handler ---
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id) {
+            setCurrentLines((items) => {
+                const oldIndex = items.findIndex(item => item.id === active.id);
+                const newIndex = items.findIndex(item => item.id === over.id);
+                return arrayMove(items, oldIndex, newIndex);
+            });
+            setEditingLineId(null); // Stop editing if item is moved
+        }
+    };
+
+    // --- Sortable Item Component ---
+    const SortableLineItem: React.FC<{ line: SceneLine }> = ({ line }) => {
+        const {
+            attributes,
+            listeners,
+            setNodeRef,
+            transform,
+            transition,
+            isDragging, // Add isDragging state
+        } = useSortable({ id: line.id });
+
+        const style = {
+            transform: CSS.Transform.toString(transform),
+            transition,
+            opacity: isDragging ? 0.5 : 1, // Make item semi-transparent while dragging
+            zIndex: isDragging ? 1 : 'auto', // Ensure dragging item is on top
+            // Add a class for dragging state if needed for more complex styling
+        };
+
+        return (
+            <li
+                ref={setNodeRef}
+                style={style}
+                key={line.id} // Keep React key
+                className={`${editingLineId === line.id ? 'editing' : ''} ${isDragging ? 'dragging' : ''}`} // Add dragging class
+            >
+                {/* Drag Handle */}
+                <span
+                    className="drag-handle"
+                    title="Drag to reorder"
+                    {...attributes} // Spread dnd attributes here
+                    {...listeners} // Spread dnd listeners here
+                >
+                    ⠿ {/* Use a drag handle icon (or text like '::') */}
+                </span>
+                {/* Conditionally render Display or Input */}
+                {editingLineId === line.id ? (
+                    <InteractiveTextInput
+                        value={line.text}
+                        onChange={(newText) => handleLineTextChange(line.id, newText)}
+                        onEnter={handleLineEnter}
+                        onBlur={handleLineBlur} // Stop editing on blur
+                        maxLength={DISPLAY_LENGTH}
+                        disabled={isPlaying}
+                        autoFocus // Focus when the input appears
+                    />
+                ) : (
+                    <div className="line-display-clickable" onClick={() => handleLineClick(line.id)} title="Click to edit text">
+                        <SplitFlapDisplay
+                            size="small"
+                            text={line.text}
+                        />
+                    </div>
+                )}
+                <input
+                    type="number"
+                    className="line-duration-input"
+                    value={line.durationMs ?? 1000} // Use default if undefined
+                    onChange={(e) => handleDurationChange(line.id, parseInt(e.target.value, 10))}
+                    min="100"
+                    step="100"
+                    disabled={isPlaying || !!editingLineId} // Disable if editing text too
+                    title="Line display duration (ms)"
+                />
+                <span className="duration-unit">ms</span>
+                <button className="delete-line-btn" onClick={() => handleDeleteLine(line.id)} disabled={isPlaying || !!editingLineId} title="Delete Line">×</button>
+            </li>
+        );
+    };
+
 
     return (
         <div className="sequence-mode">
@@ -229,20 +335,59 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onSendMessage 
                 </div>
                  {/* List container - dnd-kit context will wrap this */}
                  <ul className="line-list">
-                     {currentLines.map((line, index) => (
+                 {/* List container - Wrap with DndContext and SortableContext */}
+                 <DndContext
+                     sensors={sensors}
+                     collisionDetection={closestCenter}
+                     onDragEnd={handleDragEnd}
+                 >
+                     <SortableContext
+                         items={currentLines} // Pass the array of items with unique 'id' properties
+                         strategy={verticalListSortingStrategy}
+                     >
+                         <ul className="line-list">
+                             {currentLines.map((line) => (
+                                 // Use the SortableLineItem component
+                                 <SortableLineItem key={line.id} line={line} />
+                             ))}
+                             {/* Placeholder for empty list remains */}
+                             {currentLines.length === 0 && <li className="no-lines">Add lines to create a scene.</li>}
+                         </ul>
+                     </SortableContext>
+                 </DndContext>
+                 {/* Removed old list rendering logic */}
+             </div>
+             {/* Play/Stop Controls */}
+             <div className="scene-controls">
+                 <button onClick={handlePlayScene} disabled={!isConnected || isPlaying || currentLines.length === 0}>
+                     ▶️ Play Scene
+                 </button>
+                  <button onClick={handleStopScene} disabled={!isPlaying} className="stop-button">
+                     ⏹️ Stop
+                 </button>
+            </div>
+             {!isConnected && <p className="connection-warning">Connect to MQTT to play scenes.</p>}
+        </div>
+    );
+};
+
+export default SequenceMode;
+
+/* --- Old list rendering logic (removed) ---
+ {currentLines.map((line, index) => (
                          // List item - will be made draggable by dnd-kit
                          <li
                              key={line.id} // Keep React key
                              className={editingLineId === line.id ? 'editing' : ''}
                          >
-                             {/* Drag Handle - dnd-kit will attach listeners here */}
+                             {/* Drag Handle - dnd-kit will attach listeners here * /}
                              <span
                                  className="drag-handle"
                                  title="Drag to reorder"
                              >
                                  {index + 1}:
                              </span>
-                             {/* Conditionally render Display or Input */}
+                             {/* Conditionally render Display or Input * /}
                              {editingLineId === line.id ? (
                                  <InteractiveTextInput
                                      value={line.text}

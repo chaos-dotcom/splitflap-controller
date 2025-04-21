@@ -90,18 +90,27 @@
 }
 
 /* Updated from .line-number to .drag-handle */
+/* Style for the drag handle */
 .line-list li .drag-handle {
     min-width: 25px;
     color: #666;
-    font-size: 0.9em;
+    font-size: 1.2em; /* Make handle slightly larger */
     cursor: grab; /* Indicate draggable handle */
     display: inline-flex; /* Align icon/text if needed */
     align-items: center;
+    justify-content: center; /* Center the handle icon */
     padding-right: 5px; /* Space between handle and display/input */
     user-select: none; /* Prevent text selection */
 }
 .line-list li .drag-handle:active {
     cursor: grabbing;
+}
+
+/* Style for the list item while it's being dragged */
+.line-list li.dragging {
+    opacity: 0.5;
+    background-color: #d0e0f0; /* Optional: change background while dragging */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Add a shadow */
 }
 
 /* Ensure the small display takes up appropriate space */
