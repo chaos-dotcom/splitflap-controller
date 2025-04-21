@@ -107,9 +107,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
             setDepartures([]);
             return;
         }
-        // Update state visually immediately if called from preset selection
-        setFromStation(fetchFromCRS);
-        setToStation(fetchToCRS || '');
+        // Removed state updates from here, handled by inputs/presets
 
         setIsLoading(true);
         setError(null);
@@ -232,13 +230,17 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
         const selectedName = event.target.value;
         const selectedPreset = savedPresets.find(p => p.name === selectedName);
         if (selectedPreset) {
-            // Call fetchDepartures directly with the preset's values
-            fetchDepartures(selectedPreset.fromCRS, selectedPreset.toCRS);
+            // ONLY update the state fields, do not fetch automatically
+            setFromStation(selectedPreset.fromCRS);
+            setToStation(selectedPreset.toCRS || '');
+            setDepartures([]); // Clear previous results when selecting a preset
+            setError(null); // Clear previous errors
         } else {
-            // Handle "-- Select Preset --" selection if needed (e.g., clear inputs)
-            // setFromStation('');
-            // setToStation('');
-            // setDepartures([]);
+            // Clear inputs and results if "-- Select Preset --" is chosen
+            setFromStation('');
+            setToStation('');
+            setDepartures([]);
+            setError(null);
         }
     };
 
@@ -315,8 +317,8 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
 
             <div className="departures-list">
                 <h5>Departures</h5>
-                {isLoading && departures.length === 0 && <p>Loading departures...</p>}
-                {!isLoading && !error && departures.length === 0 && fromStation && <p>No departures found for {fromStation}{toStation ? ` to ${toStation}` : ''}.</p>}
+                {isLoading && <p>Loading departures...</p>}
+                {!isLoading && !error && departures.length === 0 && fromStation && !isLoading && <p>No departures found for {fromStation}{toStation ? ` to ${toStation}` : ''}.</p>} {/* Added !isLoading check */}
                 {!isLoading && !error && departures.length === 0 && !fromStation && <p>Enter a 'From' station code and click Refresh.</p>}
 
                 {departures.length > 0 && (
