@@ -28,10 +28,11 @@ interface TrainTimetableModeProps {
 const POLLING_INTERVAL_MS = 60000; // Poll every 60 seconds
 const PRESET_STORAGE_KEY = 'trainTimetablePresets';
 
-const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, isActive, onSendMessage }) => { // Add isActive to destructuring
+const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, onSendMessage, onStartUpdates, departures }) => { // Add onStartUpdates to destructuring
     const [fromStation, setFromStation] = useState<string>('TON'); // e.g., KGX
     const [toStation, setToStation] = useState<string>('');   // e.g., EDB (optional)
-    const [departures, setDepartures] = useState<Departure[]>([]);
+    // Removed internal departures state, now comes from props
+    // const [departures, setDepartures] = useState<Departure[]>([]);
     const [selectedDepartureIds, setSelectedDepartureIds] = useState<Set<string>>(new Set()); // State for selected rows
     const [savedPresets, setSavedPresets] = useState<TrainRoutePreset[]>([]); // State for presets
     const [isLoading, setIsLoading] = useState<boolean>(false); // Keep loading state for manual refresh
