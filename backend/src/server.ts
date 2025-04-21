@@ -566,11 +566,11 @@ io.on('connection', (socket: Socket) => {
             departures: lastFetchedDepartures,
         }
         });
-        console.log(`[Socket.IO] Emitted initialState for ${socket.id}.`);
+        console.log(`[Socket.IO] Successfully emitted initialState for ${socket.id}.`); // <-- ADD THIS LOG
 
         console.log(`[Socket.IO] Emitting mqttStatus for ${socket.id}...`);
         socket.emit('mqttStatus', mqttClient.getDisplayConnectionStatus()); // Send MQTT status
-        console.log(`[Socket.IO] Emitted mqttStatus for ${socket.id}.`);
+        console.log(`[Socket.IO] Successfully emitted mqttStatus for ${socket.id}.`); // <-- ADD THIS LOG
 
     } catch (error) { // Add catch block
         console.error(`[Socket.IO] Error emitting initial state or status for ${socket.id}:`, error);
