@@ -458,13 +458,16 @@ io.on('connection', (socket: Socket) => {
 
     socket.on('setText', (data: { text: string }) => {
         console.log(`[Socket.IO] Received setText: "${data.text}" from ${socket.id}`);
-        if (currentAppMode === 'text') { // Only allow direct text setting in text mode
+        // Allow setText from any mode if initiated by user action (like Send button in Train mode)
+        // But ensure it stops any automatic backend timers.
+        // if (currentAppMode === 'text') { // Remove strict mode check
             stopAllTimedModes(); // Stop other modes if text is set manually
             updateDisplayAndBroadcast(data.text);
-        } else {
-            console.warn(`[Socket.IO] setText ignored: Mode is ${currentAppMode}`);
-            socket.emit('error', { message: `Cannot set text directly while in ${currentAppMode} mode.` }); // Inform client
-        }
+        // } else {
+        //     console.warn(`[Socket.IO] setText received but mode is ${currentAppMode}. Allowing, but stopping timers.`);
+        //     // Optionally inform client, but maybe not necessary if it's an expected action like 'Send'
+        //     // socket.emit('error', { message: `Cannot set text directly while in ${currentAppMode} mode.` });
+        // }
     });
 
     // --- Implement Clock/Stopwatch/Sequence Handlers ---

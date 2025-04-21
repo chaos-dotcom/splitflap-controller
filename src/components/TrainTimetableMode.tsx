@@ -16,13 +16,14 @@ interface Departure {
 // Define the props for the component
 interface TrainTimetableModeProps {
     isConnected: boolean;
+    isActive: boolean; // Add isActive back to control polling
     onSendMessage: (message: string) => void; // For sending single lines
-    // onPlayScene prop removed
 }
 
+const POLLING_INTERVAL_MS = 60000; // Poll every 60 seconds
 const PRESET_STORAGE_KEY = 'trainTimetablePresets';
 
-const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, onSendMessage }) => {
+const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, isActive, onSendMessage }) => { // Add isActive to destructuring
     const [fromStation, setFromStation] = useState<string>('TON'); // e.g., KGX
     const [toStation, setToStation] = useState<string>('');   // e.g., EDB (optional)
     const [departures, setDepartures] = useState<Departure[]>([]);
@@ -30,6 +31,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     const [savedPresets, setSavedPresets] = useState<TrainRoutePreset[]>([]); // State for presets
     const [isLoading, setIsLoading] = useState<boolean>(false); // Keep loading state for manual refresh
     const [error, setError] = useState<string | null>(null);
+    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null); // Ref for polling interval
     // Removed formattedDisplayStrings state
 
     // Helper to get hour and minute from a departure time string (HH:MM)
@@ -53,6 +55,34 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
             }
         }
     }, []); // Empty dependency array ensures this runs only once on mount
+
+    // Effect to handle polling for updates
+    useEffect(() => {
+        // Function to clear existing interval
+        const clearPollingInterval = () => {
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+                console.log('[Train Mode] Polling stopped.');
+            }
+        };
+
+        // Start polling only if mode is active, connected, and a valid station is set
+        if (isActive && isConnected && fromStation && fromStation.length === 3 && !isLoading) {
+            console.log(`[Train Mode] Setting up polling for ${fromStation} every ${POLLING_INTERVAL_MS}ms`);
+            // Clear previous interval before setting a new one
+            clearPollingInterval();
+            pollingIntervalRef.current = setInterval(() => {
+                console.log(`[Train Mode] Polling for updates: ${fromStation}`);
+                fetchDepartures(); // Fetch using current state
+            }, POLLING_INTERVAL_MS);
+        } else {
+            clearPollingInterval(); // Stop polling if conditions aren't met
+        }
+
+        // Cleanup function to clear interval on unmount or when dependencies change
+        return clearPollingInterval;
+    }, [isActive, isConnected, fromStation, toStation, isLoading]); // Dependencies for polling effect
 
     // Placeholder function to simulate fetching data from the backend
     // Now reads directly from state
@@ -344,7 +374,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
             </div>
 
              <p style={{fontSize: '0.8em', color: 'var(--tt-info-text, #666)', marginTop: '15px'}}>
-                Note: This uses mock data from the backend service. The backend needs National Rail Enquiries integration for live data. Click 'Refresh Now' to fetch data.
+                Note: Fetches live data via backend. Auto-refreshes every minute when active.
             </p>
         </div>
     );

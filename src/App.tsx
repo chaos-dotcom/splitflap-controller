@@ -237,7 +237,7 @@ function App() {
       <div className="mode-controls">
           {/* Temporarily render directly without Draggable */}
           {currentMode === 'train' && ( // Pass backend connection status and use handleSendText
-              <TrainTimetableMode isConnected={isConnectedToBackend} onSendMessage={handleSendText} />
+              <TrainTimetableMode isConnected={isConnectedToBackend} isActive={currentMode === 'train'} onSendMessage={handleSendText} />
           )}
           {currentMode === 'sequence' && ( // Pass backend connection status and specific handlers
              <SequenceMode
