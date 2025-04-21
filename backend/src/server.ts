@@ -469,11 +469,12 @@ const startTrainPolling = (route: { fromCRS: string; toCRS?: string }) => {
     fetchAndProcessDepartures(route); // Fetch immediately
     trainPollingInterval = setInterval(() => {
         // Ensure we only poll if still in train mode and route is set
+        console.log(`[Train Polling Interval] Checking conditions. Current Mode: ${currentAppMode}, Route Set: ${!!currentTrainRoute}`); // <-- ADD THIS LOG
         if (currentAppMode === 'train' && currentTrainRoute) {
             fetchAndProcessDepartures(currentTrainRoute);
         } else {
              // This should ideally not happen if stopTrainPolling is called correctly on mode change
-             console.warn('[Train Polling] Interval fired but mode is not train or route is null. Stopping poll.');
+             console.warn(`[Train Polling] Interval fired but conditions not met (Mode: ${currentAppMode}, Route: ${currentTrainRoute ? currentTrainRoute.fromCRS : 'None'}). Stopping poll.`);
              stopTrainPolling();
         }
     }, POLLING_INTERVAL_MS);
