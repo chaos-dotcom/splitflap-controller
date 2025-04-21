@@ -55,42 +55,42 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
         }
         setIsLoading(true);
         setError(null);
-        console.log(`Simulating fetch for departures from ${fromStation} to ${toStation || 'anywhere'}...`);
+        console.log(`Fetching departures from backend: from=${fromStation}, to=${toStation || 'any'}`);
 
-        // --- Replace this block with actual fetch call to your backend ---
+        // Construct the API URL
+        // Ensure the backend URL is configurable or uses environment variables in a real app
+        const backendUrl = 'http://localhost:3001'; // Assuming backend runs on port 3001
+        const apiUrl = new URL('/api/departures', backendUrl);
+        apiUrl.searchParams.append('from', fromStation);
+        if (toStation) {
+            apiUrl.searchParams.append('to', toStation);
+        }
+
         try {
-            // Simulate network delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            const response = await fetch(apiUrl.toString());
 
-            // Example backend endpoint: /api/departures?from=KGX&to=EDB
-            // const response = await fetch(`/api/departures?from=${fromStation}${toStation ? `&to=${toStation}` : ''}`);
-            // if (!response.ok) {
-            //     throw new Error(`HTTP error! status: ${response.status}`);
-            // }
-            // const data: Departure[] = await response.json();
+            if (!response.ok) {
+                // Try to get error message from backend response body
+                let errorData;
+                try {
+                    errorData = await response.json();
+                } catch (jsonError) {
+                    // Ignore if response is not JSON
+                }
+                const errorMessage = errorData?.error || `HTTP error! status: ${response.status}`;
+                throw new Error(errorMessage);
+            }
 
-            // Mock data for now:
-            const mockData: Departure[] = [
-                { id: '1', scheduledTime: '10:30', destination: 'Edinburgh', platform: '1', status: 'On time', estimatedTime: '10:30' },
-                { id: '2', scheduledTime: '10:35', destination: 'Leeds', platform: '5', status: 'On time', estimatedTime: '10:35' },
-                { id: '3', scheduledTime: '10:40', destination: 'Newcastle', platform: '8', status: 'Delayed', estimatedTime: '10:55' },
-                { id: '4', scheduledTime: '10:45', destination: 'Glasgow Central', status: 'Cancelled' },
-                { id: '5', scheduledTime: '10:50', destination: 'Aberdeen', platform: '2', status: 'On time', estimatedTime: '10:50' },
-            ];
-            // Filter mock data if 'toStation' is provided (for demo purposes)
-            const data = toStation
-                ? mockData.filter(dep => dep.destination.toLowerCase().includes(toStation.toLowerCase()))
-                : mockData;
-
+            const data: Departure[] = await response.json();
             setDepartures(data);
+
         } catch (err) {
             console.error("Failed to fetch departures:", err);
-            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+            setError(err instanceof Error ? err.message : "An unknown error occurred fetching data.");
             setDepartures([]); // Clear departures on error
         } finally {
             setIsLoading(false);
         }
-        // --- End of block to replace ---
     };
 
     // Function to send a specific departure line to the display
@@ -212,7 +212,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
             </div>
 
              <p style={{fontSize: '0.8em', color: '#666', marginTop: '15px'}}>
-                Note: This uses mock data. A backend service is required to fetch real train information from National Rail Enquiries. Polling is active when mode is selected, connected, and 'From' station is set.
+                Note: This uses mock data from the backend service. The backend needs National Rail Enquiries integration for live data. Polling is active when mode is selected, connected, and 'From' station is set.
             </p>
         </div>
     );
