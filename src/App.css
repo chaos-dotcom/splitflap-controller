@@ -40,3 +40,161 @@
 .read-the-docs {
   color: #888;
 }
+
+/* src/App.css */
+
+/* ... Keep any existing styles you want ... */
+
+/* Styles for Backend/MQTT Status Indicators */
+.status-indicator {
+  text-align: center;
+  font-size: 0.9em;
+  margin: 5px auto; /* Center horizontally */
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: inline-block; /* Allow centering via text-align on parent */
+  border: 1px solid transparent;
+  min-width: 180px; /* Give some consistent width */
+}
+
+.status-indicator.connected {
+  color: #155724; /* Dark Green */
+  background-color: #d4edda; /* Light Green */
+  border-color: #c3e6cb;
+}
+
+.status-indicator.disconnected,
+.status-indicator.error {
+  color: #721c24; /* Dark Red */
+  background-color: #f8d7da; /* Light Red */
+  border-color: #f5c6cb;
+}
+.status-indicator.connecting,
+.status-indicator.unknown {
+  color: #856404; /* Dark Yellow */
+  background-color: #fff3cd; /* Light Yellow */
+  border-color: #ffeeba;
+}
+
+.status-indicator .error-text {
+    font-style: italic;
+    margin-left: 5px;
+    font-weight: bold;
+}
+
+/* Ensure the container allows centering of the indicators */
+.app-container > p.status-indicator {
+    display: block; /* Make them block elements */
+    width: fit-content; /* Adjust width to content */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Styles for Mode Selector (if not already present) */
+.mode-selector {
+  margin-top: 20px;
+  text-align: center;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.mode-selector button {
+  padding: 8px 16px;
+  margin: 0 5px; /* Reduced margin slightly */
+  font-size: 0.9rem; /* Slightly smaller buttons */
+  cursor: pointer;
+  border: 1px solid #ccc;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+.mode-selector button:hover:not(:disabled) {
+    background-color: #e0e0e0;
+    border-color: #bbb;
+}
+
+.mode-selector button:disabled {
+  background-color: #4a90e2; /* Highlight active mode */
+  color: white;
+  border-color: #4a90e2;
+  cursor: default;
+  opacity: 1; /* Ensure active button is fully opaque */
+}
+
+/* Styles for Mode Controls Container (if not already present) */
+.mode-controls {
+  margin-top: 15px;
+  width: 90%;
+  max-width: 600px; /* Or match settings panel width */
+  /* Center the controls container */
+  margin-left: auto;
+  margin-right: auto;
+  position: relative; /* Needed for Draggable bounds="parent" */
+  min-height: 300px; /* Give some space for dragging, adjust as needed */
+  /* Add some padding if needed */
+  /* padding: 10px; */
+}
+
+/* Styles for Draggable Panel Wrapper (if not already present) */
+.draggable-panel {
+    /* Style the wrapper if needed, e.g., for positioning or borders */
+    /* position: absolute; /* If you want absolute positioning */
+    width: 100%; /* Take width of container */
+    box-sizing: border-box;
+}
+
+/* Style the handle element (if not already present) */
+.draggable-handle {
+    cursor: move; /* Indicate draggable area */
+    user-select: none; /* Prevent text selection while dragging */
+}
+
+/* Dark Mode Base (Apply .dark-mode class to body or app container) */
+.dark-mode {
+    background-color: #1a202c; /* Dark background */
+    color: #e2e8f0; /* Light text */
+}
+
+.dark-mode .app-container {
+    /* Adjust app container for dark mode if needed */
+}
+
+.dark-mode .mode-selector {
+    border-bottom-color: #4a5568; /* Darker border */
+}
+
+.dark-mode .mode-selector button {
+    background-color: #4a5568; /* Darker button background */
+    color: #e2e8f0; /* Light text */
+    border-color: #718096;
+}
+.dark-mode .mode-selector button:hover:not(:disabled) {
+    background-color: #718096;
+    border-color: #a0aec0;
+}
+
+.dark-mode .mode-selector button:disabled {
+  background-color: #3182ce; /* Darker blue for active */
+  color: white;
+  border-color: #3182ce;
+}
+
+/* Dark mode status indicators */
+.dark-mode .status-indicator.connected {
+  color: #9ae6b4; /* Light Green */
+  background-color: #2f855a; /* Dark Green */
+  border-color: #38a169;
+}
+
+.dark-mode .status-indicator.disconnected,
+.dark-mode .status-indicator.error {
+  color: #feb2b2; /* Light Red */
+  background-color: #c53030; /* Dark Red */
+  border-color: #e53e3e;
+}
+.dark-mode .status-indicator.connecting,
+.dark-mode .status-indicator.unknown {
+  color: #faf089; /* Light Yellow */
+  background-color: #b7791f; /* Dark Yellow */
+  border-color: #d69e2e;
+}
