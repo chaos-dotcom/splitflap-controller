@@ -723,12 +723,12 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
                     destination: destinationName,
                     platform: service.platform || undefined,
                     status: status,
-                estimatedTime: estimatedTime,
-                // destinationETA is extracted below
-            // }; // <-- REMOVE closing brace from here
+                   estimatedTime: estimatedTime,
+                   // destinationETA is extracted below
+               }; // <-- Correct closing brace for the initial object definition
 
-            // --- Extract Destination ETA from Details (if available) ---
-            // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
+               // --- Extract Destination ETA from Details (if available) ---
+               // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
                if (route.toCRS && service.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
                    const callingPoints = service.subsequentCallingPoints.callingPointList[0].callingPoint;
                    const destinationPoint = callingPoints.find((cp: any) => cp.crs === route.toCRS);
@@ -738,12 +738,12 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
                            departure.destinationETA = eta; // Add ETA directly
                        }
                    }
-            }
-            // --- End ETA Extraction ---
-            }; // <-- ADD closing brace here, after potential ETA addition
+               }
+               // --- End ETA Extraction ---
+               // }; // <-- Remove incorrect closing brace from here
 
-            fetchedDepartures.push(departure);
-        });
+               fetchedDepartures.push(departure); // Push the potentially modified object
+           });
       }
 
        // --- REMOVED: Separate GetServiceDetails calls are no longer needed ---
