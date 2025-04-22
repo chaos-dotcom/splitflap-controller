@@ -316,20 +316,21 @@ app.get('/api/departures', async (req: Request, res: Response) => {
                 // destinationETA will be added below
             }; // <-- Correct closing brace for the initial object definition
 
-            // --- Extract Destination ETA from Details (if available) ---
-            // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
+               // --- Extract Destination ETA from Details (if available) ---
+               // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
                if (toStation && service.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
                    const callingPoints = service.subsequentCallingPoints.callingPointList[0].callingPoint;
-                   const destinationPoint = callingPoints.find((cp: any) => cp.crs === toStation);
+                   const destinationPoint = callingPoints.find((cp: any) => cp.crs === toStation); // Correctly use toStation here
                    if (destinationPoint) {
                        const eta = destinationPoint.et || destinationPoint.st; // Prioritize estimated time
-                       if (eta && eta !== 'No report' && eta !== 'Cancelled' && eta !== 'Delayed') {
+                       // *** Add check to ensure eta looks like HH:MM ***
+                       if (eta && /^\d{2}:\d{2}$/.test(eta)) { // Check if eta is in HH:MM format
                            departure.destinationETA = eta; // Add ETA directly
                        }
                    }
-            }
-            // --- End ETA Extraction ---
-            // }; // <-- Remove incorrect closing brace from here
+               }
+               // --- End ETA Extraction ---
+               // }; // <-- Remove incorrect closing brace from here
 
             departures.push(departure); // Push the potentially modified object
         });
