@@ -311,13 +311,13 @@ app.get('/api/departures', async (req: Request, res: Response) => {
                     scheduledTime: service.std || '??:??', // Scheduled time of departure
                     destination: destinationName,
                     platform: service.platform || undefined, // Platform might be missing
-                 status: status,
-                 estimatedTime: estimatedTime,
-                 // destinationETA will be added below
-             }; // <-- Ensure this closing brace is HERE
+                status: status,
+                estimatedTime: estimatedTime,
+                // destinationETA will be added below
+            }; // <-- Correct closing brace for the initial object definition
 
-             // --- Extract Destination ETA from Details (if available) ---
-             // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
+            // --- Extract Destination ETA from Details (if available) ---
+            // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
                if (toStation && service.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
                    const callingPoints = service.subsequentCallingPoints.callingPointList[0].callingPoint;
                    const destinationPoint = callingPoints.find((cp: any) => cp.crs === toStation);
@@ -327,12 +327,12 @@ app.get('/api/departures', async (req: Request, res: Response) => {
                            departure.destinationETA = eta; // Add ETA directly
                        }
                    }
-             }
-             // --- End ETA Extraction ---
-             // }; // <-- REMOVE closing brace from here
+            }
+            // --- End ETA Extraction ---
+            // }; // <-- Remove incorrect closing brace from here
 
-             departures.push(departure);
-         });
+            departures.push(departure); // Push the potentially modified object
+        });
       } else { // If trainServices is null, undefined, or empty array
             console.log(`No train services found for ${fromStation} in the response.`);
             // Check for informational messages from NRCC
