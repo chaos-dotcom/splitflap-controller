@@ -357,6 +357,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                                 <th>Destination</th>
                                 <th>Plat</th>
                                 <th>Status</th>
+                                <th>ETA (Dest)</th> {/* Add new header */}
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -381,6 +382,8 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                                     <td>{dep.destination}</td>
                                     <td>{dep.platform || '-'}</td>
                                     <td>{dep.status}</td>
+                                    {/* Add cell for Destination ETA */}
+                                    <td>{dep.destinationETA || '-'}</td>
                                     <td>
                                         <button // Use index to send correct formatted string
                                             onClick={() => handleSendDeparture(index)}
