@@ -42,6 +42,8 @@ const HA_TIMER_DURATION_ID = 'splitflap_timer_duration';
 const HA_TIMER_DURATION_NAME = 'Timer Duration';
 const HA_TIMER_START_STOP_ID = 'splitflap_timer_start_stop';
 const HA_TIMER_START_STOP_NAME = 'Timer Start/Stop';
+const HA_TIMER_SET_ID = 'splitflap_timer_set'; // New ID for Set button
+const HA_TIMER_SET_NAME = 'Set Timer'; // New Name for Set button
 
 // Define the topics for the mode selector entity using HA standard structure
 const haModeConfigTopic = `${HA_DISCOVERY_PREFIX}/select/${HA_MODE_SELECTOR_ID}/config`;
@@ -79,6 +81,10 @@ const haTimerDurationCommandTopic = `${HA_DISCOVERY_PREFIX}/number/${HA_TIMER_DU
 // Define topics for Timer Start/Stop Button entity
 const haTimerStartStopConfigTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_TIMER_START_STOP_ID}/config`;
 const haTimerStartStopCommandTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_TIMER_START_STOP_ID}/press`;
+
+// Define topics for Timer Set Button entity
+const haTimerSetConfigTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_TIMER_SET_ID}/config`;
+const haTimerSetCommandTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_TIMER_SET_ID}/press`;
 
 // Define the available modes for the HA select entity
 const HA_MODES: ControlMode[] = ['text', 'train', 'sequence', 'clock', 'stopwatch', 'timer'];
@@ -1006,6 +1012,24 @@ const publishHaDiscoveryConfig = () => {
     console.log(`[HA MQTT] Publishing discovery config for Timer Start/Stop Button: ${haTimerStartStopConfigTopic}`);
     mqttClient.publish(haTimerStartStopConfigTopic, JSON.stringify(timerStartStopConfigPayload), { retain: true });
 
+    // --- Timer Set Button Entity Config ---
+    const timerSetConfigPayload = {
+        platform: "button",
+        name: HA_TIMER_SET_NAME,
+        unique_id: HA_TIMER_SET_ID,
+        object_id: HA_TIMER_SET_ID,
+        device: devicePayload,
+        availability_topic: HA_AVAILABILITY_TOPIC,
+        command_topic: haTimerSetCommandTopic,
+        icon: "mdi:check-circle-outline", // Icon indicating confirmation/setting
+        entity_category: "config",
+        qos: 0,
+        origin: originPayload,
+    };
+
+    console.log(`[HA MQTT] Publishing discovery config for Timer Set Button: ${haTimerSetConfigTopic}`);
+    mqttClient.publish(haTimerSetConfigTopic, JSON.stringify(timerSetConfigPayload), { retain: true });
+
 
     haDiscoveryPublished = true; // Mark as published for this connection cycle
 };
@@ -1026,8 +1050,9 @@ const handleMqttMessage = (topic: string, message: Buffer) => {
         mqttClient.subscribe(haTrainUpdateCommandTopic);
         mqttClient.subscribe(haStopwatchStartStopCommandTopic);
         mqttClient.subscribe(haStopwatchResetCommandTopic);
-        mqttClient.subscribe(haTimerDurationCommandTopic); // Subscribe to timer duration
-        mqttClient.subscribe(haTimerStartStopCommandTopic); // Subscribe to timer start/stop
+        mqttClient.subscribe(haTimerDurationCommandTopic);
+        mqttClient.subscribe(haTimerStartStopCommandTopic);
+        mqttClient.subscribe(haTimerSetCommandTopic); // Subscribe to timer set button
 
         publishTrainRouteState(); // Publish initial train route state
         publishTimerState(); // Publish initial timer state
