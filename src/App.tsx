@@ -124,8 +124,8 @@ function App() {
           // Display is updated via displayUpdate from backend
       }, // <-- UPDATE BLOCK
       // onTrainDataUpdate (Restore original logic)
-      (data) => { // <-- RESTORE BLOCK
-          console.log('[App] Received trainDataUpdate', data);
+      (data) => {
+          console.log('[App] Received trainDataUpdate:', data); // <-- ADD LOG
           // Ensure departures is always an array
           setCurrentDepartures(data.departures || []); // Update departures list
           if (data.error) { setBackendError(`Train Data Error: ${data.error}`); } // Show error if backend sent one
