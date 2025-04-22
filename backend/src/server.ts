@@ -728,15 +728,16 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
                    // destinationETA will be added below if found
                };
 
-               // --- Extract Destination ETA from Details (if available) ---
-               // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
-               if (route.toCRS && service.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
-                   const callingPoints = service.subsequentCallingPoints.callingPointList[0].callingPoint;
-                   const destinationPoint = callingPoints.find((cp: any) => cp.crs === route.toCRS);
-                   if (destinationPoint) {
-                       const eta = destinationPoint.et || destinationPoint.st; // Prioritize estimated time
-                       if (eta && eta !== 'No report' && eta !== 'Cancelled' && eta !== 'Delayed') {
-                           departure.destinationETA = eta; // Add ETA directly to the existing object
+              // --- Extract Destination ETA from Details (if available) ---
+              // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
+              if (route.toCRS && service.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
+                  const callingPoints = service.subsequentCallingPoints.callingPointList[0].callingPoint;
+                  const destinationPoint = callingPoints.find((cp: any) => cp.crs === route.toCRS);
+                  if (destinationPoint) {
+                      const eta = destinationPoint.et || destinationPoint.st; // Prioritize estimated time
+                      // *** Add check to ensure eta looks like HH:MM ***
+                      if (eta && /^\d{2}:\d{2}$/.test(eta)) { // Check if eta is in HH:MM format
+                          departure.destinationETA = eta; // Add ETA directly to the existing object
                        }
                    }
                }
