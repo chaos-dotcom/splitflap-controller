@@ -109,11 +109,12 @@ function App() {
       // onMqttStatus (Restore original logic)
       (status) => setDisplayMqttStatus(status), // <-- RESTORE
       // onStopwatchUpdate (Restore original logic)
-      (data) => { // <-- RESTORE BLOCK
+      (data) => {
+          console.log('[App] Received stopwatchUpdate:', data); // <-- ADD LOG
           setStopwatchIsRunningBackend(data.isRunning);
           // Display is updated via displayUpdate, but we could force it here if needed
           // setDisplayText(formatStopwatchTime(data.elapsedTime)); // Requires formatStopwatchTime here
-      }, // <-- RESTORE BLOCK
+      },
       // onTimerUpdate (UPDATE to set timer state)
       (data) => { // <-- UPDATE BLOCK
           console.log('[App] Received timerUpdate', data);
