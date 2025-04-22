@@ -725,7 +725,7 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
                     status: status,
                    estimatedTime: estimatedTime,
                    // destinationETA is extracted below
-               }; // <-- Correct closing brace for the initial object definition
+               // }; // <-- REMOVE closing brace from here
 
                // --- Extract Destination ETA from Details (if available) ---
                // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
@@ -738,12 +738,12 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
                            departure.destinationETA = eta; // Add ETA directly
                        }
                    }
-               }
-               // --- End ETA Extraction ---
-               // }; // <-- Remove incorrect closing brace from here
+              }
+              // --- End ETA Extraction ---
+              }; // <-- ADD closing brace here, after potential ETA addition
 
-               fetchedDepartures.push(departure); // Push the potentially modified object
-           });
+              fetchedDepartures.push(departure); // Push the potentially modified object
+          });
       }
 
        // --- REMOVED: Separate GetServiceDetails calls are no longer needed ---
