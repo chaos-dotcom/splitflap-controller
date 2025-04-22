@@ -37,6 +37,12 @@ const HA_STOPWATCH_START_STOP_NAME = 'Stopwatch Start/Stop';
 const HA_STOPWATCH_RESET_ID = 'splitflap_stopwatch_reset';
 const HA_STOPWATCH_RESET_NAME = 'Stopwatch Reset';
 
+// --- Timer Mode Entities ---
+const HA_TIMER_DURATION_ID = 'splitflap_timer_duration';
+const HA_TIMER_DURATION_NAME = 'Timer Duration';
+const HA_TIMER_START_STOP_ID = 'splitflap_timer_start_stop';
+const HA_TIMER_START_STOP_NAME = 'Timer Start/Stop';
+
 // Define the topics for the mode selector entity using HA standard structure
 const haModeConfigTopic = `${HA_DISCOVERY_PREFIX}/select/${HA_MODE_SELECTOR_ID}/config`;
 // State and command topics nested under the entity's discovery path
@@ -64,6 +70,15 @@ const haStopwatchStartStopCommandTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_STO
 // Define topics for Stopwatch Reset Button entity
 const haStopwatchResetConfigTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_STOPWATCH_RESET_ID}/config`;
 const haStopwatchResetCommandTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_STOPWATCH_RESET_ID}/press`;
+
+// Define topics for Timer Duration Number entity
+const haTimerDurationConfigTopic = `${HA_DISCOVERY_PREFIX}/number/${HA_TIMER_DURATION_ID}/config`;
+const haTimerDurationStateTopic = `${HA_DISCOVERY_PREFIX}/number/${HA_TIMER_DURATION_ID}/state`;
+const haTimerDurationCommandTopic = `${HA_DISCOVERY_PREFIX}/number/${HA_TIMER_DURATION_ID}/set`;
+
+// Define topics for Timer Start/Stop Button entity
+const haTimerStartStopConfigTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_TIMER_START_STOP_ID}/config`;
+const haTimerStartStopCommandTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_TIMER_START_STOP_ID}/press`;
 
 // Define the available modes for the HA select entity
 const HA_MODES: ControlMode[] = ['text', 'train', 'sequence', 'clock', 'stopwatch', 'timer'];
@@ -524,6 +539,7 @@ const setBackendTimer = (durationMs: number) => {
         remainingMs: timerRemainingMs,
         isRunning: timerIsRunning
     });
+    publishTimerState(); // Publish state to HA
 };
 
 const startBackendTimer = () => {
@@ -584,6 +600,7 @@ const stopBackendTimer = () => {
         remainingMs: timerRemainingMs,
         isRunning: timerIsRunning
     });
+    // No need to publish state here as setBackendTimer already does
 };
 
 
@@ -795,7 +812,18 @@ const publishTrainRouteState = () => {
     mqttClient.publish(haTrainToStateTopic, toState, { retain: true });
 };
 
-// Removed publishStopwatchState function as the start/stop is now a button
+// Function to publish the current timer target duration state to MQTT
+const publishTimerState = () => {
+    if (!mqttClient.getDisplayConnectionStatus().status.startsWith('connect')) return;
+
+    // Publish target duration in minutes
+    const durationMinutes = Math.round(timerTargetMs / 60000); // Convert ms to minutes for HA number entity
+    console.log(`[HA MQTT] Publishing Timer Duration State: ${durationMinutes} min`);
+    mqttClient.publish(haTimerDurationStateTopic, durationMinutes.toString(), { retain: true });
+
+    // Note: We don't publish the running state separately here,
+    // as the start/stop is controlled by a button.
+};
 
 
 const publishHaDiscoveryConfig = () => {
@@ -935,6 +963,49 @@ const publishHaDiscoveryConfig = () => {
     console.log(`[HA MQTT] Publishing discovery config for Stopwatch Reset Button: ${haStopwatchResetConfigTopic}`); // Keep reset button
     mqttClient.publish(haStopwatchResetConfigTopic, JSON.stringify(stopwatchResetConfigPayload), { retain: true });
 
+    // --- Timer Duration Number Entity Config ---
+    const timerDurationConfigPayload = {
+        platform: "number",
+        name: HA_TIMER_DURATION_NAME,
+        unique_id: HA_TIMER_DURATION_ID,
+        object_id: HA_TIMER_DURATION_ID,
+        device: devicePayload,
+        availability_topic: HA_AVAILABILITY_TOPIC,
+        state_topic: haTimerDurationStateTopic,
+        command_topic: haTimerDurationCommandTopic,
+        entity_category: "config",
+        icon: "mdi:timer-cog-outline",
+        mode: "box", // Use box input mode
+        min: 1,      // Minimum 1 minute
+        max: 120,    // Maximum 120 minutes (adjust as needed)
+        step: 1,     // Step by 1 minute
+        unit_of_measurement: "min",
+        qos: 0,
+        retain: true, // Retain config
+        origin: originPayload,
+    };
+
+    // --- Timer Start/Stop Button Entity Config ---
+    const timerStartStopConfigPayload = {
+        platform: "button",
+        name: HA_TIMER_START_STOP_NAME,
+        unique_id: HA_TIMER_START_STOP_ID,
+        object_id: HA_TIMER_START_STOP_ID,
+        device: devicePayload,
+        availability_topic: HA_AVAILABILITY_TOPIC,
+        command_topic: haTimerStartStopCommandTopic,
+        icon: "mdi:play-pause",
+        entity_category: "config",
+        qos: 0,
+        origin: originPayload,
+    };
+
+    console.log(`[HA MQTT] Publishing discovery config for Timer Duration Number: ${haTimerDurationConfigTopic}`);
+    mqttClient.publish(haTimerDurationConfigTopic, JSON.stringify(timerDurationConfigPayload), { retain: true });
+
+    console.log(`[HA MQTT] Publishing discovery config for Timer Start/Stop Button: ${haTimerStartStopConfigTopic}`);
+    mqttClient.publish(haTimerStartStopConfigTopic, JSON.stringify(timerStartStopConfigPayload), { retain: true });
+
 
     haDiscoveryPublished = true; // Mark as published for this connection cycle
 };
@@ -953,10 +1024,13 @@ const handleMqttMessage = (topic: string, message: Buffer) => {
         mqttClient.subscribe(haTrainFromCommandTopic);
         mqttClient.subscribe(haTrainToCommandTopic);
         mqttClient.subscribe(haTrainUpdateCommandTopic);
-        mqttClient.subscribe(haStopwatchStartStopCommandTopic); // Subscribe to stopwatch start/stop button
-        mqttClient.subscribe(haStopwatchResetCommandTopic); // Subscribe to stopwatch reset
+        mqttClient.subscribe(haStopwatchStartStopCommandTopic);
+        mqttClient.subscribe(haStopwatchResetCommandTopic);
+        mqttClient.subscribe(haTimerDurationCommandTopic); // Subscribe to timer duration
+        mqttClient.subscribe(haTimerStartStopCommandTopic); // Subscribe to timer start/stop
 
         publishTrainRouteState(); // Publish initial train route state
+        publishTimerState(); // Publish initial timer state
         // No initial stopwatch state to publish for buttons
         mqttClient.publish(HA_AVAILABILITY_TOPIC, 'online', { retain: true }); // Publish availability
 
