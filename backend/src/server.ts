@@ -318,27 +318,55 @@ app.get('/api/departures', async (req: Request, res: Response) => {
 
                // --- Extract Destination ETA from Details (if available) ---
               // --- Extract Destination ETA from Details (if available) ---
-              // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
-              if (toStation && service.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
-                  const callingPoints = service.subsequentCallingPoints.callingPointList[0].callingPoint;
-                  const destinationPoint = callingPoints.find((cp: any) => cp.crs === toStation); // Correctly use toStation here
-                  if (destinationPoint) {
-                      let arrivalTime: string | undefined = undefined;
-                      // Check 'et' first - is it a time?
-                      if (destinationPoint.et && /^\d{2}:\d{2}$/.test(destinationPoint.et)) {
-                          arrivalTime = destinationPoint.et;
-                      }
-                      // If 'et' wasn't a time, check 'st' - is it a time?
-                      else if (destinationPoint.st && /^\d{2}:\d{2}$/.test(destinationPoint.st)) {
-                          arrivalTime = destinationPoint.st;
-                      }
+             // --- Extract Destination ETA from Details (if available) ---
+             if (toStation && service.subsequentCallingPoints?.callingPointList?.callingPoint) { // Check for the actual array/object
+                 // Ensure callingPoints is an array, even if API returns single object
+                 const callingPointsRaw = service.subsequentCallingPoints.callingPointList.callingPoint;
+                 const callingPoints = Array.isArray(callingPointsRaw) ? callingPointsRaw : [callingPointsRaw];
 
-                      // Assign if we found a valid time
-                      if (arrivalTime) {
-                          departure.destinationETA = arrivalTime; // Add ETA directly
-                      }
-                  }
-              }
+                 // console.log(`[ETA Debug][API] Found ${callingPoints.length} calling points for service ${service.serviceID}`); // Optional: Log point count
+
+                 const destinationPoint = callingPoints.find((cp: any) => cp.crs === toStation); // Use toStation
+
+                 if (destinationPoint) {
+                     // console.log(`[ETA Debug][API] Found destination point for ${toStation}:`, JSON.stringify(destinationPoint)); // Optional: Log the found point
+                     let arrivalTime: string | undefined = undefined;
+                     const et = destinationPoint.et;
+                     const st = destinationPoint.st;
+                     const etIsTime = et && /^\d{2}:\d{2}$/.test(et);
+                     const stIsTime = st && /^\d{2}:\d{2}$/.test(st);
+                     // console.log(`[ETA Debug][API] Checking et='${et}' (isTime: ${etIsTime}), st='${st}' (isTime: ${stIsTime})`); // Log et and st
+
+                     // Check 'et' first - is it a time?
+                     if (etIsTime) {
+                         // console.log(`[ETA Debug][API] Using 'et' (${et}) as arrivalTime.`);
+                         arrivalTime = et;
+                     }
+                     // If 'et' wasn't a time, check 'st' - is it a time?
+                     else if (stIsTime) {
+                          // console.log(`[ETA Debug][API] Using 'st' (${st}) as arrivalTime.`);
+                         arrivalTime = st;
+                     }
+                     // else {
+                     //      console.log(`[ETA Debug][API] Neither 'et' nor 'st' is a valid time.`);
+                     // }
+
+                     // Assign if we found a valid time
+                     if (arrivalTime) {
+                         // console.log(`[ETA Debug][API] Assigning destinationETA = ${arrivalTime}`);
+                         departure.destinationETA = arrivalTime;
+                     }
+                     // else {
+                     //      console.log(`[ETA Debug][API] No valid arrivalTime found, destinationETA not set.`);
+                     // }
+                 }
+                 // else {
+                 //      console.log(`[ETA Debug][API] Destination point ${toStation} not found in calling points.`);
+                 // }
+             }
+             // else {
+             //      console.log(`[ETA Debug][API] No subsequent calling points found or structure mismatch for service ${service.serviceID}`);
+             // }
                // --- End ETA Extraction ---
                // }; // <-- Remove incorrect closing brace from here
 
