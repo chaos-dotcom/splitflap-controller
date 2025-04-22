@@ -715,17 +715,18 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
                 else if (service.etd === 'Delayed') status = 'Delayed';
                 else if (service.etd === 'Cancelled') status = 'Cancelled';
                 else if (service.etd) { status = 'On time'; estimatedTime = service.etd; }
-                else status = 'On time';
+               else status = 'On time';
 
-                fetchedDepartures.push({
-                    id: service.serviceID,
-                    scheduledTime: service.std || '??:??',
-                    destination: destinationName,
-                    platform: service.platform || undefined,
-                    status: status,
+               // Create the initial departure object
+               const departure: Departure = {
+                   id: service.serviceID,
+                   scheduledTime: service.std || '??:??',
+                   destination: destinationName,
+                   platform: service.platform || undefined,
+                   status: status,
                    estimatedTime: estimatedTime,
-                   // destinationETA is extracted below
-               // }; // <-- REMOVE closing brace from here
+                   // destinationETA will be added below if found
+               };
 
                // --- Extract Destination ETA from Details (if available) ---
                // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
@@ -735,16 +736,15 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
                    if (destinationPoint) {
                        const eta = destinationPoint.et || destinationPoint.st; // Prioritize estimated time
                        if (eta && eta !== 'No report' && eta !== 'Cancelled' && eta !== 'Delayed') {
-                           departure.destinationETA = eta; // Add ETA directly
+                           departure.destinationETA = eta; // Add ETA directly to the existing object
                        }
                    }
-              }
-              // --- End ETA Extraction ---
-              }; // <-- ADD closing brace here, after potential ETA addition
+               }
+               // --- End ETA Extraction ---
 
-              fetchedDepartures.push(departure); // Push the potentially modified object
-          });
-      }
+               fetchedDepartures.push(departure); // Push the potentially modified object
+           });
+       }
 
        // --- REMOVED: Separate GetServiceDetails calls are no longer needed ---
 
