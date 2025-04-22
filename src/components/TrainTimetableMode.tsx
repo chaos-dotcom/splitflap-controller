@@ -40,6 +40,8 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null); // Ref for polling interval
     // Removed formattedDisplayStrings state
 
+    console.log('[TrainTimetableMode] Rendering. isConnected:', isConnected); // <-- ADD LOG
+
     // Helper to get hour and minute from a departure time string (HH:MM)
     const getHourMinute = (timeString: string | undefined): { hour: number | null, minute: number | null } => {
         if (!timeString || !/^\d{2}:\d{2}$/.test(timeString)) {
@@ -149,7 +151,11 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     // Function to send a specific departure line to the display
     // Calculates the condensed format on demand
     const handleSendDeparture = (index: number) => {
-        if (!isConnected || index < 0 || index >= departures.length) return;
+        console.log(`[TrainTimetableMode] handleSendDeparture called for index: ${index}`); // <-- ADD LOG
+        if (!isConnected || index < 0 || index >= departures.length) {
+            console.log(`[TrainTimetableMode] handleSendDeparture aborted. isConnected: ${isConnected}, index: ${index}, departures length: ${departures.length}`); // <-- ADD LOG for abort reason
+            return;
+        }
 
         const dep = departures[index];
         const prevDep = index > 0 ? departures[index - 1] : null;
@@ -206,6 +212,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
 
     // --- Preset Handlers ---
     const handleSavePreset = () => {
+        console.log('[TrainTimetableMode] handleSavePreset called.'); // <-- ADD LOG
         if (!fromStation || fromStation.length !== 3) {
             alert("Please enter a valid 3-letter 'From' station code first.");
             return;
@@ -253,6 +260,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     };
 
     const handleDeletePreset = () => {
+        console.log('[TrainTimetableMode] handleDeletePreset called.'); // <-- ADD LOG
         const selectElement = document.getElementById('presetSelector') as HTMLSelectElement;
         const selectedName = selectElement?.value;
         if (!selectedName || !savedPresets.some(p => p.name === selectedName)) {
