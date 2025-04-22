@@ -327,9 +327,16 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                     />
                </div>
                {/* Manual refresh button now explicitly uses state */}
-               <button onClick={() => onStartUpdates(fromStation, toStation)} disabled={!isConnected || !fromStation || fromStation.length !== 3}>
-                   {isLoading ? 'Refreshing...' : 'Refresh Now'}
-               </button>
+               <button
+                    onClick={() => {
+                        console.log('[TrainTimetableMode] Refresh Now button clicked.'); // <-- ADD LOG
+                        onStartUpdates(fromStation, toStation);
+                    }}
+                    // Re-added isLoading check which might have been accidentally removed
+                    disabled={!isConnected || !fromStation || fromStation.length !== 3 || isLoading}
+                >
+                    {isLoading ? 'Refreshing...' : 'Refresh Now'}
+                </button>
             </div>
 
             {/* Preset Management */}
