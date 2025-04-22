@@ -30,6 +30,12 @@ const HA_TRAIN_TO_NAME = 'Train To CRS';
 const HA_TRAIN_UPDATE_ID = 'splitflap_train_update';
 const HA_TRAIN_UPDATE_NAME = 'Train Update';
 
+// --- Stopwatch Mode Entities ---
+const HA_STOPWATCH_SWITCH_ID = 'splitflap_stopwatch_run';
+const HA_STOPWATCH_SWITCH_NAME = 'Stopwatch Running';
+const HA_STOPWATCH_RESET_ID = 'splitflap_stopwatch_reset';
+const HA_STOPWATCH_RESET_NAME = 'Stopwatch Reset';
+
 // Define the topics for the mode selector entity using HA standard structure
 const haModeConfigTopic = `${HA_DISCOVERY_PREFIX}/select/${HA_MODE_SELECTOR_ID}/config`;
 // State and command topics nested under the entity's discovery path
@@ -48,7 +54,16 @@ const haTrainToCommandTopic = `${HA_DISCOVERY_PREFIX}/text/${HA_TRAIN_TO_ID}/set
 
 // Define topics for Train Update Button entity
 const haTrainUpdateConfigTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_TRAIN_UPDATE_ID}/config`;
-const haTrainUpdateCommandTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_TRAIN_UPDATE_ID}/press`; // Buttons use /press
+const haTrainUpdateCommandTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_TRAIN_UPDATE_ID}/press`;
+
+// Define topics for Stopwatch Switch entity
+const haStopwatchSwitchConfigTopic = `${HA_DISCOVERY_PREFIX}/switch/${HA_STOPWATCH_SWITCH_ID}/config`;
+const haStopwatchSwitchStateTopic = `${HA_DISCOVERY_PREFIX}/switch/${HA_STOPWATCH_SWITCH_ID}/state`;
+const haStopwatchSwitchCommandTopic = `${HA_DISCOVERY_PREFIX}/switch/${HA_STOPWATCH_SWITCH_ID}/set`;
+
+// Define topics for Stopwatch Reset Button entity
+const haStopwatchResetConfigTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_STOPWATCH_RESET_ID}/config`;
+const haStopwatchResetCommandTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_STOPWATCH_RESET_ID}/press`;
 
 // Define the available modes for the HA select entity
 const HA_MODES: ControlMode[] = ['text', 'train', 'sequence', 'clock', 'stopwatch', 'timer'];
@@ -453,6 +468,7 @@ const startBackendStopwatch = () => {
     }, 100); // Update frequently for smooth display (e.g., 100ms)
     // Broadcast initial running state
     io.emit('stopwatchUpdate', { elapsedTime: stopwatchElapsedTime, isRunning: isStopwatchRunning });
+    publishStopwatchState(); // Publish state to HA
 };
 
 const stopBackendStopwatch = () => {
@@ -464,6 +480,7 @@ const stopBackendStopwatch = () => {
     stopwatchElapsedTime = Date.now() - stopwatchStartTime; // Capture final elapsed time
     // Display remains showing the stopped time (updated by last interval)
     io.emit('stopwatchUpdate', { elapsedTime: stopwatchElapsedTime, isRunning: isStopwatchRunning }); // Broadcast stopped state
+    publishStopwatchState(); // Publish state to HA
 };
 
 const resetBackendStopwatch = () => {
@@ -471,6 +488,7 @@ const resetBackendStopwatch = () => {
     stopAllTimedModes({ resetStopwatch: true }); // Stops interval, sets isRunning=false, resets time
     updateDisplayAndBroadcast(formatStopwatchTime(0)); // Update display to 00:00
     io.emit('stopwatchUpdate', { elapsedTime: 0, isRunning: false }); // Broadcast reset state
+    publishStopwatchState(); // Publish state to HA (will be OFF)
 };
 
 // --- Timer Mode Logic ---
@@ -762,6 +780,15 @@ const publishTrainRouteState = () => {
     mqttClient.publish(haTrainToStateTopic, toState, { retain: true });
 };
 
+// Function to publish the current stopwatch running state to MQTT
+const publishStopwatchState = () => {
+    if (!mqttClient.getDisplayConnectionStatus().status.startsWith('connect')) return;
+
+    const state = isStopwatchRunning ? 'ON' : 'OFF';
+    console.log(`[HA MQTT] Publishing Stopwatch State: ${state}`);
+    mqttClient.publish(haStopwatchSwitchStateTopic, state, { retain: true });
+};
+
 
 const publishHaDiscoveryConfig = () => {
     if (haDiscoveryPublished) return; // Only publish once per connection usually
@@ -863,6 +890,48 @@ const publishHaDiscoveryConfig = () => {
     console.log(`[HA MQTT] Publishing discovery config for Train Update Button: ${haTrainUpdateConfigTopic}`);
     mqttClient.publish(haTrainUpdateConfigTopic, JSON.stringify(trainUpdateConfigPayload), { retain: true });
 
+    // --- Stopwatch Switch Entity Config ---
+    const stopwatchSwitchConfigPayload = {
+        platform: "switch",
+        name: HA_STOPWATCH_SWITCH_NAME,
+        unique_id: HA_STOPWATCH_SWITCH_ID,
+        object_id: HA_STOPWATCH_SWITCH_ID,
+        device: devicePayload,
+        availability_topic: HA_AVAILABILITY_TOPIC,
+        state_topic: haStopwatchSwitchStateTopic,
+        command_topic: haStopwatchSwitchCommandTopic,
+        payload_on: "ON",
+        payload_off: "OFF",
+        state_on: "ON",
+        state_off: "OFF",
+        icon: "mdi:timer-play-outline", // Or mdi:timer-pause-outline depending on state? (HA handles this)
+        entity_category: "config",
+        qos: 0,
+        retain: true, // Retain config
+        origin: originPayload,
+    };
+
+    // --- Stopwatch Reset Button Entity Config ---
+    const stopwatchResetConfigPayload = {
+        platform: "button",
+        name: HA_STOPWATCH_RESET_NAME,
+        unique_id: HA_STOPWATCH_RESET_ID,
+        object_id: HA_STOPWATCH_RESET_ID,
+        device: devicePayload,
+        availability_topic: HA_AVAILABILITY_TOPIC,
+        command_topic: haStopwatchResetCommandTopic,
+        icon: "mdi:timer-refresh-outline",
+        entity_category: "config",
+        qos: 0,
+        origin: originPayload,
+    };
+
+    console.log(`[HA MQTT] Publishing discovery config for Stopwatch Switch: ${haStopwatchSwitchConfigTopic}`);
+    mqttClient.publish(haStopwatchSwitchConfigTopic, JSON.stringify(stopwatchSwitchConfigPayload), { retain: true });
+
+    console.log(`[HA MQTT] Publishing discovery config for Stopwatch Reset Button: ${haStopwatchResetConfigTopic}`);
+    mqttClient.publish(haStopwatchResetConfigTopic, JSON.stringify(stopwatchResetConfigPayload), { retain: true });
+
 
     haDiscoveryPublished = true; // Mark as published for this connection cycle
 };
@@ -881,10 +950,11 @@ const handleMqttMessage = (topic: string, message: Buffer) => {
         mqttClient.subscribe(haTrainFromCommandTopic);
         mqttClient.subscribe(haTrainToCommandTopic);
         mqttClient.subscribe(haTrainUpdateCommandTopic);
+        mqttClient.subscribe(haStopwatchSwitchCommandTopic); // Subscribe to stopwatch switch
+        mqttClient.subscribe(haStopwatchResetCommandTopic); // Subscribe to stopwatch reset
 
-        // Publish initial states
-        mqttClient.publish(haModeStateTopic, currentAppMode, { retain: true });
         publishTrainRouteState(); // Publish initial train route state
+        publishStopwatchState(); // Publish initial stopwatch state
         mqttClient.publish(HA_AVAILABILITY_TOPIC, 'online', { retain: true }); // Publish availability
 
     } else if (topic === haModeCommandTopic) {
