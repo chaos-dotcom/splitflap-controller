@@ -16,8 +16,8 @@
     <rect width="28" height="56" x="2" y="2" rx="3" ry="3" fill="#111" /> <!-- Doubled height -->
     <rect width="24" height="48" x="4" y="4" rx="2" ry="2" fill="url(#flapGradient)" /> <!-- Doubled height -->
     <line x1="4" y1="30" x2="28" y2="30" stroke="#000" stroke-width="1.5" stroke-opacity="0.8"/> <!-- Adjusted y position -->
-    <!-- Simple 'S' character representation (scaled vertically) -->
-    <path d="M 24 20 C 24 16, 8 16, 8 24 S 24 32, 24 36 C 24 40, 8 40, 8 48" stroke="#FFF" stroke-width="2" fill="none" /> <!-- Scaled/shifted path -->
+    <!-- Smoother 'S' character representation -->
+    <path d="M 22 18 Q 18 14, 14 18 T 10 22 Q 8 26, 12 30 T 18 34 Q 22 38, 18 42 T 10 46" stroke="#FFF" stroke-width="2.5" fill="none" /> <!-- Adjusted path for smoother S -->
   </g>
 
   <!-- Module 2: F -->
@@ -25,7 +25,7 @@
     <rect width="28" height="56" x="34" y="2" rx="3" ry="3" fill="#111" /> <!-- Doubled height -->
     <rect width="24" height="48" x="36" y="4" rx="2" ry="2" fill="url(#flapGradient)" /> <!-- Doubled height -->
     <line x1="36" y1="30" x2="60" y2="30" stroke="#000" stroke-width="1.5" stroke-opacity="0.8"/> <!-- Adjusted y position -->
-    <!-- Simple 'F' character representation (scaled vertically & shifted) -->
-    <path d="M 42 18 L 42 42 M 42 18 L 48 18 M 42 30 L 47 30" stroke="#FFF" stroke-width="2" fill="none" /> <!-- Scaled/shifted path -->
+    <!-- More standard 'F' character representation -->
+    <path d="M 40 18 L 40 46 M 40 18 L 52 18 M 40 30 L 49 30" stroke="#FFF" stroke-width="2.5" fill="none" /> <!-- Adjusted path for standard F -->
   </g>
 </svg>
