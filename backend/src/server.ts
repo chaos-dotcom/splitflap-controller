@@ -345,6 +345,7 @@ app.get('/api/departures', async (req: Request, res: Response) => {
                 try {
                     console.log(`[Details] Fetching details for service ID: ${dep.id}`);
                     const [detailResult] = await detailClient.GetServiceDetailsAsync({ serviceID: dep.id });
+                    console.log(`[DEBUG] GetServiceDetails Result for ${dep.id}:`, JSON.stringify(detailResult, null, 2)); // <-- ADD DEBUG LOG
                     const serviceDetails = detailResult?.GetServiceDetailsResult;
 
                     if (serviceDetails?.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
@@ -765,6 +766,7 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
             await Promise.allSettled(fetchedDepartures.map(async (dep) => {
                 try {
                     const [detailResult] = await client.GetServiceDetailsAsync({ serviceID: dep.id });
+                    console.log(`[DEBUG][Polling] GetServiceDetails Result for ${dep.id}:`, JSON.stringify(detailResult, null, 2)); // <-- ADD DEBUG LOG
                     const serviceDetails = detailResult?.GetServiceDetailsResult;
                     if (serviceDetails?.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
                         const callingPoints = serviceDetails.subsequentCallingPoints.callingPointList[0].callingPoint;
