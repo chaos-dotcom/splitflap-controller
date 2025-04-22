@@ -311,13 +311,13 @@ app.get('/api/departures', async (req: Request, res: Response) => {
                     scheduledTime: service.std || '??:??', // Scheduled time of departure
                     destination: destinationName,
                     platform: service.platform || undefined, // Platform might be missing
-                  status: status,
-                  estimatedTime: estimatedTime,
-                  // destinationETA will be added below
-              // }; // <-- REMOVE closing brace here
+                 status: status,
+                 estimatedTime: estimatedTime,
+                 // destinationETA will be added below
+             }; // <-- Ensure this closing brace is HERE
 
-              // --- Extract Destination ETA from Details (if available) ---
-              // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
+             // --- Extract Destination ETA from Details (if available) ---
+             // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
                if (toStation && service.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
                    const callingPoints = service.subsequentCallingPoints.callingPointList[0].callingPoint;
                    const destinationPoint = callingPoints.find((cp: any) => cp.crs === toStation);
@@ -327,12 +327,12 @@ app.get('/api/departures', async (req: Request, res: Response) => {
                            departure.destinationETA = eta; // Add ETA directly
                        }
                    }
-              }
-              // --- End ETA Extraction ---
-              }; // <-- ADD closing brace here, after potential ETA addition
+             }
+             // --- End ETA Extraction ---
+             // }; // <-- REMOVE closing brace from here
 
-              departures.push(departure);
-          });
+             departures.push(departure);
+         });
       } else { // If trainServices is null, undefined, or empty array
             console.log(`No train services found for ${fromStation} in the response.`);
             // Check for informational messages from NRCC
@@ -723,12 +723,12 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
                     destination: destinationName,
                     platform: service.platform || undefined,
                     status: status,
-                  estimatedTime: estimatedTime,
-                  // destinationETA is extracted below
-              // }; // <-- REMOVE closing brace here
+                 estimatedTime: estimatedTime,
+                 // destinationETA is extracted below
+             }; // <-- Ensure this closing brace is HERE
 
-              // --- Extract Destination ETA from Details (if available) ---
-              // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
+             // --- Extract Destination ETA from Details (if available) ---
+             // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
                if (route.toCRS && service.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
                    const callingPoints = service.subsequentCallingPoints.callingPointList[0].callingPoint;
                    const destinationPoint = callingPoints.find((cp: any) => cp.crs === route.toCRS);
@@ -738,12 +738,12 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
                            departure.destinationETA = eta; // Add ETA directly
                        }
                    }
-              }
-              // --- End ETA Extraction ---
-              }; // <-- ADD closing brace here, after potential ETA addition
+             }
+             // --- End ETA Extraction ---
+             // }; // <-- REMOVE closing brace from here
 
-              fetchedDepartures.push(departure);
-          });
+             fetchedDepartures.push(departure);
+         });
       }
 
        // --- REMOVED: Separate GetServiceDetails calls are no longer needed ---
