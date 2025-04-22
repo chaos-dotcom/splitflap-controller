@@ -249,27 +249,22 @@ app.get('/api/departures', async (req: Request, res: Response) => {
             ...(toStation && { filterCrs: toStation, filterType: 'to' })
         };
 
-        console.log(`Calling GetDepartureBoardAsync for station: ${fromStation} with args:`, args);
-
-        // Call the SOAP method (method name usually matches WSDL operation + 'Async')
-        // The library handles the POST request, SOAPAction header, and XML construction/parsing.
-        // The result is typically the first element of the returned array.
-        const [result, rawResponse, soapHeaderResponse, rawRequest] = await client.GetDepartureBoardAsync(args);
+        // *** CHANGE: Use GetDepBoardWithDetailsAsync ***
+        console.log(`Calling GetDepBoardWithDetailsAsync for station: ${fromStation} with args:`, args); // <-- Updated Log Label
+        const [result] = await client.GetDepBoardWithDetailsAsync(args);
 
         console.log("Received response from NRE.");
         // --- DEBUGGING: Log the structure of the parsed result ---
-        console.log("Parsed Result Object:", JSON.stringify(result, null, 2));
+        console.log("Parsed GetDepBoardWithDetails Result Object:", JSON.stringify(result, null, 2)); // <-- Updated Log Label
         // --- END DEBUGGING ---
-        // console.log("Raw Response Body:", rawResponse); // Uncomment for deep debugging
 
         // --- Process Response ---
-        // The 'soap' library parses the response into a JavaScript object.
         // Navigate the object structure based on the WSDL/XML response.
-        const stationBoardResult = result?.GetStationBoardResult;
+        // *** CHANGE: Access result via GetStationBoardResult (structure might be similar or nested differently) ***
+        const stationBoardResult = result?.GetStationBoardResult; // Assuming structure is similar, adjust if needed based on debug log
 
         if (!stationBoardResult) {
-            console.error('Could not find GetStationBoardResult in NRE response structure:', JSON.stringify(result, null, 2));
-            // Note: SOAP Faults are typically thrown as errors by the library, caught in the catch block.
+            console.error('Could not find GetStationBoardResult in GetDepBoardWithDetails response:', JSON.stringify(result, null, 2)); // <-- Updated Log Label
             throw new Error('Unexpected response structure from NRE API.');
         }
 
@@ -316,12 +311,28 @@ app.get('/api/departures', async (req: Request, res: Response) => {
                     scheduledTime: service.std || '??:??', // Scheduled time of departure
                     destination: destinationName,
                     platform: service.platform || undefined, // Platform might be missing
-                    status: status,
-                    estimatedTime: estimatedTime,
-                };
-                departures.push(departure);
-            });
-        } else { // If trainServices is null, undefined, or empty array
+                   status: status,
+                   estimatedTime: estimatedTime,
+                   // destinationETA will be added below
+               };
+
+               // --- Extract Destination ETA from Details (if available) ---
+               // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
+               if (toStation && service.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
+                   const callingPoints = service.subsequentCallingPoints.callingPointList[0].callingPoint;
+                   const destinationPoint = callingPoints.find((cp: any) => cp.crs === toStation);
+                   if (destinationPoint) {
+                       const eta = destinationPoint.et || destinationPoint.st; // Prioritize estimated time
+                       if (eta && eta !== 'No report' && eta !== 'Cancelled' && eta !== 'Delayed') {
+                           departure.destinationETA = eta; // Add ETA directly
+                       }
+                   }
+               }
+               // --- End ETA Extraction ---
+
+               departures.push(departure);
+           });
+       } else { // If trainServices is null, undefined, or empty array
             console.log(`No train services found for ${fromStation} in the response.`);
             // Check for informational messages from NRCC
             if (stationBoardResult.nrccMessages?.message) {
@@ -330,57 +341,13 @@ app.get('/api/departures', async (req: Request, res: Response) => {
             }
         }
 
-        console.log(`Successfully fetched and mapped ${departures.length} initial departures for ${fromStation}.`);
+       console.log(`Successfully fetched and mapped ${departures.length} departures for ${fromStation}.`);
 
-        // --- Fetch Service Details for Destination ETAs (if toStation provided) ---
-        if (toStation && departures.length > 0) {
-            console.log(`Fetching service details to find ETAs for destination: ${toStation}`);
-            // Create a new client or reuse? Reusing might be complex with headers. Create new for simplicity.
-            // Note: This makes multiple API calls. Consider performance/rate limits.
-            const detailClient: Client = await createClientAsync(NRE_LDBWS_WSDL_URL);
-            detailClient.addSoapHeader(soapHeader, '', 'typ', 'http://thalesgroup.com/RTTI/2013-11-28/Token/types');
-
-            // Use Promise.all to fetch details concurrently
-            await Promise.allSettled(departures.map(async (dep) => {
-                try {
-                    console.log(`[Details] Fetching details for service ID: ${dep.id}`);
-                    const [detailResult] = await detailClient.GetServiceDetailsAsync({ serviceID: dep.id });
-                    console.log(`[DEBUG] GetServiceDetails Result for ${dep.id}:`, JSON.stringify(detailResult, null, 2)); // <-- ADD DEBUG LOG
-                    const serviceDetails = detailResult?.GetServiceDetailsResult;
-
-                    if (serviceDetails?.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
-                        const callingPoints = serviceDetails.subsequentCallingPoints.callingPointList[0].callingPoint;
-                        const destinationPoint = callingPoints.find((cp: any) => cp.crs === toStation);
-
-                        if (destinationPoint) {
-                            // Prioritize estimated time (et) over scheduled (st)
-                            const eta = destinationPoint.et || destinationPoint.st;
-                            if (eta && eta !== 'No report' && eta !== 'Cancelled' && eta !== 'Delayed') {
-                                console.log(`[Details] Found ETA ${eta} for service ${dep.id} at ${toStation}`);
-                                dep.destinationETA = eta; // Add ETA to the departure object
-                            } else {
-                                 console.log(`[Details] No valid ETA/STA found for service ${dep.id} at ${toStation}. Status: ${destinationPoint.et || destinationPoint.st}`);
-                            }
-                        } else {
-                             console.log(`[Details] Destination ${toStation} not found in subsequent calling points for service ${dep.id}`);
-                        }
-                    } else {
-                         console.log(`[Details] No subsequent calling points found for service ${dep.id}`);
-                    }
-                } catch (detailError: any) {
-                    // Log error fetching details for a specific service, but don't fail the whole request
-                    console.error(`[Details] Error fetching details for service ID ${dep.id}:`, detailError.message || detailError);
-                    if (detailError.Fault) {
-                         console.error('[Details] SOAP Fault:', detailError.Fault);
-                    }
-                }
-            }));
-            console.log(`Finished fetching service details.`);
-        }
-        // --- End Fetch Service Details ---
+       // --- REMOVED: Separate GetServiceDetails calls are no longer needed ---
+       // The ETA extraction now happens within the main loop using data from GetDepBoardWithDetailsAsync
 
 
-        res.json(departures); // Send the potentially updated departures data
+       res.json(departures); // Send the potentially updated departures data
 
     } catch (error: any) {
         console.error('Error calling NRE LDBWS:', error);
@@ -723,14 +690,18 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
         const args = {
             numRows: 10, // Keep consistent number of rows
             crs: route.fromCRS,
-            ...(route.toCRS && { filterCrs: route.toCRS, filterType: 'to' })
-        };
+           ...(route.toCRS && { filterCrs: route.toCRS, filterType: 'to' })
+       };
 
-        const [result] = await client.GetDepartureBoardAsync(args);
-        const stationBoardResult = result?.GetStationBoardResult;
-        if (!stationBoardResult) throw new Error('Unexpected response structure from GetDepartureBoard.');
+       // *** CHANGE: Use GetDepBoardWithDetailsAsync ***
+       console.log(`[Train Polling] Calling GetDepBoardWithDetailsAsync with args:`, args); // <-- Updated Log Label
+       const [result] = await client.GetDepBoardWithDetailsAsync(args);
+       console.log("[Train Polling] Parsed GetDepBoardWithDetails Result:", JSON.stringify(result, null, 2)); // <-- ADD DEBUG LOG
 
-        const fetchedDepartures: Departure[] = [];
+       const stationBoardResult = result?.GetStationBoardResult;
+       if (!stationBoardResult) throw new Error('Unexpected response structure from GetDepBoardWithDetails.'); // <-- Updated Error Message
+
+       const fetchedDepartures: Departure[] = [];
         const trainServices = stationBoardResult.trainServices?.service;
         if (trainServices) {
             const servicesArray = Array.isArray(trainServices) ? trainServices : [trainServices];
@@ -751,42 +722,32 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
                     destination: destinationName,
                     platform: service.platform || undefined,
                     status: status,
-                    estimatedTime: estimatedTime,
-                    // destinationETA will be fetched next if needed
-                });
-            });
-        }
+                   estimatedTime: estimatedTime,
+                   // destinationETA is extracted below
+               };
 
-        // --- Fetch Service Details for Destination ETAs (if toStation provided) ---
-        if (route.toCRS && fetchedDepartures.length > 0) {
-            console.log(`[Train Polling] Fetching service details for ETAs at destination: ${route.toCRS}`);
-            // Re-add header for detail calls (client object might be reused or state lost)
-            client.addSoapHeader(soapHeader, '', 'typ', 'http://thalesgroup.com/RTTI/2013-11-28/Token/types');
+               // --- Extract Destination ETA from Details (if available) ---
+               // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
+               if (route.toCRS && service.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
+                   const callingPoints = service.subsequentCallingPoints.callingPointList[0].callingPoint;
+                   const destinationPoint = callingPoints.find((cp: any) => cp.crs === route.toCRS);
+                   if (destinationPoint) {
+                       const eta = destinationPoint.et || destinationPoint.st; // Prioritize estimated time
+                       if (eta && eta !== 'No report' && eta !== 'Cancelled' && eta !== 'Delayed') {
+                           departure.destinationETA = eta; // Add ETA directly
+                       }
+                   }
+               }
+               // --- End ETA Extraction ---
 
-            await Promise.allSettled(fetchedDepartures.map(async (dep) => {
-                try {
-                    const [detailResult] = await client.GetServiceDetailsAsync({ serviceID: dep.id });
-                    console.log(`[DEBUG][Polling] GetServiceDetails Result for ${dep.id}:`, JSON.stringify(detailResult, null, 2)); // <-- ADD DEBUG LOG
-                    const serviceDetails = detailResult?.GetServiceDetailsResult;
-                    if (serviceDetails?.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
-                        const callingPoints = serviceDetails.subsequentCallingPoints.callingPointList[0].callingPoint;
-                        const destinationPoint = callingPoints.find((cp: any) => cp.crs === route.toCRS);
-                        if (destinationPoint) {
-                            const eta = destinationPoint.et || destinationPoint.st;
-                            if (eta && eta !== 'No report' && eta !== 'Cancelled' && eta !== 'Delayed') {
-                                dep.destinationETA = eta;
-                            }
-                        }
-                    }
-                } catch (detailError: any) {
-                    console.error(`[Train Polling] Error fetching details for service ID ${dep.id}:`, detailError.message || detailError);
-                }
-            }));
-            console.log(`[Train Polling] Finished fetching service details.`);
-        }
-        // --- End Fetch Service Details ---
+               fetchedDepartures.push(departure);
+           });
+       }
 
-        lastFetchedDepartures = fetchedDepartures; // Update the stored departures
+       // --- REMOVED: Separate GetServiceDetails calls are no longer needed ---
+
+
+       lastFetchedDepartures = fetchedDepartures; // Update the stored departures
         console.log(`[Train Polling] Processed ${lastFetchedDepartures.length} departures.`);
 
         // --- Calculate Concatenated Time String FOR AUTOMATIC DISPLAY --- (Keep existing logic)
