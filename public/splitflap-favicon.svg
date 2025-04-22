@@ -16,8 +16,8 @@
     <rect width="28" height="56" x="2" y="2" rx="3" ry="3" fill="#111" /> <!-- Doubled height -->
     <rect width="24" height="48" x="4" y="4" rx="2" ry="2" fill="url(#flapGradient)" /> <!-- Doubled height -->
     <line x1="4" y1="30" x2="28" y2="30" stroke="#000" stroke-width="1.5" stroke-opacity="0.8"/> <!-- Adjusted y position -->
-    <!-- Tighter, more traditional 'S' character representation -->
-    <path d="M 22 18 C 22 12, 10 14, 10 24 C 10 34, 22 36, 22 42 C 22 48, 10 50, 10 44" stroke="#FFF" stroke-width="2.5" fill="none" /> <!-- Adjusted path for tighter S -->
+    <!-- Square 'S' character representation -->
+    <path d="M 22 18 L 10 18 L 10 30 L 22 30 L 22 46 L 10 46" stroke="#FFF" stroke-width="2.5" fill="none" /> <!-- Path for square S -->
   </g>
 
   <!-- Module 2: F -->
