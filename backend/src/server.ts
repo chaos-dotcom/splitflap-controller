@@ -1015,6 +1015,30 @@ const handleMqttMessage = (topic: string, message: Buffer) => {
         } else {
             console.log(`[HA MQTT] Ignoring Train Update button press (Mode: ${currentAppMode}, Route: ${!!currentTrainRoute})`);
         }
+    } else if (topic === haStopwatchStartStopCommandTopic) {
+        // --- Handle Stopwatch Start/Stop Button Press ---
+        console.log(`[HA MQTT] Received Stopwatch Start/Stop button press.`);
+        if (currentAppMode === 'stopwatch') {
+            if (isStopwatchRunning) {
+                console.log(`[HA MQTT] Stopwatch is running, stopping it.`);
+                stopBackendStopwatch();
+            } else {
+                console.log(`[HA MQTT] Stopwatch is stopped, starting it.`);
+                startBackendStopwatch();
+            }
+        } else {
+            // More specific log when ignoring due to mode mismatch
+            console.log(`[HA MQTT] Ignoring Stopwatch Start/Stop button press because current mode is '${currentAppMode}' (expected 'stopwatch')`);
+        }
+    } else if (topic === haStopwatchResetCommandTopic) {
+        // --- Handle Stopwatch Reset Button Press ---
+        console.log(`[HA MQTT] Received Stopwatch Reset button press.`);
+        if (currentAppMode === 'stopwatch') {
+             resetBackendStopwatch();
+        } else {
+            // More specific log when ignoring due to mode mismatch
+            console.log(`[HA MQTT] Ignoring Stopwatch Reset button press because current mode is '${currentAppMode}' (expected 'stopwatch')`);
+        }
     }
     // Add handlers for other subscribed topics if needed
 };
