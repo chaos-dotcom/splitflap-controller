@@ -317,18 +317,28 @@ app.get('/api/departures', async (req: Request, res: Response) => {
             }; // <-- Correct closing brace for the initial object definition
 
                // --- Extract Destination ETA from Details (if available) ---
-               // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
-               if (toStation && service.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
-                   const callingPoints = service.subsequentCallingPoints.callingPointList[0].callingPoint;
-                   const destinationPoint = callingPoints.find((cp: any) => cp.crs === toStation); // Correctly use toStation here
-                   if (destinationPoint) {
-                       const eta = destinationPoint.et || destinationPoint.st; // Prioritize estimated time
-                       // *** Add check to ensure eta looks like HH:MM ***
-                       if (eta && /^\d{2}:\d{2}$/.test(eta)) { // Check if eta is in HH:MM format
-                           departure.destinationETA = eta; // Add ETA directly
-                       }
-                   }
-               }
+              // --- Extract Destination ETA from Details (if available) ---
+              // This logic assumes 'service' is a ServiceItemWithCallingPoints from GetDepBoardWithDetailsAsync
+              if (toStation && service.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
+                  const callingPoints = service.subsequentCallingPoints.callingPointList[0].callingPoint;
+                  const destinationPoint = callingPoints.find((cp: any) => cp.crs === toStation); // Correctly use toStation here
+                  if (destinationPoint) {
+                      let arrivalTime: string | undefined = undefined;
+                      // Check 'et' first - is it a time?
+                      if (destinationPoint.et && /^\d{2}:\d{2}$/.test(destinationPoint.et)) {
+                          arrivalTime = destinationPoint.et;
+                      }
+                      // If 'et' wasn't a time, check 'st' - is it a time?
+                      else if (destinationPoint.st && /^\d{2}:\d{2}$/.test(destinationPoint.st)) {
+                          arrivalTime = destinationPoint.st;
+                      }
+
+                      // Assign if we found a valid time
+                      if (arrivalTime) {
+                          departure.destinationETA = arrivalTime; // Add ETA directly
+                      }
+                  }
+              }
                // --- End ETA Extraction ---
                // }; // <-- Remove incorrect closing brace from here
 
