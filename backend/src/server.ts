@@ -330,8 +330,56 @@ app.get('/api/departures', async (req: Request, res: Response) => {
             }
         }
 
-        console.log(`Successfully fetched and mapped ${departures.length} departures for ${fromStation}.`);
-        res.json(departures); // Send the mapped data to the frontend
+        console.log(`Successfully fetched and mapped ${departures.length} initial departures for ${fromStation}.`);
+
+        // --- Fetch Service Details for Destination ETAs (if toStation provided) ---
+        if (toStation && departures.length > 0) {
+            console.log(`Fetching service details to find ETAs for destination: ${toStation}`);
+            // Create a new client or reuse? Reusing might be complex with headers. Create new for simplicity.
+            // Note: This makes multiple API calls. Consider performance/rate limits.
+            const detailClient: Client = await createClientAsync(NRE_LDBWS_WSDL_URL);
+            detailClient.addSoapHeader(soapHeader, '', 'typ', 'http://thalesgroup.com/RTTI/2013-11-28/Token/types');
+
+            // Use Promise.all to fetch details concurrently
+            await Promise.allSettled(departures.map(async (dep) => {
+                try {
+                    console.log(`[Details] Fetching details for service ID: ${dep.id}`);
+                    const [detailResult] = await detailClient.GetServiceDetailsAsync({ serviceID: dep.id });
+                    const serviceDetails = detailResult?.GetServiceDetailsResult;
+
+                    if (serviceDetails?.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
+                        const callingPoints = serviceDetails.subsequentCallingPoints.callingPointList[0].callingPoint;
+                        const destinationPoint = callingPoints.find((cp: any) => cp.crs === toStation);
+
+                        if (destinationPoint) {
+                            // Prioritize estimated time (et) over scheduled (st)
+                            const eta = destinationPoint.et || destinationPoint.st;
+                            if (eta && eta !== 'No report' && eta !== 'Cancelled' && eta !== 'Delayed') {
+                                console.log(`[Details] Found ETA ${eta} for service ${dep.id} at ${toStation}`);
+                                dep.destinationETA = eta; // Add ETA to the departure object
+                            } else {
+                                 console.log(`[Details] No valid ETA/STA found for service ${dep.id} at ${toStation}. Status: ${destinationPoint.et || destinationPoint.st}`);
+                            }
+                        } else {
+                             console.log(`[Details] Destination ${toStation} not found in subsequent calling points for service ${dep.id}`);
+                        }
+                    } else {
+                         console.log(`[Details] No subsequent calling points found for service ${dep.id}`);
+                    }
+                } catch (detailError: any) {
+                    // Log error fetching details for a specific service, but don't fail the whole request
+                    console.error(`[Details] Error fetching details for service ID ${dep.id}:`, detailError.message || detailError);
+                    if (detailError.Fault) {
+                         console.error('[Details] SOAP Fault:', detailError.Fault);
+                    }
+                }
+            }));
+            console.log(`Finished fetching service details.`);
+        }
+        // --- End Fetch Service Details ---
+
+
+        res.json(departures); // Send the potentially updated departures data
 
     } catch (error: any) {
         console.error('Error calling NRE LDBWS:', error);
@@ -660,17 +708,86 @@ const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: strin
     }
     console.log(`[Train Polling] Fetching for route: ${route.fromCRS} -> ${route.toCRS || 'any'}`);
     let concatenatedTimes = ""; // Declare outside the try block
-    // Use the existing /api/departures logic (could be refactored later)
     try {
-        // Simulate calling our own API endpoint internally for now
-        // In production, you might call the NRE logic directly here instead of via HTTP
-        const response = await axios.get(`http://localhost:${port}/api/departures`, {
-            params: { from: route.fromCRS, to: route.toCRS }
-        });
-        lastFetchedDepartures = response.data as Departure[];
-        console.log(`[Train Polling] Fetched ${lastFetchedDepartures.length} departures.`);
+        // --- Refactor: Call NRE logic directly instead of internal HTTP call ---
+        console.log(`[Train Polling] Calling NRE logic for ${route.fromCRS} -> ${route.toCRS || 'any'}`);
 
-        // --- Calculate Concatenated Time String FOR AUTOMATIC DISPLAY ---
+        const apiToken = process.env.NRE_API_TOKEN;
+        if (!apiToken) throw new Error('NRE_API_TOKEN not configured.');
+
+        const client: Client = await createClientAsync(NRE_LDBWS_WSDL_URL);
+        const soapHeader = { 'AccessToken': { 'TokenValue': apiToken } };
+        client.addSoapHeader(soapHeader, '', 'typ', 'http://thalesgroup.com/RTTI/2013-11-28/Token/types');
+
+        const args = {
+            numRows: 10, // Keep consistent number of rows
+            crs: route.fromCRS,
+            ...(route.toCRS && { filterCrs: route.toCRS, filterType: 'to' })
+        };
+
+        const [result] = await client.GetDepartureBoardAsync(args);
+        const stationBoardResult = result?.GetStationBoardResult;
+        if (!stationBoardResult) throw new Error('Unexpected response structure from GetDepartureBoard.');
+
+        const fetchedDepartures: Departure[] = [];
+        const trainServices = stationBoardResult.trainServices?.service;
+        if (trainServices) {
+            const servicesArray = Array.isArray(trainServices) ? trainServices : [trainServices];
+            servicesArray.forEach((service: any) => {
+                const destination = service.destination?.location;
+                const destinationName = Array.isArray(destination) ? destination[0]?.locationName || 'Unknown' : destination?.locationName || 'Unknown';
+                let status = 'Unknown';
+                let estimatedTime: string | undefined = undefined;
+                if (service.etd === 'On time') status = 'On time';
+                else if (service.etd === 'Delayed') status = 'Delayed';
+                else if (service.etd === 'Cancelled') status = 'Cancelled';
+                else if (service.etd) { status = 'On time'; estimatedTime = service.etd; }
+                else status = 'On time';
+
+                fetchedDepartures.push({
+                    id: service.serviceID,
+                    scheduledTime: service.std || '??:??',
+                    destination: destinationName,
+                    platform: service.platform || undefined,
+                    status: status,
+                    estimatedTime: estimatedTime,
+                    // destinationETA will be fetched next if needed
+                });
+            });
+        }
+
+        // --- Fetch Service Details for Destination ETAs (if toStation provided) ---
+        if (route.toCRS && fetchedDepartures.length > 0) {
+            console.log(`[Train Polling] Fetching service details for ETAs at destination: ${route.toCRS}`);
+            // Re-add header for detail calls (client object might be reused or state lost)
+            client.addSoapHeader(soapHeader, '', 'typ', 'http://thalesgroup.com/RTTI/2013-11-28/Token/types');
+
+            await Promise.allSettled(fetchedDepartures.map(async (dep) => {
+                try {
+                    const [detailResult] = await client.GetServiceDetailsAsync({ serviceID: dep.id });
+                    const serviceDetails = detailResult?.GetServiceDetailsResult;
+                    if (serviceDetails?.subsequentCallingPoints?.callingPointList?.[0]?.callingPoint) {
+                        const callingPoints = serviceDetails.subsequentCallingPoints.callingPointList[0].callingPoint;
+                        const destinationPoint = callingPoints.find((cp: any) => cp.crs === route.toCRS);
+                        if (destinationPoint) {
+                            const eta = destinationPoint.et || destinationPoint.st;
+                            if (eta && eta !== 'No report' && eta !== 'Cancelled' && eta !== 'Delayed') {
+                                dep.destinationETA = eta;
+                            }
+                        }
+                    }
+                } catch (detailError: any) {
+                    console.error(`[Train Polling] Error fetching details for service ID ${dep.id}:`, detailError.message || detailError);
+                }
+            }));
+            console.log(`[Train Polling] Finished fetching service details.`);
+        }
+        // --- End Fetch Service Details ---
+
+        lastFetchedDepartures = fetchedDepartures; // Update the stored departures
+        console.log(`[Train Polling] Processed ${lastFetchedDepartures.length} departures.`);
+
+        // --- Calculate Concatenated Time String FOR AUTOMATIC DISPLAY --- (Keep existing logic)
         // This string will contain HHMM or MM blocks concatenated, no spaces in between.
         concatenatedTimes = ""; // Ensure it's reset for each fetch
         let previousHour: number | null = null; // Track the hour of the previously added time block

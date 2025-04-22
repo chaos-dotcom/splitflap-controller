@@ -30,7 +30,8 @@ export interface Departure {
   destination: string; // Destination name
   platform?: string; // Platform number (optional)
   status: string; // e.g., "On time", "Delayed", "Cancelled"
-  estimatedTime?: string; // Estimated time if not on time (e.g., "10:42")
+  estimatedTime?: string; // Estimated *departure* time if not on time (e.g., "10:42")
+  destinationETA?: string; // Estimated *arrival* time at the 'to' station (optional)
 }
 // Interface for saved train route presets
 export interface TrainRoutePreset {
