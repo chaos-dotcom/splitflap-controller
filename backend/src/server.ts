@@ -1488,3 +1488,5 @@ io.engine.on("connection_error", (err) => {
 httpServer.listen(port, () => {
     console.log(`[Server] HTTP & WebSocket server listening on http://localhost:${port}`);
     // Connect to MQTT and pass the message handler and availability topic
+    mqttClient.connectToDisplayBroker(handleMqttMessage, HA_AVAILABILITY_TOPIC);
+});
