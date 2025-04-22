@@ -19,14 +19,36 @@ const HA_DISCOVERY_PREFIX = 'homeassistant'; // Default HA discovery prefix
 const HA_DEVICE_ID = 'splitflap_controller'; // Unique ID for the device in HA
 const HA_DEVICE_NAME = 'Split-Flap Controller'; // Name for the device in HA
 const HA_MODE_SELECTOR_ID = 'splitflap_mode'; // Unique ID for the mode selector entity
-const HA_MODE_SELECTOR_NAME = 'Split-Flap Mode'; // Name for the mode selector entity
-const HA_AVAILABILITY_TOPIC = `${HA_DEVICE_ID}/status`; // Topic for online/offline status
+const HA_MODE_SELECTOR_NAME = 'Split-Flap Mode';
+const HA_AVAILABILITY_TOPIC = `${HA_DEVICE_ID}/status`; // Shared availability topic
+
+// --- Train Mode Entities ---
+const HA_TRAIN_FROM_ID = 'splitflap_train_from';
+const HA_TRAIN_FROM_NAME = 'Train From CRS';
+const HA_TRAIN_TO_ID = 'splitflap_train_to';
+const HA_TRAIN_TO_NAME = 'Train To CRS';
+const HA_TRAIN_UPDATE_ID = 'splitflap_train_update';
+const HA_TRAIN_UPDATE_NAME = 'Train Update';
 
 // Define the topics for the mode selector entity using HA standard structure
 const haModeConfigTopic = `${HA_DISCOVERY_PREFIX}/select/${HA_MODE_SELECTOR_ID}/config`;
 // State and command topics nested under the entity's discovery path
 const haModeStateTopic = `${HA_DISCOVERY_PREFIX}/select/${HA_MODE_SELECTOR_ID}/state`;
-const haModeCommandTopic = `${HA_DISCOVERY_PREFIX}/select/${HA_MODE_SELECTOR_ID}/set`; // Use /set convention
+const haModeCommandTopic = `${HA_DISCOVERY_PREFIX}/select/${HA_MODE_SELECTOR_ID}/set`;
+
+// Define topics for Train From Text entity
+const haTrainFromConfigTopic = `${HA_DISCOVERY_PREFIX}/text/${HA_TRAIN_FROM_ID}/config`;
+const haTrainFromStateTopic = `${HA_DISCOVERY_PREFIX}/text/${HA_TRAIN_FROM_ID}/state`;
+const haTrainFromCommandTopic = `${HA_DISCOVERY_PREFIX}/text/${HA_TRAIN_FROM_ID}/set`;
+
+// Define topics for Train To Text entity
+const haTrainToConfigTopic = `${HA_DISCOVERY_PREFIX}/text/${HA_TRAIN_TO_ID}/config`;
+const haTrainToStateTopic = `${HA_DISCOVERY_PREFIX}/text/${HA_TRAIN_TO_ID}/state`;
+const haTrainToCommandTopic = `${HA_DISCOVERY_PREFIX}/text/${HA_TRAIN_TO_ID}/set`;
+
+// Define topics for Train Update Button entity
+const haTrainUpdateConfigTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_TRAIN_UPDATE_ID}/config`;
+const haTrainUpdateCommandTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_TRAIN_UPDATE_ID}/press`; // Buttons use /press
 
 // Define the available modes for the HA select entity
 const HA_MODES: ControlMode[] = ['text', 'train', 'sequence', 'clock', 'stopwatch', 'timer'];
@@ -728,6 +750,19 @@ const stopBackendSequence = () => {
 
 // --- Home Assistant MQTT Integration ---
 
+// Function to publish the current train route state to MQTT
+const publishTrainRouteState = () => {
+    if (!mqttClient.getDisplayConnectionStatus().status.startsWith('connect')) return; // Only publish if connected
+
+    const fromState = currentTrainRoute?.fromCRS ?? "";
+    const toState = currentTrainRoute?.toCRS ?? "";
+
+    console.log(`[HA MQTT] Publishing Train Route State: From='${fromState}', To='${toState}'`);
+    mqttClient.publish(haTrainFromStateTopic, fromState, { retain: true });
+    mqttClient.publish(haTrainToStateTopic, toState, { retain: true });
+};
+
+
 const publishHaDiscoveryConfig = () => {
     if (haDiscoveryPublished) return; // Only publish once per connection usually
 
@@ -764,11 +799,71 @@ const publishHaDiscoveryConfig = () => {
         payload_not_available: "offline",
         // Add origin information
         origin: originPayload,
-        platform: "select", // Re-adding platform key for potentially better compatibility
+        platform: "select",
     };
 
-    console.log(`[HA MQTT] Publishing discovery config to ${haModeConfigTopic}`);
+    // --- Train From Text Entity Config ---
+    const trainFromConfigPayload = {
+        platform: "text",
+        name: HA_TRAIN_FROM_NAME,
+        unique_id: HA_TRAIN_FROM_ID,
+        object_id: HA_TRAIN_FROM_ID,
+        device: devicePayload, // Link to the same device
+        availability_topic: HA_AVAILABILITY_TOPIC, // Use shared availability
+        state_topic: haTrainFromStateTopic,
+        command_topic: haTrainFromCommandTopic,
+        entity_category: "config", // Configuration entity
+        pattern: "^[A-Za-z]{3}$", // Require 3 letters
+        qos: 0,
+        retain: true, // Retain config
+        origin: originPayload, // Add origin info
+    };
+
+    // --- Train To Text Entity Config ---
+    const trainToConfigPayload = {
+        platform: "text",
+        name: HA_TRAIN_TO_NAME,
+        unique_id: HA_TRAIN_TO_ID,
+        object_id: HA_TRAIN_TO_ID,
+        device: devicePayload,
+        availability_topic: HA_AVAILABILITY_TOPIC,
+        state_topic: haTrainToStateTopic,
+        command_topic: haTrainToCommandTopic,
+        entity_category: "config",
+        pattern: "^([A-Za-z]{3})?$", // Allow empty or 3 letters
+        qos: 0,
+        retain: true,
+        origin: originPayload,
+    };
+
+    // --- Train Update Button Entity Config ---
+    const trainUpdateConfigPayload = {
+        platform: "button",
+        name: HA_TRAIN_UPDATE_NAME,
+        unique_id: HA_TRAIN_UPDATE_ID,
+        object_id: HA_TRAIN_UPDATE_ID,
+        device: devicePayload,
+        availability_topic: HA_AVAILABILITY_TOPIC,
+        command_topic: haTrainUpdateCommandTopic, // Topic to trigger the button press
+        entity_category: "config",
+        qos: 0,
+        // Buttons typically don't retain config or have state
+        origin: originPayload,
+    };
+
+    console.log(`[HA MQTT] Publishing discovery config for Select: ${haModeConfigTopic}`);
     mqttClient.publish(haModeConfigTopic, JSON.stringify(configPayload), { retain: true });
+
+    console.log(`[HA MQTT] Publishing discovery config for Train From: ${haTrainFromConfigTopic}`);
+    mqttClient.publish(haTrainFromConfigTopic, JSON.stringify(trainFromConfigPayload), { retain: true });
+
+    console.log(`[HA MQTT] Publishing discovery config for Train To: ${haTrainToConfigTopic}`);
+    mqttClient.publish(haTrainToConfigTopic, JSON.stringify(trainToConfigPayload), { retain: true });
+
+    console.log(`[HA MQTT] Publishing discovery config for Train Update Button: ${haTrainUpdateConfigTopic}`);
+    mqttClient.publish(haTrainUpdateConfigTopic, JSON.stringify(trainUpdateConfigPayload), { retain: true });
+
+
     haDiscoveryPublished = true; // Mark as published for this connection cycle
 };
 
@@ -779,21 +874,73 @@ const handleMqttMessage = (topic: string, message: Buffer) => {
     if (topic === 'internal/connect') {
         // MQTT client connected/reconnected
         haDiscoveryPublished = false; // Reset flag on new connection
-        publishHaDiscoveryConfig();
-        // Subscribe to the *new* command topic
+        publishHaDiscoveryConfig(); // Publish all configs (select, text, button)
+
+        // Subscribe to command topics
         mqttClient.subscribe(haModeCommandTopic);
-        // Publish initial state *after* subscribing
+        mqttClient.subscribe(haTrainFromCommandTopic);
+        mqttClient.subscribe(haTrainToCommandTopic);
+        mqttClient.subscribe(haTrainUpdateCommandTopic);
+
+        // Publish initial states
         mqttClient.publish(haModeStateTopic, currentAppMode, { retain: true });
-        // Publish availability status *after* subscribing
-        mqttClient.publish(HA_AVAILABILITY_TOPIC, 'online', { retain: true });
-    } else if (topic === haModeCommandTopic) { // Check against the updated variable
-        // Received a command from Home Assistant to change the mode
+        publishTrainRouteState(); // Publish initial train route state
+        mqttClient.publish(HA_AVAILABILITY_TOPIC, 'online', { retain: true }); // Publish availability
+
+    } else if (topic === haModeCommandTopic) {
+        // --- Handle Mode Change Command ---
         const requestedMode = messageStr as ControlMode;
         if (HA_MODES.includes(requestedMode)) {
             console.log(`[HA MQTT] Received mode command: ${requestedMode}`);
             setBackendMode(requestedMode, 'mqtt'); // Use the refactored function
         } else {
             console.warn(`[HA MQTT] Received invalid mode command: ${requestedMode}`);
+        }
+    } else if (topic === haTrainFromCommandTopic) {
+        // --- Handle Train From CRS Change ---
+        const newFromCRS = messageStr.toUpperCase();
+        if (/^[A-Z]{3}$/.test(newFromCRS)) {
+            console.log(`[HA MQTT] Received Train From CRS command: ${newFromCRS}`);
+            if (!currentTrainRoute || currentTrainRoute.fromCRS !== newFromCRS) {
+                currentTrainRoute = { ...(currentTrainRoute ?? { fromCRS: '' }), fromCRS: newFromCRS };
+                publishTrainRouteState(); // Publish updated state back to HA
+                // Optionally trigger update if in train mode?
+                if (currentAppMode === 'train') {
+                    fetchAndProcessDepartures(currentTrainRoute);
+                }
+            }
+        } else {
+            console.warn(`[HA MQTT] Received invalid Train From CRS command: ${messageStr}. Ignoring.`);
+            // Optionally publish the *old* state back to reset HA's input
+            publishTrainRouteState();
+        }
+    } else if (topic === haTrainToCommandTopic) {
+        // --- Handle Train To CRS Change ---
+        const newToCRS = messageStr.toUpperCase();
+         if (/^([A-Z]{3})?$/.test(newToCRS)) { // Allow empty or 3 letters
+            console.log(`[HA MQTT] Received Train To CRS command: ${newToCRS || '(empty)'}`);
+            const toValue = newToCRS || undefined; // Store undefined if empty
+             if (!currentTrainRoute || currentTrainRoute.toCRS !== toValue) {
+                currentTrainRoute = { ...(currentTrainRoute ?? { fromCRS: '' }), toCRS: toValue };
+                publishTrainRouteState(); // Publish updated state back to HA
+                 // Optionally trigger update if in train mode?
+                if (currentAppMode === 'train') {
+                    fetchAndProcessDepartures(currentTrainRoute);
+                }
+            }
+        } else {
+            console.warn(`[HA MQTT] Received invalid Train To CRS command: ${messageStr}. Ignoring.`);
+            // Optionally publish the *old* state back to reset HA's input
+            publishTrainRouteState();
+        }
+    } else if (topic === haTrainUpdateCommandTopic) {
+        // --- Handle Train Update Button Press ---
+        console.log(`[HA MQTT] Received Train Update button press.`);
+        if (currentAppMode === 'train' && currentTrainRoute) {
+            console.log(`[HA MQTT] Triggering train departure fetch for ${currentTrainRoute.fromCRS}...`);
+            fetchAndProcessDepartures(currentTrainRoute);
+        } else {
+            console.log(`[HA MQTT] Ignoring Train Update button press (Mode: ${currentAppMode}, Route: ${!!currentTrainRoute})`);
         }
     }
     // Add handlers for other subscribed topics if needed
@@ -930,9 +1077,13 @@ io.on('connection', (socket: Socket) => {
     socket.on('startTrainUpdates', (data: { fromCRS: string; toCRS?: string }) => {
         console.log(`[Socket.IO] Received startTrainUpdates: ${data.fromCRS} -> ${data.toCRS || 'any'} from ${socket.id}`);
         if (currentAppMode === 'train') {
-            // Only start polling if the route is valid
+            // Only process if the route is valid
             if (data.fromCRS && data.fromCRS.length === 3) {
-                startTrainPolling({ fromCRS: data.fromCRS, toCRS: data.toCRS || undefined });
+                const newRoute = { fromCRS: data.fromCRS, toCRS: data.toCRS || undefined };
+                // Update route state *before* starting poll and publish to MQTT
+                currentTrainRoute = newRoute;
+                publishTrainRouteState(); // Publish new route state to HA
+                startTrainPolling(newRoute); // Start polling with the new route
             } else {
                 console.warn('[Socket.IO] Invalid route received for startTrainUpdates.');
                 // Optionally send an error back to the client
