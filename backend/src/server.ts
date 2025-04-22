@@ -938,11 +938,11 @@ const handleMqttMessage = (topic: string, message: Buffer) => {
         mqttClient.subscribe(haTrainFromCommandTopic);
         mqttClient.subscribe(haTrainToCommandTopic);
         mqttClient.subscribe(haTrainUpdateCommandTopic);
-        mqttClient.subscribe(haStopwatchSwitchCommandTopic); // Subscribe to stopwatch switch
+        mqttClient.subscribe(haStopwatchStartStopCommandTopic); // Subscribe to stopwatch start/stop button
         mqttClient.subscribe(haStopwatchResetCommandTopic); // Subscribe to stopwatch reset
 
         publishTrainRouteState(); // Publish initial train route state
-        publishStopwatchState(); // Publish initial stopwatch state
+        // No initial stopwatch state to publish for buttons
         mqttClient.publish(HA_AVAILABILITY_TOPIC, 'online', { retain: true }); // Publish availability
 
     } else if (topic === haModeCommandTopic) {
