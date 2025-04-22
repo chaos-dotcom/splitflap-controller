@@ -365,17 +365,17 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
  
                 {departures.length > 0 && (
                     <table>
-                        <thead>
-                            <tr>
-                                {/* Removed Select column */}
-                                <th>Time</th>
-                                <th>Destination</th>
-                                <th>Plat</th>
-                                <th>Status</th>
-                                <th>ETA (Dest)</th> {/* Add new header */}
-                                <th>Action</th>
-                            </tr>
-                        </thead>
+                       <thead>
+                           <tr>
+                               {/* Removed Select column */}
+                               <th>Time</th>
+                               <th>Destination</th>
+                               <th>Plat</th>
+                               <th>Status</th>
+                               <th>ETA (Dest)</th>{/* Add new header */}
+                               <th>Action</th>
+                           </tr>
+                       </thead>
                         <tbody>
                             {departures.map((dep, index) => ( // Add index here
                                 <tr key={dep.id}>
