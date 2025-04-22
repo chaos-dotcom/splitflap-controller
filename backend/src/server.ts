@@ -455,38 +455,53 @@ const startBackendClock = () => {
 
 // --- Stopwatch Mode Logic ---
 const startBackendStopwatch = () => {
-    if (isStopwatchRunning) return; // Already running
+    console.log('[Stopwatch] startBackendStopwatch called.'); // <-- ADD LOG
+    if (isStopwatchRunning) {
+        console.log('[Stopwatch] Start ignored: Already running.');
+        return;
+    }
     stopAllTimedModes(); // Ensure other modes are stopped
     console.log('[Stopwatch] Starting backend stopwatch interval.');
     isStopwatchRunning = true;
     stopwatchStartTime = Date.now() - stopwatchElapsedTime; // Adjust for resuming
     stopwatchInterval = setInterval(() => {
         stopwatchElapsedTime = Date.now() - stopwatchStartTime;
-        updateDisplayAndBroadcast(formatStopwatchTime(stopwatchElapsedTime));
+        updateDisplayAndBroadcast(formatStopwatchTime(stopwatchElapsedTime), 'stopwatch'); // Ensure sourceMode is passed
         // Also broadcast the raw state for potential UI updates
+        console.log('[Socket.IO] Emitting stopwatchUpdate (interval)'); // <-- ADD LOG
         io.emit('stopwatchUpdate', { elapsedTime: stopwatchElapsedTime, isRunning: isStopwatchRunning });
     }, 100); // Update frequently for smooth display (e.g., 100ms)
     // Broadcast initial running state
+    console.log('[Socket.IO] Emitting stopwatchUpdate (start)'); // <-- ADD LOG
     io.emit('stopwatchUpdate', { elapsedTime: stopwatchElapsedTime, isRunning: isStopwatchRunning });
     // No state to publish for button
 };
 
 const stopBackendStopwatch = () => {
-    if (!isStopwatchRunning) return; // Already stopped
+    console.log('[Stopwatch] stopBackendStopwatch called.'); // <-- ADD LOG
+    if (!isStopwatchRunning) {
+        console.log('[Stopwatch] Stop ignored: Already stopped.');
+        return;
+    }
     console.log('[Stopwatch] Stopping backend stopwatch interval.');
     if (stopwatchInterval) clearInterval(stopwatchInterval);
     stopwatchInterval = null;
     isStopwatchRunning = false;
-    stopwatchElapsedTime = Date.now() - stopwatchStartTime; // Capture final elapsed time
+    // Capture final elapsed time only if stopwatchStartTime is valid (was running)
+    if (stopwatchStartTime > 0) {
+        stopwatchElapsedTime = Date.now() - stopwatchStartTime;
+    }
     // Display remains showing the stopped time (updated by last interval)
+    console.log('[Socket.IO] Emitting stopwatchUpdate (stop)'); // <-- ADD LOG
     io.emit('stopwatchUpdate', { elapsedTime: stopwatchElapsedTime, isRunning: isStopwatchRunning }); // Broadcast stopped state
     // No state to publish for button
 };
 
 const resetBackendStopwatch = () => {
-    console.log('[Stopwatch] Resetting backend stopwatch.');
+    console.log('[Stopwatch] resetBackendStopwatch called.'); // <-- ADD LOG
     stopAllTimedModes({ resetStopwatch: true }); // Stops interval, sets isRunning=false, resets time
-    updateDisplayAndBroadcast(formatStopwatchTime(0)); // Update display to 00:00
+    updateDisplayAndBroadcast(formatStopwatchTime(0), 'stopwatch'); // Update display to 00:00, specify source
+    console.log('[Socket.IO] Emitting stopwatchUpdate (reset)'); // <-- ADD LOG
     io.emit('stopwatchUpdate', { elapsedTime: 0, isRunning: false }); // Broadcast reset state
     // No state to publish for button
 };

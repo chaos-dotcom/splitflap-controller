@@ -252,12 +252,15 @@ function App() {
 
   // Stopwatch Emitters
   const handleStartStopwatch = () => {
+      console.log('[App] handleStartStopwatch called. Emitting startStopwatch...'); // <-- ADD LOG
       socketService.emitStartStopwatch();
   };
   const handleStopStopwatch = () => {
+      console.log('[App] handleStopStopwatch called. Emitting stopStopwatch...'); // <-- ADD LOG
       socketService.emitStopStopwatch();
   };
   const handleResetStopwatch = () => {
+      console.log('[App] handleResetStopwatch called. Emitting resetStopwatch...'); // <-- ADD LOG
       socketService.emitResetStopwatch();
   };
 
