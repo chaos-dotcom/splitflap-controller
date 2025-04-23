@@ -111,11 +111,12 @@ export const socketService = {
         // --- ADD WEBSOCKET TRANSPORT OPTION ---
         try { // <-- Add try block around io() call
             socket = io(BACKEND_URL, {
-                 // withCredentials: true, // <-- REMOVE THIS LINE
-                 autoConnect: false // <-- ADD THIS LINE
+                 // withCredentials: true, // Keep removed
+                 autoConnect: false,
+                 transports: ['websocket'] // <-- ADD THIS LINE BACK
             });
             // --- ADD LOG ---
-            console.log('[Socket.IO Service] io instance created successfully (autoConnect: false).'); // Update log
+            console.log('[Socket.IO Service] io instance created successfully (forcing websocket, autoConnect: false).'); // Update log
             // --- END LOG ---
         } catch (error) { // <-- Add catch block
             console.error('[Socket.IO Service] Error creating io instance:', error);
