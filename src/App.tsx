@@ -215,39 +215,93 @@ function App() {
     // --- End Scene Emitter Handlers ---
     // --- End Define Callbacks ---
 
-  // --- Socket.IO Connection Effect ---
-  useEffect(() => {
-      console.log('[App] useEffect: Calling socketService.connect...'); // Add log before connect
-      socketService.connect(
-          handleInitialState,
-          handleDisplayUpdate,
-          handleModeUpdate,
-          handleMqttStatus,
-          handleStopwatchUpdate,
-          handleTimerUpdate,
-          handleTrainDataUpdate,
-          handleSequenceStopped,
-          // --- ADD Scene Callbacks ---
-          handleSceneListUpdate,
-          handleSceneLoaded,
-          // --- END Scene Callbacks ---
-          handleConnect,
-          handleDisconnect,
-          handleError
-      );
 
-      // Cleanup on unmount
-      return () => {
-          console.log('[App] useEffect cleanup: Disconnecting socket...');
-          socketService.disconnect();
-      };
-      // Include all callbacks in dependency array
-  }, [
-      handleInitialState, handleDisplayUpdate, handleModeUpdate, handleMqttStatus,
-      handleStopwatchUpdate, handleTimerUpdate, handleTrainDataUpdate, handleSequenceStopped,
-      handleSceneListUpdate, handleSceneLoaded, // Add scene callbacks
-      handleConnect, handleDisconnect, handleError
-  ]);
+    // --- ADD THIS NEW useEffect BLOCK for Auth Check and Socket Connection ---
+    useEffect(() => {
+        // Define connection logic inside effect to use latest state/handlers
+        const connectSocket = () => {
+            if (!socketService.isConnected()) {
+                 console.log('[App] Attempting to connect socket...');
+                 socketService.connect(
+                     handleInitialState,
+                     handleDisplayUpdate,
+                     handleModeUpdate,
+                     handleMqttStatus,
+                     handleStopwatchUpdate,
+                     handleTimerUpdate,
+                     handleTrainDataUpdate,
+                     handleSequenceStopped,
+                     handleSceneListUpdate,
+                     handleSceneLoaded,
+                     handleConnect,
+                     handleDisconnect,
+                     handleError
+                 );
+            } else {
+                 console.log('[App] Socket connection requested, but already connected.');
+            }
+        };
+
+        if (oidcEnabled) {
+            console.log("[App] OIDC enabled. Checking auth status...");
+            // Use VITE_API_BASE_URL which should point to your backend (e.g., http://localhost:3001)
+            const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+            fetch(`${apiUrl}/api/auth/status`)
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`Auth status check failed: ${res.status} ${res.statusText}`);
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    console.log("[App] Auth status received:", data);
+                    setIsAuthenticated(data.isAuthenticated);
+                    setUserInfo(data.user || null);
+                    setAuthChecked(true);
+                    if (data.isAuthenticated) {
+                        console.log("[App] User authenticated via session, connecting socket...");
+                        connectSocket(); // Connect socket now
+                    } else {
+                        console.log("[App] User not authenticated via session.");
+                        if (socketService.isConnected()) {
+                            socketService.disconnect(); // Disconnect if somehow connected
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error("[App] Error checking auth status:", error);
+                    setIsAuthenticated(false);
+                    setUserInfo(null);
+                    setAuthChecked(true); // Mark check complete even on error
+                    setBackendError(`Failed to check auth status: ${error.message}`);
+                    if (socketService.isConnected()) {
+                        socketService.disconnect();
+                    }
+                });
+        } else {
+            console.log("[App] OIDC disabled. Assuming authenticated and connecting socket...");
+            setIsAuthenticated(true); // Treat as authenticated for UI purposes
+            setAuthChecked(true);
+            connectSocket(); // Connect socket immediately
+        }
+
+        // Cleanup function
+        return () => {
+            if (socketService.isConnected()) {
+                console.log("[App] Cleanup: Disconnecting socket...");
+                socketService.disconnect();
+            }
+        };
+        // Add all handlers used by connectSocket to dependency array
+    }, [
+        oidcEnabled, // Re-run if OIDC status changes (unlikely at runtime)
+        handleInitialState, handleDisplayUpdate, handleModeUpdate, handleMqttStatus,
+        handleStopwatchUpdate, handleTimerUpdate, handleTrainDataUpdate, handleSequenceStopped,
+        handleSceneListUpdate, handleSceneLoaded,
+        handleConnect, handleDisconnect, handleError
+        // Note: connectSocket is defined inside, so doesn't need to be a dependency itself
+    ]);
+    // --- END NEW useEffect BLOCK ---
 
 
   // --- Handlers for Interactive Display ---
