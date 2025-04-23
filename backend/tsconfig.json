@@ -5,8 +5,11 @@
     "module": "CommonJS",                  /* Specify what module code is generated. */
     "outDir": "./dist",                    /* Specify an output folder for all emitted files. */
     // "rootDir": "./src",                 /* Let root tsconfig handle resolution if needed */
-    // "baseUrl": ".",                     /* REMOVED - Let root config handle alias resolution */
-    // "paths": { },                       /* REMOVED - Let root config handle alias resolution */
+    "baseUrl": ".",                        /* Base directory is the backend directory itself */
+    "paths": {                             /* Define paths relative to this file's location */
+        "types": ["../src/types/index"],   /* Map 'types' to the index file relative to backend/ */
+        "types/*": ["../src/types/*"]      /* Map 'types/*' to the directory relative to backend/ */
+    },
     "strict": true,                        /* Enable all strict type-checking options. */
     "esModuleInterop": true,               /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
     "skipLibCheck": true,                  /* Skip type checking all .d.ts files. */
