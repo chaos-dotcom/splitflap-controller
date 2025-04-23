@@ -313,9 +313,11 @@ const SequenceMode: React.FC<SequenceModeProps> = ({
         setEditingLineId(null); // Stop editing when the input loses focus
     };
 
-    const handleLineEnter = () => {
-        setEditingLineId(null); // Stop editing when Enter is pressed
-    };
+    // Removed handleLineEnter as it's combined into handleFinishEditing
+    // const handleLineEnter = () => {
+    //     setEditingLineId(null); // Stop editing when Enter is pressed
+    // };
+
     // Combine blur and enter into one handler for finishing edits
     const handleFinishEditing = () => {
         setEditingLineId(null);
