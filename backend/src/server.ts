@@ -2,10 +2,13 @@ import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { createClientAsync, Client } from 'soap';
-import { createServer } from 'http'; // Import http server
-import { Server as SocketIOServer, Socket } from 'socket.io'; // Import socket.io
-import * as mqttClient from './mqttClient'; // Import our MQTT client module
-import axios from 'axios'; // Import axios for internal API call
+import { createServer } from 'http';
+import { Server as SocketIOServer, Socket } from 'socket.io';
+import * as mqttClient from './mqttClient';
+import axios from 'axios';
+import fs from 'fs/promises'; // Import file system promises API
+import path from 'path'; // Import path module
+import yaml from 'js-yaml'; // Import YAML library
 // Adjust the path below if your 'src' and 'backend' folders have a different relationship
 // Assuming types are now defined ONLY in the frontend's src/types
 // If you create a shared types package later, adjust this import
@@ -13,6 +16,117 @@ import { ControlMode, Scene, SceneLine, Departure } from '../../src/types';
 
 // Load environment variables from .env file
 dotenv.config();
+
+// --- Scene Management ---
+const SCENES_DIR = path.join(__dirname, '..', 'scenes'); // Directory to store scene YAML files
+
+// Ensure scenes directory exists
+const ensureScenesDirExists = async () => {
+    try {
+        await fs.access(SCENES_DIR);
+        console.log(`[Scenes] Directory found: ${SCENES_DIR}`);
+    } catch (error) {
+        console.log(`[Scenes] Directory not found, creating: ${SCENES_DIR}`);
+        try {
+            await fs.mkdir(SCENES_DIR, { recursive: true });
+        } catch (mkdirError) {
+            console.error(`[Scenes] Failed to create directory ${SCENES_DIR}:`, mkdirError);
+            // Consider exiting or handling this critical error appropriately
+        }
+    }
+};
+
+// Helper to get valid scene names (filenames without .yaml)
+const getSceneNames = async (): Promise<string[]> => {
+    try {
+        const files = await fs.readdir(SCENES_DIR);
+        return files
+            .filter(file => file.endsWith('.yaml') || file.endsWith('.yml'))
+            .map(file => path.basename(file, path.extname(file))) // Get filename without extension
+            .sort(); // Sort alphabetically
+    } catch (error) {
+        console.error('[Scenes] Error reading scene directory:', error);
+        return []; // Return empty list on error
+    }
+};
+
+// Helper to load a scene from YAML
+const loadScene = async (sceneName: string): Promise<Scene | null> => {
+    // Basic sanitization to prevent directory traversal
+    if (sceneName.includes('/') || sceneName.includes('\\') || sceneName.startsWith('.')) {
+        console.warn(`[Scenes] Attempted to load invalid scene name: ${sceneName}`);
+        return null;
+    }
+    const filePath = path.join(SCENES_DIR, `${sceneName}.yaml`);
+    try {
+        const fileContent = await fs.readFile(filePath, 'utf-8');
+        const sceneData = yaml.load(fileContent) as Scene;
+        // Basic validation (can be expanded)
+        if (sceneData && typeof sceneData === 'object' && sceneData.name && Array.isArray(sceneData.lines)) {
+            // Ensure the loaded name matches the filename requested (consistency)
+            if (sceneData.name !== sceneName) {
+                 console.warn(`[Scenes] Loaded scene name "${sceneData.name}" does not match filename "${sceneName}". Using filename.`);
+                 sceneData.name = sceneName; // Overwrite name from file with filename
+            }
+            return sceneData;
+        } else {
+            console.warn(`[Scenes] Invalid YAML structure in file: ${filePath}`);
+            return null;
+        }
+    } catch (error: any) {
+        if (error.code === 'ENOENT') {
+            console.warn(`[Scenes] Scene file not found: ${filePath}`);
+        } else {
+            console.error(`[Scenes] Error loading scene file ${filePath}:`, error);
+        }
+        return null;
+    }
+};
+
+// Helper to save a scene to YAML
+const saveScene = async (sceneName: string, sceneData: Scene): Promise<boolean> => {
+     // Basic sanitization
+    if (sceneName.includes('/') || sceneName.includes('\\') || sceneName.startsWith('.')) {
+        console.warn(`[Scenes] Attempted to save invalid scene name: ${sceneName}`);
+        return false;
+    }
+    // Ensure the scene data being saved has the correct name property
+    const dataToSave = { ...sceneData, name: sceneName };
+    const filePath = path.join(SCENES_DIR, `${sceneName}.yaml`);
+    try {
+        const yamlString = yaml.dump(dataToSave, { indent: 2 }); // Convert Scene object to YAML string
+        await fs.writeFile(filePath, yamlString, 'utf-8');
+        console.log(`[Scenes] Scene saved successfully: ${filePath}`);
+        return true;
+    } catch (error) {
+        console.error(`[Scenes] Error saving scene file ${filePath}:`, error);
+        return false;
+    }
+};
+
+// Helper to delete a scene file
+const deleteScene = async (sceneName: string): Promise<boolean> => {
+     // Basic sanitization
+    if (sceneName.includes('/') || sceneName.includes('\\') || sceneName.startsWith('.')) {
+        console.warn(`[Scenes] Attempted to delete invalid scene name: ${sceneName}`);
+        return false;
+    }
+    const filePath = path.join(SCENES_DIR, `${sceneName}.yaml`);
+    try {
+        await fs.unlink(filePath);
+        console.log(`[Scenes] Scene deleted successfully: ${filePath}`);
+        return true;
+    } catch (error: any) {
+        if (error.code === 'ENOENT') {
+            console.warn(`[Scenes] Scene file not found for deletion: ${filePath}`);
+            return false; // File didn't exist, maybe return true? Depends on desired behavior.
+        } else {
+            console.error(`[Scenes] Error deleting scene file ${filePath}:`, error);
+            return false;
+        }
+    }
+};
+// --- End Scene Management ---
 
 // --- Home Assistant MQTT Discovery Configuration ---
 const HA_DISCOVERY_PREFIX = 'homeassistant'; // Default HA discovery prefix
@@ -1466,6 +1580,56 @@ io.on('connection', (socket: Socket) => {
     });
     // --- End Timer Handlers ---
 
+    // --- Scene Management Handlers ---
+    socket.on('getSceneList', async () => {
+        console.log(`[Socket.IO] Received getSceneList from ${socket.id}`);
+        const sceneNames = await getSceneNames();
+        console.log(`[Socket.IO] Emitting sceneListUpdate to ${socket.id}:`, sceneNames);
+        socket.emit('sceneListUpdate', { names: sceneNames }); // Send names wrapped in an object
+    });
+
+    socket.on('loadScene', async (data: { sceneName: string }) => {
+        console.log(`[Socket.IO] Received loadScene: ${data.sceneName} from ${socket.id}`);
+        const sceneData = await loadScene(data.sceneName);
+        if (sceneData) {
+            console.log(`[Socket.IO] Emitting sceneLoaded to ${socket.id}:`, sceneData.name);
+            socket.emit('sceneLoaded', { scene: sceneData }); // Send scene wrapped in an object
+        } else {
+            // Optionally emit an error back to the client
+            console.warn(`[Socket.IO] Scene "${data.sceneName}" not found or invalid. Not emitting sceneLoaded.`);
+            // socket.emit('error', { message: `Scene '${data.sceneName}' could not be loaded.` });
+        }
+    });
+
+    socket.on('saveScene', async (data: { sceneName: string; sceneData: Scene }) => {
+        console.log(`[Socket.IO] Received saveScene: ${data.sceneName} from ${socket.id}`);
+        const success = await saveScene(data.sceneName, data.sceneData);
+        if (success) {
+            // Broadcast updated list to ALL clients after successful save
+            const sceneNames = await getSceneNames();
+            console.log(`[Socket.IO] Broadcasting sceneListUpdate to all clients:`, sceneNames);
+            io.emit('sceneListUpdate', { names: sceneNames });
+        } else {
+            // Optionally emit an error back to the saving client
+            // socket.emit('error', { message: `Failed to save scene '${data.sceneName}'.` });
+        }
+    });
+
+    socket.on('deleteScene', async (data: { sceneName: string }) => {
+        console.log(`[Socket.IO] Received deleteScene: ${data.sceneName} from ${socket.id}`);
+        const success = await deleteScene(data.sceneName);
+        if (success) {
+            // Broadcast updated list to ALL clients after successful delete
+            const sceneNames = await getSceneNames();
+            console.log(`[Socket.IO] Broadcasting sceneListUpdate to all clients:`, sceneNames);
+            io.emit('sceneListUpdate', { names: sceneNames });
+        } else {
+            // Optionally emit an error back to the deleting client
+            // socket.emit('error', { message: `Failed to delete scene '${data.sceneName}'.` });
+        }
+    });
+    // --- End Scene Management Handlers ---
+
 
     socket.on('startTrainUpdates', (data: { fromCRS: string; toCRS?: string }) => {
         console.log(`[Socket.IO] Received startTrainUpdates: ${data.fromCRS} -> ${data.toCRS || 'any'} from ${socket.id}`);
@@ -1511,8 +1675,9 @@ io.engine.on("connection_error", (err) => {
 });
 
 // --- Start Servers ---
-httpServer.listen(port, () => {
+httpServer.listen(port, async () => { // Make the callback async
     console.log(`[Server] HTTP & WebSocket server listening on http://localhost:${port}`);
+    await ensureScenesDirExists(); // Ensure the scenes directory exists before connecting MQTT
     // Connect to MQTT and pass the message handler and availability topic
     mqttClient.connectToDisplayBroker(handleMqttMessage, HA_AVAILABILITY_TOPIC);
 });
