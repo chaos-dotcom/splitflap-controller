@@ -14,8 +14,9 @@ RUN npm ci
 # Copy the shared types directory from the root context
 COPY src/types ./types
 
-# Copy the rest of the backend application source code from the backend directory
-COPY backend/. .
+# Copy the backend source code and tsconfig from the backend directory
+COPY backend/src ./src
+COPY backend/tsconfig.json ./
 
 # Run the build script (tsc -b) defined in package.json
 RUN npm run build
@@ -29,8 +30,8 @@ WORKDIR /app
 # Set NODE_ENV to production for the final stage
 ENV NODE_ENV=production
 
-# Copy package.json and package-lock.json
-COPY package.json package-lock.json ./
+# Copy package.json and package-lock.json from the backend directory
+COPY backend/package.json backend/package-lock.json ./
 
 # Install only production dependencies
 RUN npm ci --only=production
