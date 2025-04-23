@@ -160,6 +160,52 @@ const formatStopwatchTime = (timeMs: number): string => {
     return formatted.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH);
 };
 
+// --- End Formatting Helpers ---
+
+// --- Core Mode Logic Helpers ---
+
+// Function to stop all timed modes
+const stopAllTimedModes = (options: { resetStopwatch?: boolean } = {}) => {
+    console.log(`[Mode Logic] Stopping all timed modes... (Reset SW: ${!!options.resetStopwatch}, Current Mode: ${currentAppMode})`); // Changed log context
+    if (clockInterval) clearInterval(clockInterval);
+    if (stopwatchInterval) clearInterval(stopwatchInterval);
+    if (sequenceTimeout) clearTimeout(sequenceTimeout);
+    clockInterval = null;
+    stopwatchInterval = null;
+    sequenceTimeout = null;
+    isStopwatchRunning = false; // Ensure stopwatch state is updated
+    if (timerInterval) clearInterval(timerInterval); // Stop timer interval
+    timerInterval = null;
+    timerIsRunning = false; // Ensure timer state is updated
+    stopTrainPolling(); // Stop train polling as well
+    isSequencePlaying = false; // Ensure sequence state is updated
+
+    if (options.resetStopwatch) {
+        console.log('[Mode Logic] Resetting stopwatch state.'); // Changed log context
+        stopwatchElapsedTime = 0;
+        stopwatchStartTime = 0;
+    }
+    // No automatic display update here, the calling function should handle it
+};
+
+
+// --- Clock Mode Logic ---
+const startBackendClock = () => {
+    stopAllTimedModes(); // Ensure other modes are stopped
+    console.log('[Clock] Starting backend clock interval.');
+    const update = () => {
+        // Ensure updateDisplayAndBroadcast is defined before calling it here
+        // This might require moving updateDisplayAndBroadcast definition earlier as well,
+        // or restructuring how initial state is handled.
+        // For now, assuming updateDisplayAndBroadcast is accessible globally or defined earlier.
+        updateDisplayAndBroadcast(formatClockTime(new Date()));
+    };
+    update(); // Initial update
+    clockInterval = setInterval(update, 1000); // Update every second
+};
+
+// --- End Core Mode Logic Helpers ---
+
 
 // --- Express App Setup ---
 const app: Express = express();
@@ -504,45 +550,6 @@ const setBackendMode = (newMode: ControlMode, source: 'socket' | 'mqtt') => {
     io.emit('modeUpdate', { mode: currentAppMode });
 
     console.log(`[Mode Change] Successfully switched to ${currentAppMode}.`);
-};
-// --- End Refactored Mode Setting Logic ---
-
-
-// Function to stop all timed modes
-const stopAllTimedModes = (options: { resetStopwatch?: boolean } = {}) => {
-    console.log(`[Mode Logic] Stopping all timed modes... (Reset SW: ${!!options.resetStopwatch}, Current Mode: ${currentAppMode})`); // Changed log context
-    if (clockInterval) clearInterval(clockInterval);
-    if (stopwatchInterval) clearInterval(stopwatchInterval);
-    if (sequenceTimeout) clearTimeout(sequenceTimeout);
-    clockInterval = null;
-    stopwatchInterval = null;
-    sequenceTimeout = null;
-    isStopwatchRunning = false; // Ensure stopwatch state is updated
-    if (timerInterval) clearInterval(timerInterval); // Stop timer interval
-    timerInterval = null;
-    timerIsRunning = false; // Ensure timer state is updated
-    stopTrainPolling(); // Stop train polling as well
-    isSequencePlaying = false; // Ensure sequence state is updated
-
-    if (options.resetStopwatch) {
-        console.log('[Mode Logic] Resetting stopwatch state.'); // Changed log context
-        stopwatchElapsedTime = 0;
-        stopwatchStartTime = 0;
-    }
-    // No automatic display update here, the calling function should handle it
-};
-
-// --- Clock Mode Logic ---
-const startBackendClock = () => {
-    stopAllTimedModes(); // Ensure other modes are stopped
-    console.log('[Clock] Starting backend clock interval.');
-    const update = () => {
-        updateDisplayAndBroadcast(formatClockTime(new Date()));
-    };
-    update(); // Initial update
-    clockInterval = setInterval(update, 1000); // Update every second
-};
-
 // --- Stopwatch Mode Logic ---
 const startBackendStopwatch = () => {
     console.log('[Stopwatch] startBackendStopwatch called.'); // <-- ADD LOG
