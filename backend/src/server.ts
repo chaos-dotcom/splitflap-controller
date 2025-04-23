@@ -566,6 +566,7 @@ const stopAllTimedModes = (options: { resetStopwatch?: boolean } = {}) => {
     timerIsRunning = false; // Ensure timer state is updated
     stopTrainPolling(); // Stop train polling as well
     isSequencePlaying = false; // Ensure sequence state is updated
+    currentSequenceLoop = false; // Reset loop state when stopping modes
 
     if (options.resetStopwatch) {
         console.log('[Mode Logic] Resetting stopwatch state.'); // Changed log context
