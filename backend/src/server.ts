@@ -1752,7 +1752,8 @@ io.engine.on("connection_error", (err) => {
 
 // --- Start Servers ---
 console.log(`[Server] Attempting to start HTTP server on port ${port}...`);
-httpServer.listen(port, 'localhost', async () => { // Explicitly bind to 'localhost' and make callback async
+// Use options object for listen() to avoid overload ambiguity
+httpServer.listen({ port: port, host: 'localhost' }, async () => {
     const address = httpServer.address(); // Get the actual bound address info
     const bindAddress = typeof address === 'string' ? address : address ? `${address.address}:${address.port}` : 'unknown';
     console.log(`[Server] HTTP & WebSocket server listening on ${bindAddress}`); // Log the actual bound address
