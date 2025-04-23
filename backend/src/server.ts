@@ -1722,6 +1722,12 @@ io.on('connection', (socket: Socket) => {
     console.log(`[Socket.IO] Event listeners successfully set up for ${socket.id}.`); // <-- ADD THIS LOG
 });
 
+// Add listener for initial HTTP headers during handshake
+io.engine.on("headers", (headers, req) => {
+    console.log(`[Socket.IO Engine] Received headers for handshake: Origin: ${headers['origin']}, User-Agent: ${headers['user-agent']}, Method: ${req?.method}, URL: ${req?.url}`);
+});
+
+
 // Add a listener for server-level connection errors
 io.engine.on("connection_error", (err) => {
     console.error("[Socket.IO Engine] Connection Error Details:"); // <-- Enhanced Label
@@ -1745,9 +1751,11 @@ io.engine.on("connection_error", (err) => {
 });
 
 // --- Start Servers ---
-console.log(`[Server] Attempting to start HTTP server on port ${port}...`); // <-- ADD THIS LOG
-httpServer.listen(port, async () => { // Make the callback async
-    console.log(`[Server] HTTP & WebSocket server listening on http://localhost:${port}`);
+console.log(`[Server] Attempting to start HTTP server on port ${port}...`);
+httpServer.listen(port, 'localhost', async () => { // Explicitly bind to 'localhost' and make callback async
+    const address = httpServer.address(); // Get the actual bound address info
+    const bindAddress = typeof address === 'string' ? address : address ? `${address.address}:${address.port}` : 'unknown';
+    console.log(`[Server] HTTP & WebSocket server listening on ${bindAddress}`); // Log the actual bound address
     await ensureScenesDirExists(); // Ensure the scenes directory exists before connecting MQTT
     // Connect to MQTT and pass the message handler and availability topic
     mqttClient.connectToDisplayBroker(handleMqttMessage, HA_AVAILABILITY_TOPIC);
