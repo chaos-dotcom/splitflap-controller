@@ -61,7 +61,7 @@ COPY --from=build /app/backend/dist ./dist
 COPY backend/scenes ./scenes
 
 # Expose the port the backend server listens on (ensure this matches server.ts)
-EXPOSE 3001 # Default in server.ts is 3001
+EXPOSE 3001
 
 # List files for debugging before starting
 RUN echo "--- Final Stage /app/backend ---" && ls -la && \
