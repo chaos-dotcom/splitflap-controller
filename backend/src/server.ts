@@ -631,8 +631,9 @@ let stopwatchStartTime: number = 0; // Timestamp when stopwatch was last started
 let isStopwatchRunning: boolean = false;
 let sequenceTimeout: NodeJS.Timeout | null = null;
 let isSequencePlaying: boolean = false;
-let currentSequence: SceneLine[] = []; // Store the lines of the currently playing sequence
+let currentSequence: SceneLine[] = [];
 let currentSequenceIndex: number = 0;
+let currentSequenceLoop: boolean = false; // Add state for loop setting
 // --- Train Mode State ---
 const POLLING_INTERVAL_MS = 60000; // Poll every 60 seconds
 let currentTrainRoute: { fromCRS: string; toCRS?: string } | null = null;
@@ -1096,14 +1097,39 @@ const stopBackendTimer = () => {
 // --- Sequence Mode Logic ---
 const playNextSequenceLine = () => {
     // This function is intended to be called via setTimeout
-    console.log(`[Sequence] playNextSequenceLine called. Index: ${currentSequenceIndex}, isPlaying: ${isSequencePlaying}`);
+    console.log(`[Sequence] playNextSequenceLine called. Index: ${currentSequenceIndex}, isPlaying: ${isSequencePlaying}, Loop: ${currentSequenceLoop}`);
 
-    if (!isSequencePlaying || currentSequenceIndex >= currentSequence.length) {
-        console.log('[Sequence] Playback finished or stopped.');
-        stopAllTimedModes(); // Clears timeout and sets isSequencePlaying = false
-        io.emit('sequenceStopped'); // Inform clients
-        // Optionally clear display or leave last line?
-        // updateDisplayAndBroadcast(' '.repeat(SPLITFLAP_DISPLAY_LENGTH)); // Use constant
+    if (!isSequencePlaying) {
+        console.log('[Sequence] Playback stopped externally.');
+        // stopAllTimedModes() should have already cleared the timeout
+        return;
+    }
+
+    if (currentSequenceIndex >= currentSequence.length) {
+        if (currentSequenceLoop) {
+            console.log('[Sequence] Reached end, looping back to start.');
+            currentSequenceIndex = 0; // Reset index to loop
+        } else {
+            console.log('[Sequence] Playback finished (no loop).');
+            stopAllTimedModes(); // Clears timeout and sets isSequencePlaying = false
+            io.emit('sequenceStopped'); // Inform clients
+            // Optionally clear display or leave last line?
+            // updateDisplayAndBroadcast(' '.repeat(SPLITFLAP_DISPLAY_LENGTH)); // Use constant
+            return;
+        }
+    }
+
+    // Check again if index is valid after potential loop reset
+    if (currentSequenceIndex >= currentSequence.length) {
+         console.error('[Sequence] Error: Invalid sequence index after loop check. Stopping.');
+         stopAllTimedModes();
+         io.emit('sequenceStopped');
+         return;
+    }
+
+    const line = currentSequence[currentSequenceIndex];
+    console.log(`[Sequence] Displaying line ${currentSequenceIndex + 1}/${currentSequence.length}: "${line.text}" for ${line.durationMs ?? 1000}ms`);
+    updateDisplayAndBroadcast(line.text);
         return;
     }
 
@@ -1121,16 +1147,18 @@ const playNextSequenceLine = () => {
     }, duration);
 };
 
-const startBackendSequence = (scene: Scene) => {
+// Update startBackendSequence to accept loop parameter
+const startBackendSequence = (scene: Scene, loop: boolean) => {
     // Add log to check state *before* the guard clause
-    console.log(`[Sequence] Inside startBackendSequence. isSequencePlaying: ${isSequencePlaying}, lines: ${scene.lines.length}`);
+    console.log(`[Sequence] Inside startBackendSequence. isPlaying: ${isSequencePlaying}, lines: ${scene.lines.length}, loop: ${loop}`);
     if (isSequencePlaying || scene.lines.length === 0) { // Explicitly log if aborted
         console.log(`[Sequence] Start aborted. isPlaying: ${isSequencePlaying}, lines: ${scene.lines.length}`);
         return;
     }
     stopAllTimedModes();
-    console.log(`[Sequence] Starting sequence: ${scene.name}`);
+    console.log(`[Sequence] Starting sequence: ${scene.name} (Loop: ${loop})`);
     isSequencePlaying = true;
+    currentSequenceLoop = loop; // Set loop state
     currentSequence = [...scene.lines]; // Make a copy
     currentSequenceIndex = 0;
     // Use setTimeout for the very first line as well to ensure consistency
@@ -1561,12 +1589,13 @@ io.on('connection', (socket: Socket) => {
         }
     });
 
-    socket.on('playSequence', (data: { scene: Scene }) => {
-        console.log(`[Socket.IO] Received playSequence: ${data.scene.name} from ${socket.id}.`);
+    // Update playSequence handler to receive loop parameter
+    socket.on('playSequence', (data: { scene: Scene; loop: boolean }) => {
+        console.log(`[Socket.IO] Received playSequence: ${data.scene.name} (Loop: ${data.loop}) from ${socket.id}.`);
         // Add log to check the current mode on the backend when the event arrives
         console.log(`[Socket.IO] Current backend mode is: ${currentAppMode}`);
         if (currentAppMode === 'sequence') {
-            startBackendSequence(data.scene);
+            startBackendSequence(data.scene, data.loop); // Pass loop to backend function
         }
     });
     socket.on('stopSequence', () => {

@@ -19,6 +19,7 @@ export interface SceneLine {
 export interface Scene {
     name: string;
     lines: SceneLine[];
+    loop?: boolean; // Optional: Whether the sequence should loop
     // delayMs is removed, now part of SceneLine
 }
 

@@ -202,6 +202,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({
     const [selectedSceneName, setSelectedSceneName] = useState<string>(''); // Still needed for dropdown selection
     const [isPlaying, setIsPlaying] = useState<boolean>(false); // Local UI playing state
     const [editingLineId, setEditingLineId] = useState<string | null>(null);
+    const [loopScene, setLoopScene] = useState<boolean>(false); // State for loop checkbox
     // const timeoutRef = useRef<NodeJS.Timeout | null>(null); // Backend manages timing now
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -228,7 +229,9 @@ const SequenceMode: React.FC<SequenceModeProps> = ({
         if (loadedScene) {
             console.log(`[SequenceMode] Loaded scene "${loadedScene.name}" from props.`);
             setCurrentLines(loadedScene.lines);
+            setCurrentLines(loadedScene.lines);
             setSelectedSceneName(loadedScene.name); // Sync dropdown selection
+            setLoopScene(loadedScene.loop ?? false); // Update loop state from loaded scene
         } else {
             // If loadedScene becomes null (e.g., after delete or error), reset local state
             // Avoid resetting if it was just initially null
@@ -328,6 +331,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({
         const newScene: Scene = {
             name: sceneName.trim(),
             lines: currentLines,
+            loop: loopScene, // Include loop state in saved data
             // delayMs removed
         };
         // Call the onSaveScene prop (passed from App.tsx) to emit the socket event
@@ -348,6 +352,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({
             // Handle "-- Select Scene --" selection
             setSelectedSceneName('');
             setCurrentLines([]); // Clear local editor
+            setLoopScene(false); // Reset loop state
             // Optionally tell App.tsx to clear its loadedScene state if needed
         }
     };
@@ -365,6 +370,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({
             // We also clear local state immediately for better UX
             setSelectedSceneName('');
             setCurrentLines([]);
+            setLoopScene(false); // Reset loop state on delete
             // alert(`Scene "${selectedSceneName}" deleted.`); // Confirmation handled by backend/App state update
         }
     };
@@ -376,8 +382,9 @@ const SequenceMode: React.FC<SequenceModeProps> = ({
         const currentScene: Scene = {
             name: selectedSceneName || `Untitled Scene ${Date.now()}`, // Use selected name or generate one
             lines: currentLines,
+            loop: loopScene, // Include loop state
         };
-        onPlay(currentScene); // Emit event to backend via App.tsx prop
+        onPlay(currentScene); // Emit event to backend via App.tsx prop (will include loop)
         setIsPlaying(true); // Set local playing state immediately for UI feedback
         // Backend will manage the actual playback and timing
     };
@@ -534,6 +541,21 @@ const SequenceMode: React.FC<SequenceModeProps> = ({
                 >
                     ⏹️ Stop
                 </button>
+                {/* Loop Checkbox - GDS Style */}
+                <div className="govuk-checkboxes__item govuk-!-margin-left-4">
+                    <input
+                        className="govuk-checkboxes__input"
+                        id="loop-scene-checkbox"
+                        name="loopScene"
+                        type="checkbox"
+                        checked={loopScene}
+                        onChange={(e) => setLoopScene(e.target.checked)}
+                        disabled={isPlaying || !!editingLineId} // Disable while playing or editing
+                    />
+                    <label className="govuk-label govuk-checkboxes__label" htmlFor="loop-scene-checkbox">
+                        Loop Scene
+                    </label>
+                </div>
             </div>
             {/* Connection Warning - GDS Style */}
             {!isConnected && (

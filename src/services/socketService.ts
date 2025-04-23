@@ -45,7 +45,7 @@ interface ClientToServerEvents {
     startStopwatch: () => void;
     stopStopwatch: () => void;
     resetStopwatch: () => void;
-    playSequence: (data: { scene: Scene }) => void;
+    playSequence: (data: { scene: Scene; loop: boolean }) => void; // Add loop parameter
     stopSequence: () => void;
     setTimer: (data: { durationMs: number }) => void; // Event to set timer duration
     startTimer: () => void; // Event to start timer
@@ -196,7 +196,8 @@ export const socketService = {
     emitStartStopwatch: () => socketService.emit('startStopwatch'),
     emitStopStopwatch: () => socketService.emit('stopStopwatch'),
     emitResetStopwatch: () => socketService.emit('resetStopwatch'),
-    emitPlaySequence: (scene: Scene) => socketService.emit('playSequence', { scene }),
+    // Update emitPlaySequence to include loop
+    emitPlaySequence: (scene: Scene, loop: boolean) => socketService.emit('playSequence', { scene, loop }),
     emitStopSequence: () => socketService.emit('stopSequence'),
     emitSetTimer: (durationMs: number) => socketService.emit('setTimer', { durationMs }),
     emitStartTimer: () => socketService.emit('startTimer'),

@@ -347,8 +347,10 @@ function App() {
   };
 
   // Sequence Emitters
-  const handlePlaySequence = (scene: Scene) => { // Use correct Scene type
-      socketService.emitPlaySequence(scene);
+  const handlePlaySequence = (scene: Scene) => { // Scene object now includes loop property
+      // Extract loop from the scene object passed from SequenceMode
+      const loop = scene.loop ?? false;
+      socketService.emitPlaySequence(scene, loop); // Pass scene and loop separately
   };
   const handleStopSequence = () => {
       socketService.emitStopSequence();
