@@ -1500,6 +1500,25 @@ const handleMqttMessage = (topic: string, message: Buffer) => {
             // More specific log when ignoring due to mode mismatch
             console.log(`[HA MQTT] Ignoring Stopwatch Reset button press because current mode is '${currentAppMode}' (expected 'stopwatch')`);
         }
+    } else if (topic === haTimerDurationCommandTopic) {
+        // --- Handle Timer Duration Set Command ---
+        const durationMinutesStr = messageStr;
+        const durationMinutes = parseInt(durationMinutesStr, 10);
+        console.log(`[HA MQTT] Received Timer Duration command: ${durationMinutesStr}`);
+        if (!isNaN(durationMinutes) && durationMinutes >= 1 && durationMinutes <= 120) { // Validate range (matches config)
+            const durationMs = durationMinutes * 60000;
+            console.log(`[HA MQTT] Setting timer duration to ${durationMinutes} minutes (${durationMs}ms)`);
+            // Only set if in timer mode? Or allow setting anytime? Let's allow anytime for now.
+            // if (currentAppMode === 'timer') {
+            setBackendTimer(durationMs); // This will update state and publish back
+            // } else {
+            //     console.log(`[HA MQTT] Ignoring Timer Duration command because mode is ${currentAppMode}`);
+            // }
+        } else {
+            console.warn(`[HA MQTT] Received invalid Timer Duration command: ${durationMinutesStr}. Ignoring.`);
+            // Publish old state back to reset HA input
+            publishTimerState();
+        }
     }
     // Add handlers for other subscribed topics if needed
 };
@@ -1752,8 +1771,8 @@ io.engine.on("connection_error", (err) => {
 
 // --- Start Servers ---
 console.log(`[Server] Attempting to start HTTP server on port ${port}...`);
-// Use options object for listen() to avoid overload ambiguity
-httpServer.listen({ port: port, host: 'localhost' }, async () => {
+// Use options object for listen() and force IPv4 loopback '127.0.0.1'
+httpServer.listen({ port: port, host: '127.0.0.1' }, async () => {
     const address = httpServer.address(); // Get the actual bound address info
     const bindAddress = typeof address === 'string' ? address : address ? `${address.address}:${address.port}` : 'unknown';
     console.log(`[Server] HTTP & WebSocket server listening on ${bindAddress}`); // Log the actual bound address
