@@ -44,6 +44,135 @@ function App() {
     // setCaretPosition(0); // Reset caret when display updates externally for simplicity
   }, [displayText]);
 
+    // --- Define Callbacks ---
+    // Wrap callbacks that modify state in useCallback to prevent unnecessary re-renders if passed down
+    const handleInitialState = useCallback((state: Parameters<ServerToClientEvents['initialState']>[0]) => {
+        console.log('[App] Received initial state:', state);
+        try {
+          console.log('[App] Setting displayText...');
+          setDisplayText(state.text);
+          console.log('[App] Setting currentMode...');
+          setCurrentMode(state.mode); // Set initial mode
+
+          // Stopwatch State
+          console.log('[App] Setting stopwatch state...');
+          setStopwatchIsRunningBackend(state.stopwatch?.isRunning ?? false);
+          // Note: Initial stopwatch display text comes from state.text if mode is stopwatch
+
+          // Sequence State
+          console.log('[App] Setting sequence state...');
+          // setIsSequencePlayingBackend(state.sequence?.isPlaying ?? false); // Add if needed
+
+          // Train State
+          console.log('[App] Processing train state...');
+          if (state.train) {
+            console.log('[App] Setting currentDepartures:', state.train.departures);
+            setCurrentDepartures(state.train.departures || []);
+            // Optionally set from/to station based on state.train.route if needed for UI consistency
+            // setFromStationInput(state.train.route?.fromCRS || '');
+            // setToStationInput(state.train.route?.toCRS || '');
+            console.log('[App] Train state processed.');
+          } else {
+            console.log('[App] No train state received in initial state.');
+            setCurrentDepartures([]);
+          }
+
+          // Timer State <-- ADD THIS BLOCK
+          console.log('[App] Setting timer state...');
+          if (state.timer) {
+              setTimerIsRunningBackend(state.timer.isRunning ?? false);
+              setTimerRemainingMs(state.timer.remainingMs ?? 0);
+              setTimerTargetMs(state.timer.targetMs ?? 0);
+              console.log('[App] Timer state processed:', state.timer);
+          } else {
+              console.log('[App] No timer state received in initial state.');
+              setTimerIsRunningBackend(false);
+              setTimerRemainingMs(0);
+              setTimerTargetMs(0);
+          }
+          // --- END TIMER BLOCK ---
+
+          console.log('[App] Initial state processing complete.');
+        } catch (error) {
+          console.error('[App] Error processing initial state:', error);
+          setBackendError('Error processing initial state from backend.');
+        }
+    }, []); // Empty dependency array as it only uses setters
+
+    const handleDisplayUpdate = useCallback((data: Parameters<ServerToClientEvents['displayUpdate']>[0]) => {
+        setDisplayText(data.text);
+    }, []);
+
+    const handleModeUpdate = useCallback((data: Parameters<ServerToClientEvents['modeUpdate']>[0]) => {
+        console.log(`[App] Received modeUpdate event from backend with mode: ${data.mode}`);
+        setCurrentMode(data.mode);
+    }, []);
+
+    const handleMqttStatus = useCallback((status: Parameters<ServerToClientEvents['mqttStatus']>[0]) => {
+        setDisplayMqttStatus(status);
+    }, []);
+
+    const handleStopwatchUpdate = useCallback((data: Parameters<ServerToClientEvents['stopwatchUpdate']>[0]) => {
+        console.log('[App] Received stopwatchUpdate:', data);
+        setStopwatchIsRunningBackend(data.isRunning);
+    }, []);
+
+    const handleTimerUpdate = useCallback((data: Parameters<ServerToClientEvents['timerUpdate']>[0]) => {
+        console.log('[App] Received timerUpdate', data);
+        setTimerIsRunningBackend(data.isRunning);
+        setTimerRemainingMs(data.remainingMs);
+        setTimerTargetMs(data.targetMs);
+    }, []);
+
+    const handleTrainDataUpdate = useCallback((data: Parameters<ServerToClientEvents['trainDataUpdate']>[0]) => {
+        console.log('[App] Received trainDataUpdate:', data);
+        setCurrentDepartures(data.departures || []);
+        if (data.error) { setBackendError(`Train Data Error: ${data.error}`); }
+    }, []);
+
+    const handleSequenceStopped = useCallback(() => {
+        console.log('[App] Received sequenceStopped');
+        // Add any state updates needed when sequence stops externally
+    }, []);
+
+    // --- Scene Callbacks ---
+    const handleSceneListUpdate = useCallback((data: Parameters<ServerToClientEvents['sceneListUpdate']>[0]) => {
+        console.log('[App] Received sceneListUpdate:', data.names);
+        setSceneNames(data.names || []); // Ensure it's always an array
+    }, []);
+
+    const handleSceneLoaded = useCallback((data: Parameters<ServerToClientEvents['sceneLoaded']>[0]) => {
+        console.log('[App] Received sceneLoaded:', data.scene?.name);
+        setLoadedScene(data.scene || null); // Store the loaded scene data
+    }, []);
+    // --- End Scene Callbacks ---
+
+    const handleConnect = useCallback(() => {
+        console.log('[App] Socket connected (onConnect callback)');
+        setIsConnectedToBackend(true);
+        setBackendError(null);
+        socketService.emitGetMqttStatus(); // Ask for MQTT status on connect
+        socketService.emitGetSceneList(); // Ask for scene list on connect
+    }, []); // Dependencies: emitGetMqttStatus, emitGetSceneList (from socketService)
+
+    const handleDisconnect = useCallback((reason: string) => {
+        console.log(`[App] Socket disconnected (onDisconnect callback): ${reason}`);
+        setIsConnectedToBackend(false);
+        setBackendError(`Disconnected: ${reason}`);
+        setDisplayMqttStatus({ status: 'unknown', error: null }); // Reset MQTT status
+        setSceneNames([]); // Clear scene names on disconnect
+        setLoadedScene(null); // Clear loaded scene on disconnect
+    }, []);
+
+    const handleError = useCallback((message: string | undefined) => { // Allow message to be undefined
+        const errorMessage = message || "An unknown connection error occurred."; // Provide default message
+        console.error(`[App] Socket error (onError callback): ${errorMessage}`);
+        // Don't assume disconnect on all errors, maybe backend sent an operational error
+        // setIsConnectedToBackend(false);
+        setBackendError(errorMessage);
+    }, []);
+    // --- End Define Callbacks ---
+
   // --- Socket.IO Connection Effect ---
   useEffect(() => {
     console.log('[App] useEffect: Calling socketService.connect...'); // Add log before connect
