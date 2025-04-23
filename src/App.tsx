@@ -171,6 +171,41 @@ function App() {
         // setIsConnectedToBackend(false);
         setBackendError(errorMessage);
     }, []);
+
+    // --- Scene Emitter Handlers ---
+    const handleGetSceneList = useCallback(() => {
+        if (isConnectedToBackend) {
+            console.log('[App] Emitting getSceneList');
+            socketService.emitGetSceneList();
+        }
+    }, [isConnectedToBackend]);
+
+    const handleLoadSceneRequest = useCallback((sceneName: string) => {
+        if (isConnectedToBackend) {
+            console.log(`[App] Emitting loadScene: ${sceneName}`);
+            socketService.emitLoadScene(sceneName);
+        }
+    }, [isConnectedToBackend]);
+
+    const handleSaveSceneRequest = useCallback((sceneName: string, sceneData: Scene) => {
+        if (isConnectedToBackend) {
+            console.log(`[App] Emitting saveScene: ${sceneName}`);
+            socketService.emitSaveScene(sceneName, sceneData);
+            // Optionally show a saving indicator here
+        }
+    }, [isConnectedToBackend]);
+
+    const handleDeleteSceneRequest = useCallback((sceneName: string) => {
+        if (isConnectedToBackend) {
+            console.log(`[App] Emitting deleteScene: ${sceneName}`);
+            socketService.emitDeleteScene(sceneName);
+            // Clear loaded scene locally if it's the one being deleted
+            if (loadedScene?.name === sceneName) {
+                setLoadedScene(null);
+            }
+        }
+    }, [isConnectedToBackend, loadedScene]); // Include loadedScene dependency
+    // --- End Scene Emitter Handlers ---
     // --- End Define Callbacks ---
 
   // --- Socket.IO Connection Effect ---
@@ -414,6 +449,14 @@ function App() {
                 isConnected={isConnectedToBackend}
                 onPlay={handlePlaySequence}
                 onStop={handleStopSequence}
+                // --- Pass Scene Props ---
+                sceneNames={sceneNames}
+                loadedScene={loadedScene}
+                onGetSceneList={handleGetSceneList}
+                onLoadScene={handleLoadSceneRequest}
+                onSaveScene={handleSaveSceneRequest}
+                onDeleteScene={handleDeleteSceneRequest}
+                // --- End Scene Props ---
              />
           )}
           {currentMode === 'clock' && (

@@ -25,10 +25,19 @@ import SplitFlapDisplay from './SplitFlapDisplay'; // Import the display compone
 import InteractiveTextInput from './InteractiveTextInput';
 
 interface SequenceModeProps {
-    isConnected: boolean; // Keep isConnected for disabling UI elements
-    onPlay: (scene: Scene) => void; // Callback to request backend play
-    onStop: () => void; // Callback to request backend stop
+    isConnected: boolean;
+    onPlay: (scene: Scene) => void;
+    onStop: () => void;
+    // --- New Props for Backend Interaction ---
+    sceneNames: string[]; // List of scene names from App state
+    loadedScene: Scene | null; // Currently loaded scene data from App state
+    onGetSceneList: () => void; // Callback to request scene list from backend
+    onLoadScene: (sceneName: string) => void; // Callback to request loading a scene
+    onSaveScene: (sceneName: string, sceneData: Scene) => void; // Callback to save scene to backend
+    onDeleteScene: (sceneName: string) => void; // Callback to delete scene from backend
+    // --- End New Props ---
 }
+
 
 // --- Sortable Item Component ---
 // We create a separate component for the draggable list item
@@ -174,45 +183,62 @@ const SortableLineItem: React.FC<SortableLineItemProps> = ({
 // --- End Sortable Item Component ---
 
 
-const LOCAL_STORAGE_KEY = 'splitFlapScenes';
+// const LOCAL_STORAGE_KEY = 'splitFlapScenes'; // No longer needed
 
-const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onPlay, onStop }) => {
+const SequenceMode: React.FC<SequenceModeProps> = ({
+    isConnected,
+    onPlay,
+    onStop,
+    sceneNames, // Use prop
+    loadedScene, // Use prop
+    onGetSceneList, // Use prop
+    onLoadScene, // Use prop
+    onSaveScene, // Use prop
+    onDeleteScene, // Use prop
+ }) => {
     const [currentLines, setCurrentLines] = useState<SceneLine[]>([]);
     const [newLineText, setNewLineText] = useState<string>('');
-    // Removed top-level delayMs state
-    const [savedScenes, setSavedScenes] = useState<{ [name: string]: Scene }>({});
-    const [selectedSceneName, setSelectedSceneName] = useState<string>('');
-    const [isPlaying, setIsPlaying] = useState<boolean>(false);
+    // const [savedScenes, setSavedScenes] = useState<{ [name: string]: Scene }>({}); // Removed localStorage state
+    const [selectedSceneName, setSelectedSceneName] = useState<string>(''); // Still needed for dropdown selection
+    const [isPlaying, setIsPlaying] = useState<boolean>(false); // Local UI playing state
     const [editingLineId, setEditingLineId] = useState<string | null>(null);
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    // const timeoutRef = useRef<NodeJS.Timeout | null>(null); // Backend manages timing now
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
-    const addLineInputId = 'add-sequence-line-input'; // ID for label association
-    const loadSceneSelectId = 'load-sequence-scene-select'; // ID for label association
+    const addLineInputId = 'add-sequence-line-input';
+    const loadSceneSelectId = 'load-sequence-scene-select';
 
-    // Load saved scenes from localStorage on mount
+    // Request scene list on mount if connected
     useEffect(() => {
-        const storedScenes = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (storedScenes) {
-            try {
-                setSavedScenes(JSON.parse(storedScenes));
-            } catch (e) {
-                console.error("Failed to parse saved scenes from localStorage", e);
-                localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear corrupted data
-            }
+        if (isConnected) {
+            console.log('[SequenceMode] Requesting initial scene list.');
+            onGetSceneList();
         }
-    }, []);
+        // Optionally clear local state if disconnected?
+        // else {
+        //     setCurrentLines([]);
+        //     setSelectedSceneName('');
+        // }
+    }, [isConnected, onGetSceneList]); // Rerun if connection status changes
 
-    // Effect to clear timeout if component unmounts or isPlaying changes
-     useEffect(() => {
-        return () => {
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-            }
-        };
-    }, []);
+    // Update local state when a scene is loaded from the backend via props
+    useEffect(() => {
+        if (loadedScene) {
+            console.log(`[SequenceMode] Loaded scene "${loadedScene.name}" from props.`);
+            setCurrentLines(loadedScene.lines);
+            setSelectedSceneName(loadedScene.name); // Sync dropdown selection
+        } else {
+            // If loadedScene becomes null (e.g., after delete or error), reset local state
+            // Avoid resetting if it was just initially null
+            // if (selectedSceneName !== '') { // Only reset if a scene *was* selected
+            //     console.log('[SequenceMode] loadedScene prop is null, resetting local state.');
+            //     setCurrentLines([]);
+            //     setSelectedSceneName('');
+            // }
+        }
+    }, [loadedScene]); // Depend only on loadedScene prop
 
 
     const handleAddLine = () => {
@@ -302,44 +328,44 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onPlay, onStop
         const newScene: Scene = {
             name: sceneName.trim(),
             lines: currentLines,
-            // delayMs removed from Scene
+            // delayMs removed
         };
-        const updatedScenes = { ...savedScenes, [newScene.name]: newScene };
-        setSavedScenes(updatedScenes);
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedScenes));
-        setSelectedSceneName(newScene.name); // Select the newly saved scene
-        alert(`Scene "${newScene.name}" saved!`);
+        // Call the onSaveScene prop (passed from App.tsx) to emit the socket event
+        onSaveScene(newScene.name, newScene);
+        // Backend will handle saving and broadcasting the updated list via sceneListUpdate event
+        // App.tsx will update sceneNames state, which flows back down as props.
+        // setSelectedSceneName(newScene.name); // Let the sceneLoaded event handle selection if needed, or rely on sceneListUpdate
+        // alert(`Scene "${newScene.name}" saved!`); // Confirmation can be handled in App.tsx based on backend response if needed
     };
 
     const handleLoadScene = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const sceneName = event.target.value;
-        if (sceneName && savedScenes[sceneName]) {
-            const scene = savedScenes[sceneName];
-            setSelectedSceneName(scene.name);
-            setCurrentLines(scene.lines);
-            // delayMs removed
+        if (sceneName) {
+            console.log(`[SequenceMode] Requesting load for scene: ${sceneName}`);
+            onLoadScene(sceneName); // Call prop to emit socket event
+            // The actual loading happens when App.tsx receives 'sceneLoaded' and updates the `loadedScene` prop
         } else {
-            // Handle "New Scene" selection or error
+            // Handle "-- Select Scene --" selection
             setSelectedSceneName('');
-            setCurrentLines([]);
-            // delayMs removed
+            setCurrentLines([]); // Clear local editor
+            // Optionally tell App.tsx to clear its loadedScene state if needed
         }
     };
 
      const handleDeleteSavedScene = () => {
-        if (!selectedSceneName || !savedScenes[selectedSceneName]) {
+        if (!selectedSceneName) {
             alert("No scene selected to delete.");
             return;
         }
         if (confirm(`Are you sure you want to delete the scene "${selectedSceneName}"?`)) {
-            const { [selectedSceneName]: _, ...remainingScenes } = savedScenes; // Destructure to remove
-            setSavedScenes(remainingScenes);
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(remainingScenes));
-            // Reset editor to new scene state
+            console.log(`[SequenceMode] Requesting delete for scene: ${selectedSceneName}`);
+            onDeleteScene(selectedSceneName); // Call prop to emit socket event
+            // Backend handles deletion and broadcasts 'sceneListUpdate'
+            // App.tsx updates sceneNames state.
+            // We also clear local state immediately for better UX
             setSelectedSceneName('');
             setCurrentLines([]);
-            // delayMs removed
-            alert(`Scene "${selectedSceneName}" deleted.`);
+            // alert(`Scene "${selectedSceneName}" deleted.`); // Confirmation handled by backend/App state update
         }
     };
 
@@ -401,7 +427,8 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onPlay, onStop
                             disabled={isPlaying || !!editingLineId} // Also disable if editing a line
                         >
                             <option value="">-- Select Scene --</option>
-                            {Object.keys(savedScenes).sort().map(name => (
+                            {/* Use sceneNames prop from App state */}
+                            {sceneNames.map(name => (
                                 <option key={name} value={name}>{name}</option>
                             ))}
                         </select>
@@ -424,7 +451,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({ isConnected, onPlay, onStop
                             disabled={!selectedSceneName || isPlaying || !!editingLineId}
                             className="govuk-button govuk-button--warning" // Warning for delete
                             data-module="govuk-button"
-                            title="Delete the currently selected saved scene"
+                            title="Delete the currently selected saved scene from the backend" // Updated title
                         >
                             Delete Scene
                         </button>
