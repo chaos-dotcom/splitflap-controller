@@ -162,6 +162,262 @@ const formatStopwatchTime = (timeMs: number): string => {
 
 // --- End Formatting Helpers ---
 
+
+// --- Train Mode Logic ---
+
+// Helper to get hour and minute from a departure time string (HH:MM)
+const getHourMinute = (timeString: string | undefined): { hour: number | null, minute: number | null } => {
+    if (!timeString || !/^\d{2}:\d{2}$/.test(timeString)) {
+        return { hour: null, minute: null };
+    }
+    const parts = timeString.split(':');
+    return { hour: parseInt(parts[0], 10), minute: parseInt(parts[1], 10) };
+};
+
+// Function to calculate the condensed display string for a single departure (Not used for polling display, but useful elsewhere)
+const formatSingleDepartureForDisplay = (dep: Departure, prevDep: Departure | null): string => {
+    const displayTimeStr = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
+        ? dep.estimatedTime : dep.scheduledTime;
+    const { hour: currentHour, minute: currentMinute } = getHourMinute(displayTimeStr);
+
+    const prevDisplayTimeStr = prevDep ? ((prevDep.estimatedTime && prevDep.estimatedTime !== 'On time' && prevDep.estimatedTime !== 'Delayed' && prevDep.estimatedTime !== 'Cancelled') ? prevDep.estimatedTime : prevDep.scheduledTime) : null;
+    const { hour: previousHour } = prevDisplayTimeStr ? getHourMinute(prevDisplayTimeStr) : { hour: null };
+    const prevWasSpecialStatus = prevDep && (prevDep.status.toUpperCase() === 'CANCELLED' || (prevDep.status.toUpperCase() === 'DELAYED' && !prevDep.estimatedTime));
+
+    let timePart: string;
+    if (dep.status.toUpperCase() === 'CANCELLED') timePart = 'CANC';
+    else if (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime) timePart = 'DLAY';
+    else if (currentHour !== null && currentMinute !== null) {
+        const minuteStr = currentMinute.toString().padStart(2, '0');
+        if (currentHour === previousHour && !prevWasSpecialStatus) timePart = `  ${minuteStr}`;
+        else timePart = currentHour.toString().padStart(2, '0') + minuteStr;
+    } else timePart = '----';
+
+    let output: string;
+    if (timePart === 'CANC') output = 'CANCELLED   ';
+    else if (timePart === 'DLAY') output = 'DELAYED     ';
+    else {
+        const plat = dep.platform ? dep.platform.slice(-1) : ' ';
+        const maxDestLength = 7;
+        let dest = dep.destination.toUpperCase().substring(0, maxDestLength - plat.length);
+        dest = dest.padEnd(maxDestLength - plat.length);
+        output = `${timePart} ${dest}${plat}`;
+    }
+    return output.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH);
+};
+
+const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: string }) => {
+    if (!route || !route.fromCRS) {
+        console.warn('[Train Polling] Attempted fetch without a valid route.');
+        return;
+    }
+    console.log(`[Train Polling] Fetching for route: ${route.fromCRS} -> ${route.toCRS || 'any'}`);
+    let concatenatedTimes = ""; // Declare outside the try block
+    try {
+        // --- Refactor: Call NRE logic directly instead of internal HTTP call ---
+        console.log(`[Train Polling] Calling NRE logic for ${route.fromCRS} -> ${route.toCRS || 'any'}`);
+
+        const apiToken = process.env.NRE_API_TOKEN;
+        if (!apiToken) throw new Error('NRE_API_TOKEN not configured.');
+
+        const client: Client = await createClientAsync(NRE_LDBWS_WSDL_URL);
+        const soapHeader = { 'AccessToken': { 'TokenValue': apiToken } };
+        client.addSoapHeader(soapHeader, '', 'typ', 'http://thalesgroup.com/RTTI/2013-11-28/Token/types');
+
+        const args = {
+            numRows: 10, // Keep consistent number of rows
+            crs: route.fromCRS,
+           ...(route.toCRS && { filterCrs: route.toCRS, filterType: 'to' })
+       };
+
+       // *** CHANGE: Use GetDepBoardWithDetailsAsync ***
+       console.log(`[Train Polling] Calling GetDepBoardWithDetailsAsync with args:`, args); // <-- Updated Log Label
+       const [result] = await client.GetDepBoardWithDetailsAsync(args);
+       console.log("[Train Polling] Parsed GetDepBoardWithDetails Result:", JSON.stringify(result, null, 2)); // <-- ADD DEBUG LOG
+
+       const stationBoardResult = result?.GetStationBoardResult;
+       if (!stationBoardResult) throw new Error('Unexpected response structure from GetDepBoardWithDetails.'); // <-- Updated Error Message
+
+       const fetchedDepartures: Departure[] = [];
+        const trainServices = stationBoardResult.trainServices?.service;
+        if (trainServices) {
+            const servicesArray = Array.isArray(trainServices) ? trainServices : [trainServices];
+            servicesArray.forEach((service: any) => {
+                const destination = service.destination?.location;
+                const destinationName = Array.isArray(destination) ? destination[0]?.locationName || 'Unknown' : destination?.locationName || 'Unknown';
+                let status = 'Unknown';
+                let estimatedTime: string | undefined = undefined;
+                if (service.etd === 'On time') status = 'On time';
+                else if (service.etd === 'Delayed') status = 'Delayed';
+                else if (service.etd === 'Cancelled') status = 'Cancelled';
+                else if (service.etd) { status = 'On time'; estimatedTime = service.etd; }
+               else status = 'On time';
+
+               // Create the initial departure object
+               const departure: Departure = {
+                   id: service.serviceID,
+                   scheduledTime: service.std || '??:??',
+                   destination: destinationName,
+                   platform: service.platform || undefined,
+                   status: status,
+                   estimatedTime: estimatedTime,
+                   // destinationETA will be added below if found
+                   destinationETA: undefined, // Initialize destinationETA
+               };
+
+               // --- Extract Destination ETA from Details (if available) ---
+               // Logic to find ETA either for the specified 'toCRS' or the final destination
+               const callingPointsList = service.subsequentCallingPoints?.callingPointList?.callingPoint;
+               if (callingPointsList) {
+                   const callingPoints = Array.isArray(callingPointsList) ? callingPointsList : [callingPointsList];
+                   let targetPoint: any = null;
+
+                   if (route.toCRS) {
+                       // Find the specific 'toCRS' if provided
+                       targetPoint = callingPoints.find((cp: any) => cp.crs === route.toCRS);
+                       // console.log(`[ETA Debug][Poll] Searching for specific toCRS: ${route.toCRS}. Found: ${!!targetPoint}`);
+                   } else if (callingPoints.length > 0) {
+                       // Find the *last* calling point if no 'toCRS' is specified
+                       targetPoint = callingPoints[callingPoints.length - 1];
+                       // console.log(`[ETA Debug][Poll] No toCRS specified. Using last calling point: ${targetPoint?.locationName} (${targetPoint?.crs})`);
+                   }
+
+                   if (targetPoint) {
+                       // console.log(`[ETA Debug][Poll] Found target point:`, JSON.stringify(targetPoint)); // Optional: Log the found point
+                       let arrivalTime: string | undefined = undefined;
+                       const et = targetPoint.et; // Estimated time
+                       const st = targetPoint.st; // Scheduled time
+                       const etIsTime = et && /^\d{2}:\d{2}$/.test(et);
+                       const stIsTime = st && /^\d{2}:\d{2}$/.test(st);
+                       // console.log(`[ETA Debug][Poll] Checking et='${et}' (isTime: ${etIsTime}), st='${st}' (isTime: ${stIsTime})`); // Log et and st
+
+                       // Prefer estimated time if it's a valid time format
+                       if (etIsTime) {
+                           // console.log(`[ETA Debug][Poll] Using 'et' (${et}) as arrivalTime.`);
+                           arrivalTime = et;
+                       }
+                       // Otherwise, use scheduled time if it's a valid time format
+                       else if (stIsTime) {
+                            // console.log(`[ETA Debug][Poll] Using 'st' (${st}) as arrivalTime.`);
+                           arrivalTime = st;
+                       }
+                       // else {
+                       //      console.log(`[ETA Debug][Poll] Neither 'et' nor 'st' is a valid time for target point.`);
+                       // }
+
+                       // Assign if we found a valid time
+                       if (arrivalTime) {
+                           // console.log(`[ETA Debug][Poll] Assigning destinationETA = ${arrivalTime}`);
+                           departure.destinationETA = arrivalTime;
+                       }
+                       // else {
+                       //      console.log(`[ETA Debug][Poll] No valid arrivalTime found, destinationETA not set.`);
+                       // }
+                   }
+                   // else {
+                   //      console.log(`[ETA Debug][Poll] Target point not found (either specific toCRS or last point).`);
+                   // }
+               }
+               // else {
+               //      console.log(`[ETA Debug][Poll] No subsequent calling points found or structure mismatch for service ${service.serviceID}`);
+               // }
+               // --- End ETA Extraction ---
+
+               fetchedDepartures.push(departure); // Push the potentially modified object
+           });
+       }
+
+       // --- REMOVED: Separate GetServiceDetails calls are no longer needed ---
+
+
+       lastFetchedDepartures = fetchedDepartures; // Update the stored departures
+        console.log(`[Train Polling] Processed ${lastFetchedDepartures.length} departures.`);
+
+        // --- Calculate Concatenated Time String FOR AUTOMATIC DISPLAY --- (Keep existing logic)
+        // This string will contain HHMM or MM blocks concatenated, no spaces in between.
+        concatenatedTimes = ""; // Ensure it's reset for each fetch
+        let previousHour: number | null = null; // Track the hour of the previously added time block
+        for (const dep of lastFetchedDepartures) {
+            const displayTimeStr = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
+                ? dep.estimatedTime : dep.scheduledTime;
+            const { hour: currentHour, minute: currentMinute } = getHourMinute(displayTimeStr);
+            const isSpecialStatus = dep.status.toUpperCase() === 'CANCELLED' || (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime);
+
+            // Skip special status trains for this dense view
+            if (isSpecialStatus || currentHour === null || currentMinute === null) {
+                previousHour = null; // Reset hour context if skipping
+                continue; // Go to the next departure
+            }
+
+            let timePart: string;
+            if (currentHour === previousHour) {
+                const minuteStr = currentMinute.toString().padStart(2, '0');
+                timePart = minuteStr; // Just "MM" (2 chars)
+            } else {
+                timePart = `${currentHour.toString().padStart(2, '0')}${currentMinute.toString().padStart(2, '0')}`; // "HHMM" (4 chars)
+                previousHour = currentHour; // Update the last seen hour only when HH is shown
+            }
+
+            // Only append the 2-char (MM) or 4-char (HHMM) timePart to the string
+            if ((concatenatedTimes + timePart).length <= SPLITFLAP_DISPLAY_LENGTH) {
+                concatenatedTimes += timePart;
+            } else {
+                break; // Stop adding times if it exceeds display length
+            }
+        }
+       // --- End Calculation ---
+
+       const finalPaddedString = concatenatedTimes.padEnd(SPLITFLAP_DISPLAY_LENGTH);
+       console.log(`[Train Polling] Calculated times string: "${concatenatedTimes}", Padded: "${finalPaddedString}"`); // Log before/after padding
+
+       // Update display with the concatenated string, padded if necessary
+       if (concatenatedTimes) {
+           updateDisplayAndBroadcast(finalPaddedString, 'train');
+       } else {
+           updateDisplayAndBroadcast(`${route.fromCRS} NO DEPT`.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH), 'train'); // Show no departures message
+       }
+
+        // Send full data to clients interested in the table view
+        io.emit('trainDataUpdate', { departures: lastFetchedDepartures });
+    } catch (error: any) {
+        console.error(`[Train Polling] Error fetching departures for ${route.fromCRS}:`, error.message);
+        updateDisplayAndBroadcast(`${route.fromCRS} ERROR`.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH), 'train'); // Show error on display
+        io.emit('trainDataUpdate', { error: error.message }); // Send error to clients
+    }
+};
+
+const stopTrainPolling = () => {
+    if (trainPollingInterval) {
+        console.log('[Train Polling] Stopping polling.');
+        clearInterval(trainPollingInterval);
+        trainPollingInterval = null;
+    }
+    // Don't reset currentTrainRoute here, keep it so we can resume if user switches back
+    // Don't reset currentTrainRoute here, keep it so we can resume if user switches back
+    // currentTrainRoute = null;
+};
+
+const startTrainPolling = (route: { fromCRS: string; toCRS?: string }) => {
+    stopTrainPolling(); // Stop any previous polling first
+    console.log(`[Train Polling] Starting polling for route: ${route.fromCRS} -> ${route.toCRS || 'any'}`);
+    currentTrainRoute = route;
+    fetchAndProcessDepartures(route); // Fetch immediately
+    trainPollingInterval = setInterval(() => {
+        // Ensure we only poll if still in train mode and route is set
+        console.log(`[Train Polling Interval] Checking conditions. Current Mode: ${currentAppMode}, Route Set: ${!!currentTrainRoute}`); // <-- ADD THIS LOG
+        if (currentAppMode === 'train' && currentTrainRoute) {
+            fetchAndProcessDepartures(currentTrainRoute);
+        } else {
+             // This should ideally not happen if stopTrainPolling is called correctly on mode change
+             console.warn(`[Train Polling] Interval fired but conditions not met (Mode: ${currentAppMode}, Route: ${currentTrainRoute ? currentTrainRoute.fromCRS : 'None'}). Stopping poll.`);
+             stopTrainPolling();
+        }
+    }, POLLING_INTERVAL_MS);
+};
+
+// --- End Train Mode Logic ---
+
+
 // --- Core Mode Logic Helpers ---
 
 // Function to stop all timed modes
@@ -550,6 +806,8 @@ const setBackendMode = (newMode: ControlMode, source: 'socket' | 'mqtt') => {
     io.emit('modeUpdate', { mode: currentAppMode });
 
     console.log(`[Mode Change] Successfully switched to ${currentAppMode}.`);
+}; // <-- ADD MISSING CLOSING BRACE HERE
+
 // --- Stopwatch Mode Logic ---
 const startBackendStopwatch = () => {
     console.log('[Stopwatch] startBackendStopwatch called.'); // <-- ADD LOG
@@ -683,261 +941,6 @@ const stopBackendTimer = () => {
         isRunning: timerIsRunning
     });
     // No need to publish state here as setBackendTimer already does
-};
-
-
-// --- Train Mode Logic ---
-
-// Helper to get hour and minute from a departure time string (HH:MM)
-const getHourMinute = (timeString: string | undefined): { hour: number | null, minute: number | null } => {
-    if (!timeString || !/^\d{2}:\d{2}$/.test(timeString)) {
-        return { hour: null, minute: null };
-    }
-    const parts = timeString.split(':');
-    return { hour: parseInt(parts[0], 10), minute: parseInt(parts[1], 10) };
-};
-
-// Function to calculate the condensed display string for a single departure (Not used for polling display, but useful elsewhere)
-const formatSingleDepartureForDisplay = (dep: Departure, prevDep: Departure | null): string => {
-    const displayTimeStr = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
-        ? dep.estimatedTime : dep.scheduledTime;
-    const { hour: currentHour, minute: currentMinute } = getHourMinute(displayTimeStr);
-
-    const prevDisplayTimeStr = prevDep ? ((prevDep.estimatedTime && prevDep.estimatedTime !== 'On time' && prevDep.estimatedTime !== 'Delayed' && prevDep.estimatedTime !== 'Cancelled') ? prevDep.estimatedTime : prevDep.scheduledTime) : null;
-    const { hour: previousHour } = prevDisplayTimeStr ? getHourMinute(prevDisplayTimeStr) : { hour: null };
-    const prevWasSpecialStatus = prevDep && (prevDep.status.toUpperCase() === 'CANCELLED' || (prevDep.status.toUpperCase() === 'DELAYED' && !prevDep.estimatedTime));
-
-    let timePart: string;
-    if (dep.status.toUpperCase() === 'CANCELLED') timePart = 'CANC';
-    else if (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime) timePart = 'DLAY';
-    else if (currentHour !== null && currentMinute !== null) {
-        const minuteStr = currentMinute.toString().padStart(2, '0');
-        if (currentHour === previousHour && !prevWasSpecialStatus) timePart = `  ${minuteStr}`;
-        else timePart = currentHour.toString().padStart(2, '0') + minuteStr;
-    } else timePart = '----';
-
-    let output: string;
-    if (timePart === 'CANC') output = 'CANCELLED   ';
-    else if (timePart === 'DLAY') output = 'DELAYED     ';
-    else {
-        const plat = dep.platform ? dep.platform.slice(-1) : ' ';
-        const maxDestLength = 7;
-        let dest = dep.destination.toUpperCase().substring(0, maxDestLength - plat.length);
-        dest = dest.padEnd(maxDestLength - plat.length);
-        output = `${timePart} ${dest}${plat}`;
-    }
-    return output.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH);
-};
-
-const fetchAndProcessDepartures = async (route: { fromCRS: string; toCRS?: string }) => {
-    if (!route || !route.fromCRS) {
-        console.warn('[Train Polling] Attempted fetch without a valid route.');
-        return;
-    }
-    console.log(`[Train Polling] Fetching for route: ${route.fromCRS} -> ${route.toCRS || 'any'}`);
-    let concatenatedTimes = ""; // Declare outside the try block
-    try {
-        // --- Refactor: Call NRE logic directly instead of internal HTTP call ---
-        console.log(`[Train Polling] Calling NRE logic for ${route.fromCRS} -> ${route.toCRS || 'any'}`);
-
-        const apiToken = process.env.NRE_API_TOKEN;
-        if (!apiToken) throw new Error('NRE_API_TOKEN not configured.');
-
-        const client: Client = await createClientAsync(NRE_LDBWS_WSDL_URL);
-        const soapHeader = { 'AccessToken': { 'TokenValue': apiToken } };
-        client.addSoapHeader(soapHeader, '', 'typ', 'http://thalesgroup.com/RTTI/2013-11-28/Token/types');
-
-        const args = {
-            numRows: 10, // Keep consistent number of rows
-            crs: route.fromCRS,
-           ...(route.toCRS && { filterCrs: route.toCRS, filterType: 'to' })
-       };
-
-       // *** CHANGE: Use GetDepBoardWithDetailsAsync ***
-       console.log(`[Train Polling] Calling GetDepBoardWithDetailsAsync with args:`, args); // <-- Updated Log Label
-       const [result] = await client.GetDepBoardWithDetailsAsync(args);
-       console.log("[Train Polling] Parsed GetDepBoardWithDetails Result:", JSON.stringify(result, null, 2)); // <-- ADD DEBUG LOG
-
-       const stationBoardResult = result?.GetStationBoardResult;
-       if (!stationBoardResult) throw new Error('Unexpected response structure from GetDepBoardWithDetails.'); // <-- Updated Error Message
-
-       const fetchedDepartures: Departure[] = [];
-        const trainServices = stationBoardResult.trainServices?.service;
-        if (trainServices) {
-            const servicesArray = Array.isArray(trainServices) ? trainServices : [trainServices];
-            servicesArray.forEach((service: any) => {
-                const destination = service.destination?.location;
-                const destinationName = Array.isArray(destination) ? destination[0]?.locationName || 'Unknown' : destination?.locationName || 'Unknown';
-                let status = 'Unknown';
-                let estimatedTime: string | undefined = undefined;
-                if (service.etd === 'On time') status = 'On time';
-                else if (service.etd === 'Delayed') status = 'Delayed';
-                else if (service.etd === 'Cancelled') status = 'Cancelled';
-                else if (service.etd) { status = 'On time'; estimatedTime = service.etd; }
-               else status = 'On time';
-
-               // Create the initial departure object
-               const departure: Departure = {
-                   id: service.serviceID,
-                   scheduledTime: service.std || '??:??',
-                   destination: destinationName,
-                   platform: service.platform || undefined,
-                   status: status,
-                   estimatedTime: estimatedTime,
-                   // destinationETA will be added below if found
-                   destinationETA: undefined, // Initialize destinationETA
-               };
-
-               // --- Extract Destination ETA from Details (if available) ---
-               // Logic to find ETA either for the specified 'toCRS' or the final destination
-               const callingPointsList = service.subsequentCallingPoints?.callingPointList?.callingPoint;
-               if (callingPointsList) {
-                   const callingPoints = Array.isArray(callingPointsList) ? callingPointsList : [callingPointsList];
-                   let targetPoint: any = null;
-
-                   if (route.toCRS) {
-                       // Find the specific 'toCRS' if provided
-                       targetPoint = callingPoints.find((cp: any) => cp.crs === route.toCRS);
-                       // console.log(`[ETA Debug][Poll] Searching for specific toCRS: ${route.toCRS}. Found: ${!!targetPoint}`);
-                   } else if (callingPoints.length > 0) {
-                       // Find the *last* calling point if no 'toCRS' is specified
-                       targetPoint = callingPoints[callingPoints.length - 1];
-                       // console.log(`[ETA Debug][Poll] No toCRS specified. Using last calling point: ${targetPoint?.locationName} (${targetPoint?.crs})`);
-                   }
-
-                   if (targetPoint) {
-                       // console.log(`[ETA Debug][Poll] Found target point:`, JSON.stringify(targetPoint)); // Optional: Log the found point
-                       let arrivalTime: string | undefined = undefined;
-                       const et = targetPoint.et; // Estimated time
-                       const st = targetPoint.st; // Scheduled time
-                       const etIsTime = et && /^\d{2}:\d{2}$/.test(et);
-                       const stIsTime = st && /^\d{2}:\d{2}$/.test(st);
-                       // console.log(`[ETA Debug][Poll] Checking et='${et}' (isTime: ${etIsTime}), st='${st}' (isTime: ${stIsTime})`); // Log et and st
-
-                       // Prefer estimated time if it's a valid time format
-                       if (etIsTime) {
-                           // console.log(`[ETA Debug][Poll] Using 'et' (${et}) as arrivalTime.`);
-                           arrivalTime = et;
-                       }
-                       // Otherwise, use scheduled time if it's a valid time format
-                       else if (stIsTime) {
-                            // console.log(`[ETA Debug][Poll] Using 'st' (${st}) as arrivalTime.`);
-                           arrivalTime = st;
-                       }
-                       // else {
-                       //      console.log(`[ETA Debug][Poll] Neither 'et' nor 'st' is a valid time for target point.`);
-                       // }
-
-                       // Assign if we found a valid time
-                       if (arrivalTime) {
-                           // console.log(`[ETA Debug][Poll] Assigning destinationETA = ${arrivalTime}`);
-                           departure.destinationETA = arrivalTime;
-                       }
-                       // else {
-                       //      console.log(`[ETA Debug][Poll] No valid arrivalTime found, destinationETA not set.`);
-                       // }
-                   }
-                   // else {
-                   //      console.log(`[ETA Debug][Poll] Target point not found (either specific toCRS or last point).`);
-                   // }
-               }
-               // else {
-               //      console.log(`[ETA Debug][Poll] No subsequent calling points found or structure mismatch for service ${service.serviceID}`);
-               // }
-               // --- End ETA Extraction ---
-
-               fetchedDepartures.push(departure); // Push the potentially modified object
-           });
-       }
-
-       // --- REMOVED: Separate GetServiceDetails calls are no longer needed ---
-
-
-       lastFetchedDepartures = fetchedDepartures; // Update the stored departures
-        console.log(`[Train Polling] Processed ${lastFetchedDepartures.length} departures.`);
-
-        // --- Calculate Concatenated Time String FOR AUTOMATIC DISPLAY --- (Keep existing logic)
-        // This string will contain HHMM or MM blocks concatenated, no spaces in between.
-        concatenatedTimes = ""; // Ensure it's reset for each fetch
-        let previousHour: number | null = null; // Track the hour of the previously added time block
-        for (const dep of lastFetchedDepartures) {
-            const displayTimeStr = (dep.estimatedTime && dep.estimatedTime !== 'On time' && dep.estimatedTime !== 'Delayed' && dep.estimatedTime !== 'Cancelled')
-                ? dep.estimatedTime : dep.scheduledTime;
-            const { hour: currentHour, minute: currentMinute } = getHourMinute(displayTimeStr);
-            const isSpecialStatus = dep.status.toUpperCase() === 'CANCELLED' || (dep.status.toUpperCase() === 'DELAYED' && !dep.estimatedTime);
-
-            // Skip special status trains for this dense view
-            if (isSpecialStatus || currentHour === null || currentMinute === null) {
-                previousHour = null; // Reset hour context if skipping
-                continue; // Go to the next departure
-            }
-
-            let timePart: string;
-            if (currentHour === previousHour) {
-                const minuteStr = currentMinute.toString().padStart(2, '0');
-                timePart = minuteStr; // Just "MM" (2 chars)
-            } else {
-                timePart = `${currentHour.toString().padStart(2, '0')}${currentMinute.toString().padStart(2, '0')}`; // "HHMM" (4 chars)
-                previousHour = currentHour; // Update the last seen hour only when HH is shown
-            }
-
-            // Only append the 2-char (MM) or 4-char (HHMM) timePart to the string
-            if ((concatenatedTimes + timePart).length <= SPLITFLAP_DISPLAY_LENGTH) {
-                concatenatedTimes += timePart;
-            } else {
-                break; // Stop adding times if it exceeds display length
-            }
-        }
-       // --- End Calculation ---
-
-       const finalPaddedString = concatenatedTimes.padEnd(SPLITFLAP_DISPLAY_LENGTH);
-       console.log(`[Train Polling] Calculated times string: "${concatenatedTimes}", Padded: "${finalPaddedString}"`); // Log before/after padding
-
-       // Update display with the concatenated string, padded if necessary
-       if (concatenatedTimes) {
-           updateDisplayAndBroadcast(finalPaddedString, 'train');
-       } else {
-           updateDisplayAndBroadcast(`${route.fromCRS} NO DEPT`.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH), 'train'); // Show no departures message
-       }
-
-        // Send full data to clients interested in the table view
-        io.emit('trainDataUpdate', { departures: lastFetchedDepartures });
-    } catch (error: any) {
-        console.error(`[Train Polling] Error fetching departures for ${route.fromCRS}:`, error.message);
-        updateDisplayAndBroadcast(`${route.fromCRS} ERROR`.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH), 'train'); // Show error on display
-        io.emit('trainDataUpdate', { error: error.message }); // Send error to clients
-    }
-};
-
-const startTrainPolling = (route: { fromCRS: string; toCRS?: string }) => {
-    stopTrainPolling(); // Stop any previous polling first
-    console.log(`[Train Polling] Starting polling for route: ${route.fromCRS} -> ${route.toCRS || 'any'}`);
-    currentTrainRoute = route;
-    fetchAndProcessDepartures(route); // Fetch immediately
-    trainPollingInterval = setInterval(() => {
-        // Ensure we only poll if still in train mode and route is set
-        console.log(`[Train Polling Interval] Checking conditions. Current Mode: ${currentAppMode}, Route Set: ${!!currentTrainRoute}`); // <-- ADD THIS LOG
-        if (currentAppMode === 'train' && currentTrainRoute) {
-            fetchAndProcessDepartures(currentTrainRoute);
-        } else {
-             // This should ideally not happen if stopTrainPolling is called correctly on mode change
-             console.warn(`[Train Polling] Interval fired but conditions not met (Mode: ${currentAppMode}, Route: ${currentTrainRoute ? currentTrainRoute.fromCRS : 'None'}). Stopping poll.`);
-             stopTrainPolling();
-        }
-    }, POLLING_INTERVAL_MS);
-};
-
-const stopTrainPolling = () => {
-    if (trainPollingInterval) {
-        console.log('[Train Polling] Stopping polling.');
-        clearInterval(trainPollingInterval);
-        trainPollingInterval = null;
-    }
-    // Don't reset currentTrainRoute here, keep it so we can resume if user switches back
-    // Don't reset currentTrainRoute here, keep it so we can resume if user switches back
-    // currentTrainRoute = null;
-};
-
 // --- Sequence Mode Logic ---
 const playNextSequenceLine = () => {
     // This function is intended to be called via setTimeout
