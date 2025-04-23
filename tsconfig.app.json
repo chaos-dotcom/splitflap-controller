@@ -23,9 +23,6 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"],
-  "references": [
-    // Add reference to the types project
-    { "path": "./src/types/tsconfig.json" }
-  ]
+  "include": ["src"]
+  // Reference to src/types removed
 }

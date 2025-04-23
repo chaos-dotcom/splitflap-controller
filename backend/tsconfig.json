@@ -1,24 +1,25 @@
 {
   "compilerOptions": {
-    "composite": true,                     /* Enable project compilation - CRUCIAL for references/paths */
+    // "composite": true,                  /* REMOVED - Not using project references for this build */
     "target": "ES2016",                     /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
-    "module": "NodeNext",                  /* Align module system with moduleResolution */
+    "module": "CommonJS",                  /* Using CommonJS for backend runtime */
     "outDir": "./dist",                    /* Specify an output folder for all emitted files. */
-    "rootDir": "src",                      /* Set rootDir to backend's src directory */
-    // baseUrl and paths REMOVED - Resolution via project references ONLY
+    "rootDir": "src",                      /* Source root is backend's src */
+    "baseUrl": ".",                        /* Base URL is the backend directory */
+    "paths": {                             /* Define paths relative to baseUrl */
+      "types": ["../src/types/index"],     /* Map 'types' alias to the shared types index */
+      "types/*": ["../src/types/*"]        /* Map 'types/*' alias */
+    },
     "strict": true,                        /* Enable all strict type-checking options. */
     "esModuleInterop": true,               /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
     "skipLibCheck": true,                  /* Skip type checking all .d.ts files. */
     "forceConsistentCasingInFileNames": true,/* Ensure that casing is correct in imports. */
-    "moduleResolution": "NodeNext",        /* Use modern module resolution for references */
+    "moduleResolution": "node",            /* Standard Node resolution */
     "resolveJsonModule": true,             /* Enable importing .json files */
     "sourceMap": true                      /* Create source map files for emitted JavaScript files. */
   },
   // Include pattern relative to the tsconfig file location (backend/)
   "include": ["src/**/*"],                 /* Include backend source relative to backend/ */
-  "exclude": ["node_modules", "**/*.spec.ts"], /* Specifies an array of filenames or patterns that should be skipped when resolving include. */
-  "references": [
-    // Add reference to the types project
-    { "path": "../src/types/tsconfig.json" }
-  ]
+  "exclude": ["node_modules", "**/*.spec.ts"] /* Specifies an array of filenames or patterns that should be skipped when resolving include. */
+  // "references": []                      /* REMOVED - Not using project references */
 }
