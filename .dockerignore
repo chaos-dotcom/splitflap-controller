@@ -51,6 +51,5 @@ Thumbs.db
 .cache
 *.tgz
 
-# Ignore backend directory from frontend build context
-# This is crucial to avoid sending backend code to the frontend build
-backend/
+# Backend directory is needed for backend build context when context is root
+# backend/
