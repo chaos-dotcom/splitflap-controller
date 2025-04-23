@@ -657,7 +657,7 @@ app.use(cors({
     origin: "http://localhost:5173", // <-- CHANGE: Specify frontend origin
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Explicitly allow methods
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"], // Allow common headers
-    credentials: true // Allow credentials
+    // credentials: true // <-- REMOVE THIS LINE
 }));
 app.use(express.json());
 
@@ -883,10 +883,10 @@ app.get('/', (req: Request, res: Response) => {
 // --- WebSocket Server Setup ---
 const io = new SocketIOServer(httpServer, {
     cors: {
-        origin: "http://localhost:5173", // <-- CHANGE: Specify frontend origin
+        origin: "http://localhost:5173", // Keep specific frontend origin
         methods: ["GET", "POST"], // Methods needed by Socket.IO
         allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"], // Explicitly allow headers
-        credentials: true // Allow credentials
+        // credentials: true // <-- REMOVE THIS LINE
     }
 });
 
