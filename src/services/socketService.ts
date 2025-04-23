@@ -111,12 +111,11 @@ export const socketService = {
         // --- ADD WEBSOCKET TRANSPORT OPTION ---
         try { // <-- Add try block around io() call
             socket = io(BACKEND_URL, {
-                 // transports: ['websocket'] // Force WebSocket transport <-- REMOVED
-                 withCredentials: true // <-- ADD THIS LINE BACK
-                 // Removed autoConnect: false
+                 withCredentials: true, // <-- ADD THIS LINE BACK
+                 autoConnect: false // <-- ADD THIS LINE
             });
             // --- ADD LOG ---
-            console.log('[Socket.IO Service] io instance created successfully.');
+            console.log('[Socket.IO Service] io instance created successfully (autoConnect: false).'); // Update log
             // --- END LOG ---
         } catch (error) { // <-- Add catch block
             console.error('[Socket.IO Service] Error creating io instance:', error);
@@ -193,6 +192,10 @@ export const socketService = {
         console.log('[Socket.IO Service] Application event listeners attached.');
         // --- END UPDATED LOG ---
         // --- END RESTORED LISTENERS ---
+
+        // --- Manually initiate connection ---
+        console.log('[Socket.IO Service] Manually calling socket.connect()...'); // <-- ADD LOG
+        socket.connect(); // <-- ADD THIS LINE
 
     }, // End of connect function
 
