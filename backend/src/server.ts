@@ -1501,6 +1501,10 @@ const handleMqttMessage = (topic: string, message: Buffer) => {
 
 // --- Socket.IO Connection Handling ---
 io.on('connection', (socket: Socket) => {
+    // --- ADD THIS LOG ---
+    console.log(`[Socket.IO Server] Connection event received! Socket ID: ${socket.id}, Transport: ${socket.conn.transport.name}`);
+    // --- END ADDITION ---
+
     // Removed OIDC authentication check block
 
     console.log(`[Socket.IO] Client connected: ${socket.id}. Setting up listeners...`); // Added detail
@@ -1714,12 +1718,24 @@ io.on('connection', (socket: Socket) => {
 
 // Add a listener for server-level connection errors
 io.engine.on("connection_error", (err) => {
-    console.error("[Socket.IO Engine] Connection Error:");
-    console.error("  Code:", err.code);
-    console.error("  Message:", err.message);
-    if (err.context) {
-        console.error("  Context:", err.context);
+    console.error("[Socket.IO Engine] Connection Error Details:"); // <-- Enhanced Label
+    console.error("  Error Code:", err.code); // Log code
+    console.error("  Error Message:", err.message); // Log message
+    // --- ADD REQUEST DETAILS ---
+    if (err.context && typeof err.context === 'object') {
+        const req = (err.context as any).req; // Access the underlying request object if available
+        if (req) {
+            console.error("  Request Method:", req.method);
+            console.error("  Request URL:", req.url);
+            console.error("  Request Headers:", JSON.stringify(req.headers, null, 2)); // Log headers
+        } else {
+             console.error("  Context:", err.context); // Log original context if req not found
+        }
+    } else if (err.context) {
+         console.error("  Context:", err.context); // Log context if not an object
     }
+    // --- END ADDITION ---
+    // console.error("  Context:", err.context); // <-- REMOVE original context log if replaced above
 });
 
 // --- Start Servers ---
