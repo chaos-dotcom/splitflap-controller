@@ -5,9 +5,9 @@ import App from './App.tsx';
 import { initAll } from 'govuk-frontend'; // Import GDS JS
 
 ReactDOM.createRoot(document.getElementById('root')!).render( // Use ReactDOM
-  <React.StrictMode>
+  // <React.StrictMode>
     <App />
-  </React.StrictMode>,
+  // </React.StrictMode>,
 );
 
 // Initialize GOV.UK Frontend JavaScript components AFTER initial render
