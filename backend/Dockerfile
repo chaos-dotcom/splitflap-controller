@@ -1,54 +1,72 @@
-# Stage 1: Build the application
+# Stage 1: Build the application using composite project structure
 FROM node:20-alpine AS build
 
+# Set the working directory to /app (representing project root inside container)
 WORKDIR /app
 
-# Copy package files from backend directory
-COPY backend/package.json backend/package-lock.json ./
-
-# Install all dependencies (including devDependencies)
+# --- Dependency Installation ---
+# Copy root package files first
+COPY package.json package-lock.json ./
+# Install root dependencies (needed for typescript, etc.)
 RUN npm ci
 
-# Copy tsconfig from backend directory to /app
-COPY backend/tsconfig.json ./
+# Copy backend package files into a subdirectory
+COPY backend/package.json backend/package-lock.json ./backend/
+# Install backend dependencies
+RUN cd backend && npm ci
 
-# Copy shared types from root src to /app/types
-COPY src/types ./types/
+# --- Source Code & Config Copying ---
+# Copy all tsconfig files maintaining structure relative to /app
+COPY tsconfig.json tsconfig.app.json tsconfig.node.json ./
+COPY backend/tsconfig.json ./backend/
+COPY src/types/tsconfig.json ./src/types/
 
-# Copy backend source code to /app/src
-COPY backend/src ./src/
+# Copy all source code needed for the build
+COPY src ./src
+COPY backend/src ./backend/src
 
-# Run the build script (tsc will use tsconfig.json in /app)
-RUN npm run build
+# --- Build ---
+# Run the composite build command from the project root (/app)
+# This builds src/types first, then backend based on references
+RUN npx tsc -b backend/tsconfig.json
 
 # List files after build for debugging
-RUN ls -la /app && ls -la /app/dist
+RUN echo "--- Build Stage /app ---" && ls -la /app && \
+    echo "--- Build Stage /app/src/types/dist ---" && ls -la /app/src/types/dist && \
+    echo "--- Build Stage /app/backend/dist ---" && ls -la /app/backend/dist
 
-# Stage 2: Create the production image
+# Stage 2: Create the final production image
 FROM node:20-alpine
 
-WORKDIR /app
+# Set working directory inside the backend folder for the final image
+WORKDIR /app/backend
 
-# Set NODE_ENV to production for the final stage
+# Set NODE_ENV to production
 ENV NODE_ENV=production
 
-# Copy package files from backend directory
+# Copy backend package files
 COPY backend/package.json backend/package-lock.json ./
 
-# Install only production dependencies
+# Install only production dependencies for the backend
 RUN npm ci --only=production
 
-# Copy the compiled code from the build stage
-COPY --from=build /app/dist ./dist
+# Copy the compiled backend code from the build stage
+# Source path is relative to build stage WORKDIR (/app)
+# Destination path is relative to final stage WORKDIR (/app/backend)
+COPY --from=build /app/backend/dist ./dist
 
-# Copy runtime assets like scenes from the backend directory
+# Copy runtime assets like scenes from the original source location
+# Source path is relative to build context root
+# Destination path is relative to final stage WORKDIR (/app/backend)
 COPY backend/scenes ./scenes
 
-# Make port 3000 available
-EXPOSE 3000
+# Expose the port the backend server listens on (ensure this matches server.ts)
+EXPOSE 3001 # Default in server.ts is 3001
 
 # List files for debugging before starting
-RUN ls -la /app && ls -la /app/dist
+RUN echo "--- Final Stage /app/backend ---" && ls -la && \
+    echo "--- Final Stage /app/backend/dist ---" && ls -la ./dist
 
-# Define the command to run the compiled app (runs from /app)
+# Define the command to run the compiled app (runs from /app/backend)
+# This uses the "start" script defined in backend/package.json
 CMD ["npm", "start"]
