@@ -7,7 +7,6 @@ Dockerfile
 Dockerfile.*
 docker-compose.yml
 .dockerignore
-nginx.conf
 
 # Node modules and build output
 node_modules
