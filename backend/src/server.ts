@@ -1507,9 +1507,9 @@ const handleMqttMessage = (topic: string, message: Buffer) => {
 
 // --- Socket.IO Connection Handling ---
 io.on('connection', (socket: Socket) => {
-    // --- ADD THIS LOG ---
-    console.log(`[Socket.IO Server] Connection event received! Socket ID: ${socket.id}, Transport: ${socket.conn.transport.name}`);
-    // --- END ADDITION ---
+    // --- ENHANCED LOG ---
+    console.log(`[Socket.IO Server] Connection attempt received! Socket ID: ${socket.id}, Transport: ${socket.conn.transport.name}, Headers: ${JSON.stringify(socket.handshake.headers)}`);
+    // --- END ENHANCED LOG ---
 
     // Removed OIDC authentication check block
 
@@ -1745,6 +1745,7 @@ io.engine.on("connection_error", (err) => {
 });
 
 // --- Start Servers ---
+console.log(`[Server] Attempting to start HTTP server on port ${port}...`); // <-- ADD THIS LOG
 httpServer.listen(port, async () => { // Make the callback async
     console.log(`[Server] HTTP & WebSocket server listening on http://localhost:${port}`);
     await ensureScenesDirExists(); // Ensure the scenes directory exists before connecting MQTT
