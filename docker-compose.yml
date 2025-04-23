@@ -19,8 +19,10 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      # Change context to the project root
+      context: .
+      # Specify the Dockerfile path relative to the new context
+      dockerfile: backend/Dockerfile
     ports:
       # Map host port 3001 to container port 3000 (Node app)
       # This is mainly for direct access/debugging if needed,
