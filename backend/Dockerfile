@@ -21,6 +21,9 @@ COPY backend/src ./src/
 # Run the build script (tsc will use tsconfig.json in /app)
 RUN npm run build
 
+# List files after build for debugging
+RUN ls -la /app && ls -la /app/dist
+
 # Stage 2: Create the production image
 FROM node:20-alpine
 
