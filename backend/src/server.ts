@@ -9,10 +9,8 @@ import * as mqttClient from './mqttClient';
 import fs from 'fs/promises'; // Import file system promises API
 import path from 'path'; // Import path module
 import yaml from 'js-yaml'; // Import YAML library
-// Adjust the path below if your 'src' and 'backend' folders have a different relationship
-// Assuming types are now defined ONLY in the frontend's src/types
-// If you create a shared types package later, adjust this import
-import { ControlMode, Scene, SceneLine, Departure } from '../../src/types';
+// Import types from the copied directory within the build context
+import { ControlMode, Scene, SceneLine, Departure } from './types'; // Adjusted import path
 
 // Removed OIDC/Session related imports
 

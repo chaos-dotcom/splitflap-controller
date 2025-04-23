@@ -11,7 +11,11 @@ COPY package.json package-lock.json ./
 # Ensure backend/.dockerignore excludes node_modules, dist, etc. from this copy
 RUN npm ci
 
-# Copy the rest of the application source code
+# Copy the shared types directory from the root context first
+# The path ../src/types is relative to the backend build context (.)
+COPY ../src/types ./types
+
+# Copy the rest of the backend application source code
 COPY . .
 
 # Run the build script (tsc -b) defined in package.json
