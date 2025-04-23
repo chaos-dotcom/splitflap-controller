@@ -309,7 +309,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                        onChange={handleFromStationChange} // Use new handler
                        placeholder="e.g., KGX"
                        maxLength={3}
-                        disabled={!isConnected || isLoading}
+                        disabled={!isConnected} // Removed isLoading check
                         className="crs-input"
                     />
                 </div>
@@ -322,7 +322,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                        onChange={handleToStationChange} // Use new handler
                        placeholder="Optional (e.g., EDB)"
                        maxLength={3}
-                        disabled={!isConnected || isLoading}
+                        disabled={!isConnected} // Removed isLoading check
                         className="crs-input"
                     />
                </div>

@@ -247,7 +247,7 @@ function App() {
 
 
   // --- Handlers for Interactive Display ---
-  const handleDisplayKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  const handleDisplayKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => { // Correct KeyboardEvent type
     // Only handle keys if in text mode and connected
     if (currentMode !== 'text' || !isConnectedToBackend) return;
 
