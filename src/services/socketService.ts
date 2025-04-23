@@ -86,10 +86,16 @@ export const socketService = {
         onDisconnect: (reason: string) => void,
         onError: (message: string) => void
     ): void => {
+        // --- ADD LOGGING ---
+        console.log('[Socket.IO Service] connect() function called.');
+        // --- END LOGGING ---
+
         // --- MODIFIED CHECK ---
         // Only proceed if socket is truly null (not just disconnected)
         if (socket !== null) {
-            console.log('[Socket.IO] Connection attempt ignored, socket instance already exists (may be connecting/connected/disconnected).');
+            // --- UPDATED LOG ---
+            console.log('[Socket.IO Service] Connection attempt ignored, socket instance already exists.');
+            // --- END UPDATED LOG ---
             // If it's disconnected and you want connect to retry, call disconnect() first.
             // For now, we rely on the initial useEffect mount.
             return;
@@ -97,25 +103,44 @@ export const socketService = {
         // --- END MODIFIED CHECK ---
 
 
-        console.log(`[Socket.IO] Connecting to backend at ${BACKEND_URL}...`);
+        // --- UPDATED LOG ---
+        console.log(`[Socket.IO Service] Attempting to create io instance for ${BACKEND_URL}...`);
+        // --- END UPDATED LOG ---
 
         // --- REMOVE RECONNECTION OPTIONS TEMPORARILY ---
         // --- ADD WEBSOCKET TRANSPORT OPTION ---
-        socket = io(BACKEND_URL, {
-             transports: ['websocket'] // Force WebSocket transport
-             // Removed autoConnect: false and withCredentials: true
-        });
+        try { // <-- Add try block around io() call
+            socket = io(BACKEND_URL, {
+                 transports: ['websocket'] // Force WebSocket transport
+                 // Removed autoConnect: false and withCredentials: true
+            });
+            // --- ADD LOG ---
+            console.log('[Socket.IO Service] io instance created successfully.');
+            // --- END LOG ---
+        } catch (error) { // <-- Add catch block
+            console.error('[Socket.IO Service] Error creating io instance:', error);
+            onError(`Failed to initialize Socket.IO: ${error instanceof Error ? error.message : String(error)}`);
+            socket = null; // Ensure socket is null if creation failed
+            return; // Stop further execution if io() fails
+        }
         // --- END ADDITION ---
 
 
         // --- Attach listeners (Keep this block uncommented from previous step) ---
+        // --- ADD LOG ---
+        console.log('[Socket.IO Service] Attaching base listeners (connect, disconnect, connect_error)...');
+        // --- END LOG ---
         socket.on('connect', () => {
-            console.log(`[Socket.IO] Connected to backend: ${socket?.id}`);
+            // --- ADD LOG ---
+            console.log(`[Socket.IO Service] 'connect' event received: ${socket?.id}`);
+            // --- END LOG ---
             onConnect();
         });
 
         socket.on('disconnect', (reason) => {
-            console.log(`[Socket.IO] Disconnected from backend: ${reason}`);
+            // --- ADD LOG ---
+            console.log(`[Socket.IO Service] 'disconnect' event received: ${reason}`);
+            // --- END LOG ---
             // --- ADD NULLIFICATION ON DISCONNECT ---
             // Setting socket to null here ensures a new instance is created on next connect() call
             // Note: This might interfere with automatic reconnection if it were enabled.
@@ -124,23 +149,31 @@ export const socketService = {
             onDisconnect(reason);
         });
 
-        const handleError = onError;
+        // Use a local variable for onError to avoid potential closure issues if it changes
+        const handleErrorCallback = onError;
         socket.on('connect_error', (error) => {
-            console.error('[Socket.IO] Connection Error:', error.message);
-            if (handleError) {
-                handleError(`Connection failed: ${error.message}`);
+            // --- ADD LOG ---
+            console.error('[Socket.IO Service] \'connect_error\' event received:', error.message);
+            // --- END LOG ---
+            if (handleErrorCallback) {
+                handleErrorCallback(`Connection failed: ${error.message}`);
             } else {
-                console.error('[Socket.IO] onError callback is not defined when connect_error occurred.');
+                console.error('[Socket.IO Service] onError callback is not defined when connect_error occurred.');
             }
             // --- ADD NULLIFICATION ON CONNECTION ERROR ---
             // If connection fails outright, nullify to allow a fresh attempt later
             socket = null;
             // --- END ADDITION ---
         });
+        // --- ADD LOG ---
+        console.log('[Socket.IO Service] Base listeners attached.');
+        // --- END LOG ---
 
         // --- Attach listeners ---
         // Remove the /* and */ surrounding this block
-        console.log('[Socket.IO] Attaching application event listeners...'); // Add log
+        // --- UPDATED LOG ---
+        console.log('[Socket.IO Service] Attaching application event listeners...');
+        // --- END UPDATED LOG ---
         socket.on('initialState', onInitialState);
         socket.on('displayUpdate', onDisplayUpdate);
         socket.on('modeUpdate', onModeUpdate);
@@ -155,10 +188,12 @@ export const socketService = {
         // --- End Scene Management Listeners ---
         // Note: The 'error' event here is for *backend-emitted* errors, distinct from 'connect_error'
         socket.on('error', (data) => onError(data.message)); // Use the onError callback passed in
-        console.log('[Socket.IO] Application event listeners attached.'); // Add log
+        // --- UPDATED LOG ---
+        console.log('[Socket.IO Service] Application event listeners attached.');
+        // --- END UPDATED LOG ---
         // --- END RESTORED LISTENERS ---
 
-    },
+    }, // End of connect function
 
     disconnect: (): void => {
         if (socket) {
