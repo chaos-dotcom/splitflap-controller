@@ -48,7 +48,7 @@ interface SortableLineItemProps {
     editingLineId: string | null;
     handleLineClick: (id: string) => void;
     handleLineTextChange: (id: string, text: string) => void;
-    handleLineEnter: () => void; // Renamed from handleFinishEditing for clarity here
+    // handleLineEnter: () => void; // Removed - Combined into handleFinishEditing/handleLineBlur
     handleLineBlur: () => void;
     handleDurationChange: (id: string, duration: number) => void;
     handleDeleteLine: (id: string) => void;
@@ -57,7 +57,7 @@ interface SortableLineItemProps {
 
 const SortableLineItem: React.FC<SortableLineItemProps> = ({
     line, isPlaying, editingLineId, handleLineClick, handleLineTextChange,
-    handleLineEnter, handleLineBlur, handleDurationChange, handleDeleteLine, handleDuplicateLine
+    handleLineBlur, handleDurationChange, handleDeleteLine, handleDuplicateLine // Removed handleLineEnter
 }) => {
     const {
         attributes,
@@ -513,7 +513,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({
                                         editingLineId={editingLineId}
                                         handleLineClick={handleLineClick}
                                         handleLineTextChange={handleLineTextChange}
-                                        handleLineEnter={handleFinishEditing} // Pass combined handler
+                                        // handleLineEnter={handleFinishEditing} // Removed prop
                                         handleLineBlur={handleFinishEditing} // Pass combined handler
                                         handleDurationChange={handleDurationChange}
                                         handleDeleteLine={handleDeleteLine}
