@@ -22,9 +22,10 @@ const SCENES_DIR = path.join(__dirname, '..', 'scenes'); // Directory to store s
 
 // Ensure scenes directory exists
 const ensureScenesDirExists = async () => {
+    console.log(`[Scenes] Checking/creating directory: ${SCENES_DIR}`); // Add log
     try {
         await fs.access(SCENES_DIR);
-        console.log(`[Scenes] Directory found: ${SCENES_DIR}`);
+        console.log(`[Scenes] Directory already exists: ${SCENES_DIR}`);
     } catch (error) {
         console.log(`[Scenes] Directory not found, creating: ${SCENES_DIR}`);
         try {
@@ -38,39 +39,48 @@ const ensureScenesDirExists = async () => {
 
 // Helper to get valid scene names (filenames without .yaml)
 const getSceneNames = async (): Promise<string[]> => {
+    console.log(`[Scenes] Reading scene names from: ${SCENES_DIR}`); // Add log
     try {
         const files = await fs.readdir(SCENES_DIR);
-        return files
+        console.log(`[Scenes] Found files: ${files.join(', ')}`); // Log found files
+        const sceneNames = files
             .filter(file => file.endsWith('.yaml') || file.endsWith('.yml'))
             .map(file => path.basename(file, path.extname(file))) // Get filename without extension
             .sort(); // Sort alphabetically
+        console.log(`[Scenes] Filtered scene names: ${sceneNames.join(', ')}`); // Log filtered names
+        return sceneNames;
     } catch (error) {
-        console.error('[Scenes] Error reading scene directory:', error);
+        console.error(`[Scenes] Error reading scene directory ${SCENES_DIR}:`, error); // More specific log
         return []; // Return empty list on error
     }
 };
 
 // Helper to load a scene from YAML
 const loadScene = async (sceneName: string): Promise<Scene | null> => {
+    console.log(`[Scenes] Attempting to load scene: ${sceneName}`); // Add log
     // Basic sanitization to prevent directory traversal
     if (sceneName.includes('/') || sceneName.includes('\\') || sceneName.startsWith('.')) {
-        console.warn(`[Scenes] Attempted to load invalid scene name: ${sceneName}`);
+        console.warn(`[Scenes] Sanitization failed: Invalid characters in scene name: ${sceneName}`);
         return null;
     }
     const filePath = path.join(SCENES_DIR, `${sceneName}.yaml`);
+    console.log(`[Scenes] Reading file: ${filePath}`); // Log file path
     try {
         const fileContent = await fs.readFile(filePath, 'utf-8');
+        console.log(`[Scenes] File content read successfully. Parsing YAML...`); // Log success
         const sceneData = yaml.load(fileContent) as Scene;
+        console.log(`[Scenes] YAML parsed. Validating structure...`); // Log parsing step
         // Basic validation (can be expanded)
         if (sceneData && typeof sceneData === 'object' && sceneData.name && Array.isArray(sceneData.lines)) {
             // Ensure the loaded name matches the filename requested (consistency)
             if (sceneData.name !== sceneName) {
-                 console.warn(`[Scenes] Loaded scene name "${sceneData.name}" does not match filename "${sceneName}". Using filename.`);
+                 console.warn(`[Scenes] Validation Warning: Loaded scene name "${sceneData.name}" does not match filename "${sceneName}". Using filename.`);
                  sceneData.name = sceneName; // Overwrite name from file with filename
             }
+            console.log(`[Scenes] Scene structure valid. Returning scene: ${sceneName}`); // Log success
             return sceneData;
         } else {
-            console.warn(`[Scenes] Invalid YAML structure in file: ${filePath}`);
+            console.warn(`[Scenes] Validation Failed: Invalid YAML structure in file: ${filePath}`);
             return null;
         }
     } catch (error: any) {
@@ -85,18 +95,23 @@ const loadScene = async (sceneName: string): Promise<Scene | null> => {
 
 // Helper to save a scene to YAML
 const saveScene = async (sceneName: string, sceneData: Scene): Promise<boolean> => {
+    console.log(`[Scenes] Attempting to save scene: ${sceneName}`); // Add log
      // Basic sanitization
     if (sceneName.includes('/') || sceneName.includes('\\') || sceneName.startsWith('.')) {
-        console.warn(`[Scenes] Attempted to save invalid scene name: ${sceneName}`);
+        console.warn(`[Scenes] Sanitization failed: Invalid characters in scene name: ${sceneName}`);
         return false;
     }
     // Ensure the scene data being saved has the correct name property
+    // Ensure the scene data being saved has the correct name property matching the filename
     const dataToSave = { ...sceneData, name: sceneName };
     const filePath = path.join(SCENES_DIR, `${sceneName}.yaml`);
+    console.log(`[Scenes] Preparing to write file: ${filePath}`); // Log file path
     try {
+        console.log(`[Scenes] Serializing scene data to YAML...`); // Log serialization step
         const yamlString = yaml.dump(dataToSave, { indent: 2 }); // Convert Scene object to YAML string
+        console.log(`[Scenes] YAML serialization complete. Writing to disk...`); // Log write step
         await fs.writeFile(filePath, yamlString, 'utf-8');
-        console.log(`[Scenes] Scene saved successfully: ${filePath}`);
+        console.log(`[Scenes] Scene file written successfully: ${filePath}`);
         return true;
     } catch (error) {
         console.error(`[Scenes] Error saving scene file ${filePath}:`, error);
@@ -106,15 +121,17 @@ const saveScene = async (sceneName: string, sceneData: Scene): Promise<boolean> 
 
 // Helper to delete a scene file
 const deleteScene = async (sceneName: string): Promise<boolean> => {
+    console.log(`[Scenes] Attempting to delete scene: ${sceneName}`); // Add log
      // Basic sanitization
     if (sceneName.includes('/') || sceneName.includes('\\') || sceneName.startsWith('.')) {
-        console.warn(`[Scenes] Attempted to delete invalid scene name: ${sceneName}`);
+        console.warn(`[Scenes] Sanitization failed: Invalid characters in scene name: ${sceneName}`);
         return false;
     }
     const filePath = path.join(SCENES_DIR, `${sceneName}.yaml`);
+    console.log(`[Scenes] Attempting to delete file: ${filePath}`); // Log file path
     try {
         await fs.unlink(filePath);
-        console.log(`[Scenes] Scene deleted successfully: ${filePath}`);
+        console.log(`[Scenes] Scene file deleted successfully: ${filePath}`);
         return true;
     } catch (error: any) {
         if (error.code === 'ENOENT') {

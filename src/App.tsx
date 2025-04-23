@@ -1,4 +1,4 @@
-import { useState, useEffect, KeyboardEvent } from 'react'; // Import useEffect, KeyboardEvent
+import { useState, useEffect, KeyboardEvent, useCallback } from 'react'; // Import useEffect, KeyboardEvent, useCallback
 import './App.css';
 import SplitFlapDisplay from './components/SplitFlapDisplay';
 // Removed SettingsPanel import
@@ -31,6 +31,10 @@ function App() {
   // --- End Backend State ---
   const [caretPosition, setCaretPosition] = useState<number>(0); // State for cursor position in text mode
   const [currentMode, setCurrentMode] = useState<ControlMode>('text'); // State for current control mode
+  // --- Scene State ---
+  const [sceneNames, setSceneNames] = useState<string[]>([]); // List of available scene names from backend
+  const [loadedScene, setLoadedScene] = useState<Scene | null>(null); // Data of the scene loaded for editing
+  // --- End Scene State ---
 
 
   // Update draft text when display text changes (e.g., from backend or initial load)
