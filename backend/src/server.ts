@@ -468,6 +468,27 @@ const app: Express = express();
 const httpServer = createServer(app);
 const port = process.env.PORT || 3001;
 
+// --- Core Logic ---
+// Moved updateDisplayAndBroadcast here to be available for initial clock start
+const updateDisplayAndBroadcast = (newText: string, sourceMode?: ControlMode) => {
+    const formattedText = newText.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH);
+    // Only update and broadcast if text actually changes AND
+    // (it's a manual update (no sourceMode) OR the sourceMode matches the currentAppMode)
+    // Also need to ensure io is initialized before broadcasting
+    if (formattedText !== currentDisplayText && (!sourceMode || sourceMode === currentAppMode)) {
+        console.log(`[State] Updating display: "${formattedText}" (Mode: ${currentAppMode}, Source: ${sourceMode || 'manual'})`);
+        currentDisplayText = formattedText;
+        const published = mqttClient.publishToDisplay(currentDisplayText); // Send to physical display via MQTT
+        if (published && io) { // Check if io is initialized
+            io.emit('displayUpdate', { text: currentDisplayText }); // Broadcast to all connected web clients ONLY if publish was attempted
+        } else if (io) { // Check if io is initialized
+            // Optionally inform clients that the display might be disconnected
+            io.emit('mqttStatus', mqttClient.getDisplayConnectionStatus());
+        }
+    }
+};
+
+
 // --- Application State ---
 // Use SPLITFLAP_DISPLAY_LENGTH from constants if available, otherwise hardcode or import differently
 let currentDisplayText: string = ' '.repeat(SPLITFLAP_DISPLAY_LENGTH);
@@ -731,24 +752,6 @@ const io = new SocketIOServer(httpServer, {
         methods: ["GET", "POST"]
     }
 });
-
-// --- Core Logic ---
-const updateDisplayAndBroadcast = (newText: string, sourceMode?: ControlMode) => {
-    const formattedText = newText.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH);
-    // Only update and broadcast if text actually changes AND
-    // (it's a manual update (no sourceMode) OR the sourceMode matches the currentAppMode)
-    if (formattedText !== currentDisplayText && (!sourceMode || sourceMode === currentAppMode)) {
-        console.log(`[State] Updating display: "${formattedText}" (Mode: ${currentAppMode}, Source: ${sourceMode || 'manual'})`);
-        currentDisplayText = formattedText;
-        const published = mqttClient.publishToDisplay(currentDisplayText); // Send to physical display via MQTT
-        if (published) {
-            io.emit('displayUpdate', { text: currentDisplayText }); // Broadcast to all connected web clients ONLY if publish was attempted
-        } else {
-            // Optionally inform clients that the display might be disconnected
-            io.emit('mqttStatus', mqttClient.getDisplayConnectionStatus());
-        }
-    }
-};
 
 // --- Refactored Mode Setting Logic ---
 const setBackendMode = (newMode: ControlMode, source: 'socket' | 'mqtt') => {
