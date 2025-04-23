@@ -7,8 +7,8 @@
     "rootDir": ".",                        /* RootDir is the current directory (/build_context/backend) */
     "baseUrl": ".",                        /* Keep baseUrl relative to this tsconfig location */
     "paths": {                             /* Keep paths relative to this tsconfig location */
-      "types": ["../src/types/index"],     /* Map 'types' alias to the shared types index */
-      "types/*": ["../src/types/*"]        /* Map 'types/*' alias */
+      "types": ["./src/types/index"],      /* Map 'types' alias relative to baseUrl (./backend/src/types) */
+      "types/*": ["./src/types/*"]         /* Map 'types/*' alias relative to baseUrl */
     },
     "strict": true,                        /* Enable all strict type-checking options. */
     "esModuleInterop": true,               /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
