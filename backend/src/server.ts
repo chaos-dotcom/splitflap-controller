@@ -652,8 +652,13 @@ let haDiscoveryPublished = false; // Flag to track if discovery config has been 
 // --- End Application State ---
 
 // --- Middleware ---
-// Use simple CORS setup - allow all origins by default
-app.use(cors());
+// Use more specific CORS setup
+app.use(cors({
+    origin: "*", // Keep allowing all origins for now
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Explicitly allow methods
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"], // Allow common headers
+    credentials: true // Allow credentials (though not strictly needed without auth)
+}));
 app.use(express.json());
 
 // --- NRE API Endpoint (Existing Code) ---
@@ -879,8 +884,9 @@ app.get('/', (req: Request, res: Response) => {
 const io = new SocketIOServer(httpServer, {
     cors: {
         origin: "*", // Allow all origins for now, restrict in production
-        methods: ["GET", "POST"]
-        // Removed credentials: true
+        methods: ["GET", "POST"], // Methods needed by Socket.IO
+        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"], // Explicitly allow headers
+        credentials: true // Allow credentials
     }
 });
 
