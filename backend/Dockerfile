@@ -15,8 +15,8 @@ COPY backend/tsconfig.json ./backend/
 COPY backend/src ./backend/src/
 
 # Copy shared types source code needed for the build
-# The path alias in backend/tsconfig.json expects it at ../src/types
-COPY src/types ./src/types/
+# Copy it *inside* the backend source directory for tsc resolution
+COPY src/types ./backend/src/types/
 
 # Run the build command from within the backend directory context
 # This uses backend/tsconfig.json which resolves 'types' via paths
