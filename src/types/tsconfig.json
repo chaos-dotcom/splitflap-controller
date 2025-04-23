@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "composite": true,            // Mark as part of a composite project
+    "declaration": true,          // Generate .d.ts files
+    "declarationMap": true,       // Generate source maps for .d.ts files
+    "sourceMap": true,            // Generate source maps for .js files (though we won't emit JS)
+    "outDir": "./dist",           // Output .d.ts files locally within src/types/dist
+    "rootDir": ".",               // Root directory is the types directory itself
+    "module": "ESNext",           // Use a modern module system
+    "target": "ESNext",
+    "skipLibCheck": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    // No baseUrl or paths needed here
+    "emitDeclarationOnly": true   // Only emit .d.ts files, no JS
+  },
+  "include": ["./**/*"],          // Include all files within src/types
+  "exclude": ["node_modules"]
+}
