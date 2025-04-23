@@ -169,7 +169,7 @@ const port = process.env.PORT || 3001;
 // --- Application State ---
 // Use SPLITFLAP_DISPLAY_LENGTH from constants if available, otherwise hardcode or import differently
 let currentDisplayText: string = ' '.repeat(SPLITFLAP_DISPLAY_LENGTH);
-let currentAppMode: ControlMode = 'text';
+let currentAppMode: ControlMode = 'clock'; // Default mode set to 'clock'
 let clockInterval: NodeJS.Timeout | null = null;
 let stopwatchInterval: NodeJS.Timeout | null = null;
 let stopwatchElapsedTime: number = 0; // Stored in milliseconds
@@ -190,6 +190,14 @@ let timerTargetMs: number = 0; // The duration the timer was set for
 let timerRemainingMs: number = 0; // How much time is left
 let timerIsRunning: boolean = false;
 let haDiscoveryPublished = false; // Flag to track if discovery config has been sent
+
+// --- Initial Mode Start ---
+// If the default mode is clock, start its interval immediately.
+if (currentAppMode === 'clock') {
+    startBackendClock();
+}
+// --- End Initial Mode Start ---
+
 // --- End Application State ---
 
 // --- Middleware ---
