@@ -2,7 +2,7 @@
   "compilerOptions": {
     "composite": true,                     /* Enable project compilation - CRUCIAL for references/paths */
     "target": "ES2016",                     /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
-    "module": "CommonJS",                  /* Specify what module code is generated. */
+    "module": "NodeNext",                  /* Align module system with moduleResolution */
     "outDir": "./dist",                    /* Specify an output folder for all emitted files. */
     "rootDir": "src",                      /* Set rootDir to backend's src directory */
     // baseUrl and paths REMOVED - Resolution via project references ONLY
