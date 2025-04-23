@@ -111,7 +111,7 @@ export const socketService = {
         // --- ADD WEBSOCKET TRANSPORT OPTION ---
         try { // <-- Add try block around io() call
             socket = io(BACKEND_URL, {
-                 transports: ['websocket'] // Force WebSocket transport
+                 // transports: ['websocket'] // Force WebSocket transport <-- REMOVED
                  // Removed autoConnect: false and withCredentials: true
             });
             // --- ADD LOG ---
