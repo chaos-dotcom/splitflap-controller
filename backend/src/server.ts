@@ -1129,11 +1129,6 @@ const playNextSequenceLine = () => {
     }
 
     const line = currentSequence[currentSequenceIndex];
-    console.log(`[Sequence] Displaying line ${currentSequenceIndex + 1}/${currentSequence.length}: "${line.text}" for ${line.durationMs ?? 1000}ms`);
-    updateDisplayAndBroadcast(line.text);
-        return;
-    }
-
     const line = currentSequence[currentSequenceIndex];
     console.log(`[Sequence] Displaying line ${currentSequenceIndex + 1}/${currentSequence.length}: "${line.text}" for ${line.durationMs ?? 1000}ms`);
     updateDisplayAndBroadcast(line.text);
