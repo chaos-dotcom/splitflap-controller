@@ -15,8 +15,8 @@
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-    // Consider adding backend reference if using composite projects fully:
-    // { "path": "./backend/tsconfig.json" }
+    { "path": "./tsconfig.node.json" },
+    // Add reference to the backend project
+    { "path": "./backend/tsconfig.json" }
   ]
 }
