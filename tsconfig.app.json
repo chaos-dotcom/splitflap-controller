@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true, // Mark as part of a composite project
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2020",
     "useDefineForClassFields": true,
@@ -22,5 +23,9 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [
+    // Add reference to the types project
+    { "path": "./src/types/tsconfig.json" }
+  ]
 }
