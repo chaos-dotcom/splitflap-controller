@@ -16,7 +16,8 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Serve the application with Nginx
-FROM nginx:1.25-alpine # Use a specific stable version
+# Use a specific stable version
+FROM nginx:1.25-alpine
 WORKDIR /usr/share/nginx/html
 
 # Remove default Nginx static assets
