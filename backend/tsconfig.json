@@ -5,11 +5,7 @@
     "module": "CommonJS",                  /* Specify what module code is generated. */
     "outDir": "./dist",                    /* Specify an output folder for all emitted files. */
     "rootDir": "src",                      /* Set rootDir to backend's src directory */
-    "baseUrl": ".",                        /* Keep baseUrl relative to this tsconfig's location (backend/) */
-    "paths": {                             /* Keep paths relative to this tsconfig's location */
-        "types": ["../src/types/index"],   /* Map 'types' to the index file relative to backend/ */
-        "types/*": ["../src/types/*"]      /* Map 'types/*' to the directory relative to backend/ */
-    },
+    // baseUrl and paths REMOVED - Resolution via project references ONLY
     "strict": true,                        /* Enable all strict type-checking options. */
     "esModuleInterop": true,               /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
     "skipLibCheck": true,                  /* Skip type checking all .d.ts files. */
@@ -20,5 +16,9 @@
   },
   // Include pattern relative to the tsconfig file location (backend/)
   "include": ["src/**/*"],                 /* Include backend source relative to backend/ */
-  "exclude": ["node_modules", "**/*.spec.ts"] /* Specifies an array of filenames or patterns that should be skipped when resolving include. */
+  "exclude": ["node_modules", "**/*.spec.ts"], /* Specifies an array of filenames or patterns that should be skipped when resolving include. */
+  "references": [
+    // Add reference to the types project
+    { "path": "../src/types/tsconfig.json" }
+  ]
 }

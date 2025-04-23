@@ -1,13 +1,8 @@
 {
   "compilerOptions": {
-    // Define baseUrl and paths at the root level
-    "baseUrl": ".",                       /* Base directory is project root */
-    "paths": {
-      "types": ["./src/types/index"],     /* Map 'types' specifically to the index file */
-      "types/*": ["./src/types/*"]        /* Map 'types/*' generally to the directory */
-    },
+    // baseUrl and paths REMOVED - Resolution via project references ONLY
     // Add common options needed for resolution/interop if not present elsewhere
-    "esModuleInterop": true,
+    "esModuleInterop": true, // Keep common options if needed by root/other configs
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node" // Or "bundler", ensure consistency if used elsewhere
