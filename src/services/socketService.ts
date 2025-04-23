@@ -1,8 +1,8 @@
 import { io, Socket } from 'socket.io-client';
-import { ControlMode, Scene, Departure, TrainRoutePreset } from '../types';
+import { ControlMode, Scene, Departure } from '../types'; // Removed TrainRoutePreset
 
 // Define the structure of events from the backend
-interface ServerToClientEvents {
+export interface ServerToClientEvents { // Export the interface
     connect: () => void;
     disconnect: (reason: string) => void;
     connect_error: (error: Error) => void;
@@ -107,7 +107,7 @@ export const socketService = {
 
 
         // --- UPDATED LOG ---
-        console.log(`[Socket.IO Service] Attempting to create io instance for ${BACKEND_URL}...`);
+        console.log(`[Socket.IO Service] Attempting to create io instance for origin...`); // Removed BACKEND_URL reference
         // --- END UPDATED LOG ---
 
         // --- REMOVE RECONNECTION OPTIONS TEMPORARILY ---

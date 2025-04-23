@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'; // Import useRef
+import React, { useState, useEffect } from 'react'; // Removed useRef
 import { SPLITFLAP_DISPLAY_LENGTH } from '../constants'; // Use renamed constant
 import './TrainTimetableMode.css';
 import { Departure, TrainRoutePreset } from '../types'; // Import types
@@ -25,7 +25,7 @@ interface TrainTimetableModeProps {
     departures: Departure[]; // Receive departures list from App state
 }
 
-const POLLING_INTERVAL_MS = 60000; // Poll every 60 seconds
+// const POLLING_INTERVAL_MS = 60000; // Removed - Backend handles polling
 const PRESET_STORAGE_KEY = 'trainTimetablePresets';
 
 const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, onSendMessage, onStartUpdates, departures }) => { // Add onStartUpdates to destructuring
@@ -33,11 +33,11 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     const [toStation, setToStation] = useState<string>('');   // e.g., EDB (optional)
     // Removed internal departures state, now comes from props
     // const [departures, setDepartures] = useState<Departure[]>([]);
-    const [selectedDepartureIds, setSelectedDepartureIds] = useState<Set<string>>(new Set()); // State for selected rows
+    // const [selectedDepartureIds, setSelectedDepartureIds] = useState<Set<string>>(new Set()); // Removed - Not used
     const [savedPresets, setSavedPresets] = useState<TrainRoutePreset[]>([]); // State for presets
-    const [isLoading, setIsLoading] = useState<boolean>(false); // Keep loading state for manual refresh
+    const [isLoading, setIsLoading] = useState<boolean>(false); // Keep loading state for manual refresh - NOTE: This might need syncing with backend state
     const [error, setError] = useState<string | null>(null);
-    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null); // Ref for polling interval
+    // const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null); // Removed - Backend handles polling
     // Removed formattedDisplayStrings state
 
     console.log('[TrainTimetableMode] Rendering. isConnected:', isConnected); // <-- ADD LOG

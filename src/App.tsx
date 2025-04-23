@@ -1,4 +1,4 @@
-import { useState, useEffect, KeyboardEvent, useCallback } from 'react'; // Import useEffect, KeyboardEvent, useCallback
+import { useState, useEffect, useCallback } from 'react'; // Import useEffect, useCallback
 import './App.css';
 import SplitFlapDisplay from './components/SplitFlapDisplay';
 // Removed SettingsPanel import
@@ -8,7 +8,7 @@ import ClockMode from './components/ClockMode';
 import StopwatchMode from './components/StopwatchMode';
 import TimerMode from './components/TimerMode'; // <-- IMPORT TimerMode
 import { SPLITFLAP_DISPLAY_LENGTH, ALLOWED_CHARS } from './constants';
-import { socketService } from './services/socketService';
+import { socketService, ServerToClientEvents } from './services/socketService'; // Import ServerToClientEvents
 import { ControlMode, Scene, Departure } from './types';
 
 

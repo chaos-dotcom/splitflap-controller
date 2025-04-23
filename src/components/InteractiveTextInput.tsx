@@ -1,6 +1,6 @@
 import React, { useState, useEffect, KeyboardEvent, useRef, MouseEvent } from 'react'; // Added MouseEvent
 import SplitFlapChar from './SplitFlapChar';
-import { ALLOWED_CHARS, SPLITFLAP_DISPLAY_LENGTH } from '../constants'; // Import renamed constant
+import { ALLOWED_CHARS } from '../constants'; // Removed SPLITFLAP_DISPLAY_LENGTH import
 import './InteractiveTextInput.css';
 
 interface InteractiveTextInputProps {

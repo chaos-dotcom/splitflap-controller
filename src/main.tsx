@@ -1,4 +1,3 @@
-import React from 'react'; // Import React
 import ReactDOM from 'react-dom/client'; // Use ReactDOM
 import './index.css'; // Import CSS (including GDS)
 import App from './App.tsx';

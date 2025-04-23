@@ -1,6 +1,6 @@
 import React, { useState, KeyboardEvent } from 'react';
 import './TextInputMode.css'; // We will update this CSS next
-import { ALLOWED_CHARS, DISPLAY_LENGTH } from '../constants'; // Import constants
+import { SPLITFLAP_DISPLAY_LENGTH } from '../constants'; // Removed ALLOWED_CHARS, corrected constant name
 
 interface TextInputModeProps {
   onSendText: (text: string) => void;

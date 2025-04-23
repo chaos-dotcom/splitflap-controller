@@ -13,7 +13,7 @@ interface MqttConnectOptions {
 }
 
 let client: MqttClient | null = null;
-let currentSubscribeTopic: string | null = null;
+// let currentSubscribeTopic: string | null = null; // Removed - Not used
 
 export const mqttService = {
   connect: ({
@@ -73,7 +73,7 @@ export const mqttService = {
         return;
     }
 
-    currentSubscribeTopic = subscribeTopic || null; // Store topic for potential resubscribe on reconnect
+    // currentSubscribeTopic = subscribeTopic || null; // Removed - Not used
 
     // Clear existing listeners before attaching new ones to prevent duplicates
     client.removeAllListeners();
@@ -129,7 +129,7 @@ export const mqttService = {
       console.log('Disconnecting MQTT client...');
       const tempClient = client; // Hold reference for cleanup
       client = null; // Set to null immediately to prevent race conditions/re-entry
-      currentSubscribeTopic = null;
+      // currentSubscribeTopic = null; // Removed - Not used
 
       tempClient.end(true, () => { // Pass true to force close
         console.log('MQTT client disconnected callback.');
