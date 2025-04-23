@@ -15,20 +15,25 @@ interface ServerToClientEvents {
             remainingMs: number;
             isRunning: boolean;
         };
-        sequence?: { isPlaying: boolean };
-        train?: { // Add train initial state
-            route: { fromCRS: string; toCRS?: string } | null;
-            departures: Departure[];
-        };
-    }) => void;
-    displayUpdate: (data: { text: string }) => void;
-    modeUpdate: (data: { mode: ControlMode }) => void;
-    mqttStatus: (status: { status: string; error: string | null }) => void;
-    stopwatchUpdate: (data: { elapsedTime: number; isRunning: boolean }) => void;
-    trainDataUpdate: (data: { departures?: Departure[]; error?: string }) => void; // Event for train data updates/errors
-    timerUpdate: (data: { targetMs: number; remainingMs: number; isRunning: boolean }) => void; // Event for timer updates
-    sequenceStopped: () => void;
-    error: (data: { message: string }) => void; // General backend errors
+            sequence?: { isPlaying: boolean };
+            train?: { // Add train initial state
+                route: { fromCRS: string; toCRS?: string } | null;
+                departures: Departure[];
+            };
+            // Note: Initial scene list/data might be better fetched explicitly after connect
+        }) => void;
+        displayUpdate: (data: { text: string }) => void;
+        modeUpdate: (data: { mode: ControlMode }) => void;
+        mqttStatus: (status: { status: string; error: string | null }) => void;
+        stopwatchUpdate: (data: { elapsedTime: number; isRunning: boolean }) => void;
+        trainDataUpdate: (data: { departures?: Departure[]; error?: string }) => void; // Event for train data updates/errors
+        timerUpdate: (data: { targetMs: number; remainingMs: number; isRunning: boolean }) => void; // Event for timer updates
+        sequenceStopped: () => void;
+        // --- Scene Management Events (Server -> Client) ---
+        sceneListUpdate: (data: { names: string[] }) => void; // Backend sends the list of scene names
+        sceneLoaded: (data: { scene: Scene }) => void; // Backend sends the data for a loaded scene
+        // --- End Scene Management Events ---
+        error: (data: { message: string }) => void; // General backend errors
 }
 
 // Define the structure of events sent to the backend
@@ -47,6 +52,12 @@ interface ClientToServerEvents {
     stopTimer: () => void; // Event to stop timer
     // resetTimer: () => void; // Optional: Could just use setTimer with original target
     startTrainUpdates: (data: { fromCRS: string; toCRS?: string }) => void; // Event to start/update train polling
+    // --- Scene Management Events (Client -> Server) ---
+    getSceneList: () => void; // Request the list of scene names
+    loadScene: (data: { sceneName: string }) => void; // Request loading a specific scene
+    saveScene: (data: { sceneName: string; sceneData: Scene }) => void; // Send scene data to be saved
+    deleteScene: (data: { sceneName: string }) => void; // Request deletion of a scene
+    // --- End Scene Management Events ---
 }
 
 // Define the socket type
@@ -67,6 +78,10 @@ export const socketService = {
         onTimerUpdate: (data: Parameters<ServerToClientEvents['timerUpdate']>[0]) => void, // Add callback for timer
         onTrainDataUpdate: (data: Parameters<ServerToClientEvents['trainDataUpdate']>[0]) => void, // Add callback for train data
         onSequenceStopped: () => void,
+        // --- Scene Management Callbacks ---
+        onSceneListUpdate: (data: Parameters<ServerToClientEvents['sceneListUpdate']>[0]) => void,
+        onSceneLoaded: (data: Parameters<ServerToClientEvents['sceneLoaded']>[0]) => void,
+        // --- End Scene Management Callbacks ---
         onConnect: () => void,
         onDisconnect: (reason: string) => void,
         onError: (message: string) => void
@@ -137,6 +152,10 @@ export const socketService = {
         socket.on('timerUpdate', onTimerUpdate); // Listen for timer updates
         socket.on('trainDataUpdate', onTrainDataUpdate); // Listen for train data updates
         socket.on('sequenceStopped', onSequenceStopped);
+        // --- Scene Management Listeners ---
+        socket.on('sceneListUpdate', onSceneListUpdate);
+        socket.on('sceneLoaded', onSceneLoaded);
+        // --- End Scene Management Listeners ---
         // Note: The 'error' event here is for *backend-emitted* errors, distinct from 'connect_error'
         socket.on('error', (data) => onError(data.message)); // Use the onError callback passed in
         console.log('[Socket.IO] Application event listeners attached.'); // Add log
@@ -184,5 +203,11 @@ export const socketService = {
     emitStopTimer: () => socketService.emit('stopTimer'),
     // emitResetTimer: () => socketService.emit('resetTimer'), // Optional
     emitStartTrainUpdates: (fromCRS: string, toCRS?: string) => socketService.emit('startTrainUpdates', { fromCRS, toCRS }),
+    // --- Scene Management Emitters ---
+    emitGetSceneList: () => socketService.emit('getSceneList'),
+    emitLoadScene: (sceneName: string) => socketService.emit('loadScene', { sceneName }),
+    emitSaveScene: (sceneName: string, sceneData: Scene) => socketService.emit('saveScene', { sceneName, sceneData }),
+    emitDeleteScene: (sceneName: string) => socketService.emit('deleteScene', { sceneName }),
+    // --- End Scene Management Emitters ---
 
 };
