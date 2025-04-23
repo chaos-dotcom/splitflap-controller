@@ -4,9 +4,9 @@
     "module": "CommonJS",                  /* Specify what module code is generated. */
     "outDir": "./dist",                    /* Specify an output folder for all emitted files. */
     // "rootDir": "./src",                 /* Removed: Let baseUrl handle resolution */
-    "baseUrl": ".",                        /* Base directory to resolve non-relative module names. */
-    "paths": {                             /* Specify paths mapping. */
-      "types/*": ["../src/types/*"]         /* Map 'types/*' to '../src/types/*' relative to baseUrl */
+    "baseUrl": "..",                       /* Base directory relative to tsconfig.json (project root) */
+    "paths": {                             /* Specify paths mapping relative to new baseUrl. */
+      "types/*": ["src/types/*"]            /* Map 'types/*' to 'src/types/*' relative to project root */
     },
     "strict": true,                        /* Enable all strict type-checking options. */
     "esModuleInterop": true,               /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
