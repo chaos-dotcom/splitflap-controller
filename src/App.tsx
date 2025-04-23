@@ -175,124 +175,37 @@ function App() {
 
   // --- Socket.IO Connection Effect ---
   useEffect(() => {
-    console.log('[App] useEffect: Calling socketService.connect...'); // Add log before connect
-    socketService.connect(
-      // onInitialState (UNCOMMENT BODY and add timer handling)
-      (state) => {
-        // --- START UNCOMMENTING ---
-        console.log('[App] Received initial state:', state);
-        try {
-          console.log('[App] Setting displayText...');
-          setDisplayText(state.text);
-          console.log('[App] Setting currentMode...');
-          setCurrentMode(state.mode); // Set initial mode
+      console.log('[App] useEffect: Calling socketService.connect...'); // Add log before connect
+      socketService.connect(
+          handleInitialState,
+          handleDisplayUpdate,
+          handleModeUpdate,
+          handleMqttStatus,
+          handleStopwatchUpdate,
+          handleTimerUpdate,
+          handleTrainDataUpdate,
+          handleSequenceStopped,
+          // --- ADD Scene Callbacks ---
+          handleSceneListUpdate,
+          handleSceneLoaded,
+          // --- END Scene Callbacks ---
+          handleConnect,
+          handleDisconnect,
+          handleError
+      );
 
-          // Stopwatch State
-          console.log('[App] Setting stopwatch state...');
-          setStopwatchIsRunningBackend(state.stopwatch?.isRunning ?? false);
-          // Note: Initial stopwatch display text comes from state.text if mode is stopwatch
-
-          // Sequence State
-          console.log('[App] Setting sequence state...');
-          // setIsSequencePlayingBackend(state.sequence?.isPlaying ?? false); // Add if needed
-
-          // Train State
-          console.log('[App] Processing train state...');
-          if (state.train) {
-            console.log('[App] Setting currentDepartures:', state.train.departures);
-            setCurrentDepartures(state.train.departures || []);
-            // Optionally set from/to station based on state.train.route if needed for UI consistency
-            // setFromStationInput(state.train.route?.fromCRS || '');
-            // setToStationInput(state.train.route?.toCRS || '');
-            console.log('[App] Train state processed.');
-          } else {
-            console.log('[App] No train state received in initial state.');
-            setCurrentDepartures([]);
-          }
-
-          // Timer State <-- ADD THIS BLOCK
-          console.log('[App] Setting timer state...');
-          if (state.timer) {
-              setTimerIsRunningBackend(state.timer.isRunning ?? false);
-              setTimerRemainingMs(state.timer.remainingMs ?? 0);
-              setTimerTargetMs(state.timer.targetMs ?? 0);
-              console.log('[App] Timer state processed:', state.timer);
-          } else {
-              console.log('[App] No timer state received in initial state.');
-              setTimerIsRunningBackend(false);
-              setTimerRemainingMs(0);
-              setTimerTargetMs(0);
-          }
-          // --- END TIMER BLOCK ---
-
-          console.log('[App] Initial state processing complete.');
-        } catch (error) {
-          console.error('[App] Error processing initial state:', error);
-          setBackendError('Error processing initial state from backend.');
-        }
-        // --- END UNCOMMENTING ---
-      },
-      // onDisplayUpdate (Restore original logic)
-      (data) => setDisplayText(data.text), // <-- RESTORE
-      // onModeUpdate (Restore original logic)
-      (data) => {
-        console.log(`[App] Received modeUpdate event from backend with mode: ${data.mode}`); // <-- ADD LOG
-        setCurrentMode(data.mode);
-      },
-      // onMqttStatus (Restore original logic)
-      (status) => setDisplayMqttStatus(status), // <-- RESTORE
-      // onStopwatchUpdate (Restore original logic)
-      (data) => {
-          console.log('[App] Received stopwatchUpdate:', data); // <-- ADD LOG
-          setStopwatchIsRunningBackend(data.isRunning);
-          // Display is updated via displayUpdate, but we could force it here if needed
-          // setDisplayText(formatStopwatchTime(data.elapsedTime)); // Requires formatStopwatchTime here
-      },
-      // onTimerUpdate (UPDATE to set timer state)
-      (data) => { // <-- UPDATE BLOCK
-          console.log('[App] Received timerUpdate', data);
-          setTimerIsRunningBackend(data.isRunning);
-          setTimerRemainingMs(data.remainingMs);
-          setTimerTargetMs(data.targetMs);
-          // Display is updated via displayUpdate from backend
-      }, // <-- UPDATE BLOCK
-      // onTrainDataUpdate (Restore original logic)
-      (data) => {
-          console.log('[App] Received trainDataUpdate:', data); // <-- ADD LOG
-          // Ensure departures is always an array
-          setCurrentDepartures(data.departures || []); // Update departures list
-          if (data.error) { setBackendError(`Train Data Error: ${data.error}`); } // Show error if backend sent one
-      }, // <-- RESTORE BLOCK
-      // onSequenceStopped (Restore original logic)
-      () => { /* Handle sequence stopped if needed */ console.log('[App] Received sequenceStopped (callback restored)'); }, // <-- RESTORE
-      // onConnect (Restore original logic)
-      () => { // <-- RESTORE BLOCK
-        console.log('[App] Socket connected (onConnect callback)');
-        setIsConnectedToBackend(true);
-        setBackendError(null);
-        socketService.emitGetMqttStatus(); // Ask for MQTT status on connect
-      }, // <-- RESTORE BLOCK
-      // onDisconnect (Restore original logic)
-      (reason) => { // <-- RESTORE BLOCK
-        console.log(`[App] Socket disconnected (onDisconnect callback): ${reason}`);
-        setIsConnectedToBackend(false);
-        setBackendError(`Disconnected: ${reason}`);
-        setDisplayMqttStatus({ status: 'unknown', error: null }); // Reset MQTT status
-      }, // <-- RESTORE BLOCK
-      // onError (Restore original logic)
-      (message) => { // <-- RESTORE BLOCK
-        console.error(`[App] Socket error (onError callback): ${message}`);
-        setIsConnectedToBackend(false); // Assume disconnect on error
-        setBackendError(message);
-      } // <-- RESTORE BLOCK
-    );
-
-    // Cleanup on unmount
-    return () => {
-      console.log('[App] useEffect cleanup: Disconnecting socket...');
-      socketService.disconnect();
-    };
-  }, []); // Empty dependency array ensures this runs only once on mount
+      // Cleanup on unmount
+      return () => {
+          console.log('[App] useEffect cleanup: Disconnecting socket...');
+          socketService.disconnect();
+      };
+      // Include all callbacks in dependency array
+  }, [
+      handleInitialState, handleDisplayUpdate, handleModeUpdate, handleMqttStatus,
+      handleStopwatchUpdate, handleTimerUpdate, handleTrainDataUpdate, handleSequenceStopped,
+      handleSceneListUpdate, handleSceneLoaded, // Add scene callbacks
+      handleConnect, handleDisconnect, handleError
+  ]);
 
 
   // --- Handlers for Interactive Display ---
