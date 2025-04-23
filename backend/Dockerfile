@@ -1,46 +1,44 @@
 # Stage 1: Build the application
 FROM node:20-alpine AS build
 
-# Set the working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json from the backend directory
+# Copy only package files first for better caching
 COPY backend/package.json backend/package-lock.json ./
 
-# Install all dependencies (including devDependencies needed for build)
-# Ensure backend/.dockerignore excludes node_modules, dist, etc. from this copy
+# Install all dependencies (including devDependencies)
 RUN npm ci
 
-# Copy the shared types directory from the root context
-COPY src/types ./types
+# Copy shared types needed for build
+COPY src/types ./types/
 
-# Copy the backend source code and tsconfig from the backend directory
-COPY backend/src ./src
-COPY backend/tsconfig.json ./
+# Copy the entire backend source into a subdirectory
+COPY backend ./backend_src/
 
-# Run the build script (tsc -b) defined in package.json
+# Set working directory to the backend source
+WORKDIR /app/backend_src
+
+# Run the build script (tsc should resolve ../types relative to backend_src/tsconfig.json)
 RUN npm run build
 
 # Stage 2: Create the production image
 FROM node:20-alpine
 
-# Set the working directory
 WORKDIR /app
 
 # Set NODE_ENV to production for the final stage
 ENV NODE_ENV=production
 
-# Copy package.json and package-lock.json from the backend directory
+# Copy package files for production dependencies
 COPY backend/package.json backend/package-lock.json ./
 
 # Install only production dependencies
 RUN npm ci --only=production
 
-# Copy the compiled code from the build stage
-COPY --from=build /app/dist ./dist
+# Copy the compiled code from the build stage's subdirectory
+COPY --from=build /app/backend_src/dist ./dist
 
-# Copy runtime assets like scenes from the backend directory (if not mounted as a volume)
-# Adjust this if your scenes are in a different location or handled by volumes
+# Copy runtime assets like scenes from the original context's backend directory
 COPY backend/scenes ./scenes
 
 # Make port 3000 available
@@ -49,5 +47,5 @@ EXPOSE 3000
 # List files for debugging before starting
 RUN ls -la /app && ls -la /app/dist
 
-# Define the command to run the compiled app
+# Define the command to run the compiled app (still runs from /app)
 CMD ["npm", "start"]

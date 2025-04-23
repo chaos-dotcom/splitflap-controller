@@ -9,8 +9,8 @@ import * as mqttClient from './mqttClient';
 import fs from 'fs/promises'; // Import file system promises API
 import path from 'path'; // Import path module
 import yaml from 'js-yaml'; // Import YAML library
-// Import types from the copied directory within the build context
-import { ControlMode, Scene, SceneLine, Departure } from './types'; // Adjusted import path
+// Import types relative to the build context structure (../types from src)
+import { ControlMode, Scene, SceneLine, Departure } from '../types'; // Adjusted import path for build stage WORKDIR
 
 // Removed OIDC/Session related imports
 
