@@ -149,7 +149,7 @@ const SortableLineItem: React.FC<SortableLineItemProps> = ({
                     disabled={isPlaying || isEditing} // Disable when editing this line
                     title="Line display duration (seconds)"
                 />
-                <span className="govuk-input__suffix" aria-hidden="true">s</span> {/* Changed unit to 's' */}
+                <span className="govuk-input__suffix" aria-hidden="true" style={{ color: 'black' }}>s</span> {/* Changed unit to 's' and set color */}
             </div>
 
             {/* Action Buttons - GDS Style */}
