@@ -861,6 +861,20 @@ const resetBackendStopwatch = () => {
     // No state to publish for button
 };
 
+// Function to publish the current timer target duration state to MQTT
+const publishTimerState = () => {
+    if (!mqttClient.getDisplayConnectionStatus().status.startsWith('connect')) return;
+
+    // Publish target duration in minutes
+    const durationMinutes = Math.round(timerTargetMs / 60000); // Convert ms to minutes for HA number entity
+    console.log(`[HA MQTT] Publishing Timer Duration State: ${durationMinutes} min`);
+    mqttClient.publish(haTimerDurationStateTopic, durationMinutes.toString(), { retain: true });
+
+    // Note: We don't publish the running state separately here,
+    // as the start/stop is controlled by a button.
+};
+
+
 // --- Timer Mode Logic ---
 const setBackendTimer = (durationMs: number) => {
     console.log(`[Timer] Setting timer duration: ${durationMs}ms`);
@@ -941,6 +955,8 @@ const stopBackendTimer = () => {
         isRunning: timerIsRunning
     });
     // No need to publish state here as setBackendTimer already does
+}; // <-- ADD MISSING CLOSING BRACE HERE
+
 // --- Sequence Mode Logic ---
 const playNextSequenceLine = () => {
     // This function is intended to be called via setTimeout
@@ -1005,19 +1021,6 @@ const publishTrainRouteState = () => {
     console.log(`[HA MQTT] Publishing Train Route State: From='${fromState}', To='${toState}'`);
     mqttClient.publish(haTrainFromStateTopic, fromState, { retain: true });
     mqttClient.publish(haTrainToStateTopic, toState, { retain: true });
-};
-
-// Function to publish the current timer target duration state to MQTT
-const publishTimerState = () => {
-    if (!mqttClient.getDisplayConnectionStatus().status.startsWith('connect')) return;
-
-    // Publish target duration in minutes
-    const durationMinutes = Math.round(timerTargetMs / 60000); // Convert ms to minutes for HA number entity
-    console.log(`[HA MQTT] Publishing Timer Duration State: ${durationMinutes} min`);
-    mqttClient.publish(haTimerDurationStateTopic, durationMinutes.toString(), { retain: true });
-
-    // Note: We don't publish the running state separately here,
-    // as the start/stop is controlled by a button.
 };
 
 
