@@ -3,11 +3,9 @@
     "target": "ES2016",                     /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
     "module": "CommonJS",                  /* Specify what module code is generated. */
     "outDir": "./dist",                    /* Specify an output folder for all emitted files. */
-    // "rootDir": "./src",                 /* Removed: Let baseUrl handle resolution */
-    "baseUrl": ".",                        /* Base directory relative to command execution (project root). */
-    "paths": {                             /* Specify paths mapping relative to project root baseUrl. */
-      "types/*": ["src/types/*"]            /* Map 'types/*' to 'src/types/*' relative to project root */
-    },
+    // "rootDir": "./src",                 /* Let root tsconfig handle resolution if needed */
+    // "baseUrl": ".",                     /* REMOVED - Let root config handle alias resolution */
+    // "paths": { },                       /* REMOVED - Let root config handle alias resolution */
     "strict": true,                        /* Enable all strict type-checking options. */
     "esModuleInterop": true,               /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
     "skipLibCheck": true,                  /* Skip type checking all .d.ts files. */

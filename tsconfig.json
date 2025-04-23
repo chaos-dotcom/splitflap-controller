@@ -1,7 +1,22 @@
 {
+  "compilerOptions": {
+    // Define baseUrl and paths at the root level
+    "baseUrl": ".",                       /* Base directory is project root */
+    "paths": {
+      "types": ["./src/types/index"],     /* Map 'types' specifically to the index file */
+      "types/*": ["./src/types/*"]        /* Map 'types/*' generally to the directory */
+    },
+    // Add common options needed for resolution/interop if not present elsewhere
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node" // Or "bundler", ensure consistency if used elsewhere
+  },
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
+    // Consider adding backend reference if using composite projects fully:
+    // { "path": "./backend/tsconfig.json" }
   ]
 }
