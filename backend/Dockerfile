@@ -44,5 +44,8 @@ COPY backend/scenes ./scenes
 # Make port 3000 available
 EXPOSE 3000
 
+# List files for debugging before starting
+RUN ls -la /app && ls -la /app/dist
+
 # Define the command to run the compiled app (runs from /app)
 CMD ["npm", "start"]
