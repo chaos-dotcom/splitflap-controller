@@ -16,6 +16,6 @@
     "resolveJsonModule": true,             /* Enable importing .json files */
     "sourceMap": true                      /* Create source map files for emitted JavaScript files. */
   },
-  "include": ["src/**/*", "types/**/*"],   /* Include both src and the copied types directory */
+  "include": ["src/**/*"],                 /* Only include backend source files for compilation */
   "exclude": ["node_modules", "**/*.spec.ts"] /* Specifies an array of filenames or patterns that should be skipped when resolving include. */
 }
