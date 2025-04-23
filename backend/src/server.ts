@@ -654,10 +654,10 @@ let haDiscoveryPublished = false; // Flag to track if discovery config has been 
 // --- Middleware ---
 // Use more specific CORS setup
 app.use(cors({
-    origin: "*", // Keep allowing all origins for now
+    origin: "http://localhost:5173", // <-- CHANGE: Specify frontend origin
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Explicitly allow methods
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"], // Allow common headers
-    credentials: true // Allow credentials (though not strictly needed without auth)
+    credentials: true // Allow credentials
 }));
 app.use(express.json());
 
@@ -883,7 +883,7 @@ app.get('/', (req: Request, res: Response) => {
 // --- WebSocket Server Setup ---
 const io = new SocketIOServer(httpServer, {
     cors: {
-        origin: "*", // Allow all origins for now, restrict in production
+        origin: "http://localhost:5173", // <-- CHANGE: Specify frontend origin
         methods: ["GET", "POST"], // Methods needed by Socket.IO
         allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"], // Explicitly allow headers
         credentials: true // Allow credentials
