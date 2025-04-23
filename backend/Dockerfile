@@ -1,48 +1,50 @@
 # Stage 1: Build the backend application
 FROM node:20-alpine AS build
 
-# Set working directory for the build stage
-WORKDIR /build_context
+# Set working directory consistently to /app
+WORKDIR /app
 
-# Copy backend package files and install ALL dependencies (incl. dev)
-COPY backend/package.json backend/package-lock.json ./backend/
-RUN cd backend && npm ci
+# Copy backend package files
+COPY backend/package.json backend/package-lock.json ./
+
+# Install ALL dependencies (including devDependencies needed for build)
+RUN npm ci
 
 # Copy backend tsconfig
-COPY backend/tsconfig.json ./backend/
+COPY backend/tsconfig.json ./
 
-# Copy backend source code
-COPY backend/src ./backend/src/
+# Copy backend source code into /app/src
+COPY backend/src ./src/
 
-# Copy shared types source code needed for the build
-# Copy it *inside* the backend source directory for tsc resolution
-COPY src/types ./backend/src/types/
+# Copy shared types source code into /app/src/types
+# This matches the paths expected by backend/tsconfig.json (baseUrl: ".", paths: {"types": ["./src/types/index"]})
+COPY src/types ./src/types/
 
-# Run the build command from within the backend directory context
-# This uses backend/tsconfig.json which resolves 'types' via paths
-WORKDIR /build_context/backend
+# Run the build command (tsc) from the /app directory
+# Outputs to ./dist (/app/dist) based on tsconfig.json
 RUN npm run build
 
-# List files after build for debugging
-RUN echo "--- Build Stage /build_context/backend ---" && ls -la && \
-    echo "--- Build Stage /build_context/backend/dist ---" && ls -la ./dist
+# --- Diagnostics: List the build output ---
+RUN echo "--- Build Stage: Contents of /app/dist ---" && ls -R /app/dist || echo "--- Build Stage: /app/dist not found or empty ---"
 
 # Stage 2: Create the final production image
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Set NODE_ENV to production
+# Set NODE_ENV to production for the final image
 ENV NODE_ENV=production
 
-# Copy backend package files
+# Copy backend package files again for production install
 COPY backend/package.json backend/package-lock.json ./
 
 # Install only production dependencies for the backend
-RUN npm ci --only=production
+# Using --omit=dev instead of --only=production as recommended by npm v7+
+RUN npm ci --omit=dev --ignore-scripts
 
-# Copy the compiled backend code from the build stage
-COPY --from=build /build_context/backend/dist ./dist
+# Copy the compiled backend code from the build stage's /app/dist to the final /app/dist
+# Ensure the source directory exists before copying
+COPY --from=build /app/dist ./dist
 
 # Copy runtime assets like scenes
 COPY backend/scenes ./scenes
@@ -50,10 +52,9 @@ COPY backend/scenes ./scenes
 # Expose the port the backend server listens on
 EXPOSE 3001
 
-# List files for debugging before starting
-RUN echo "--- Final Stage /app ---" && ls -la && \
-    echo "--- Final Stage /app/dist ---" && ls -la ./dist
+# --- Diagnostics: List the final contents of /app/dist ---
+RUN echo "--- Final Stage: Contents of /app/dist ---" && ls -R /app/dist || echo "--- Final Stage: /app/dist not found or empty ---"
 
 # Define the command to run the compiled app (runs from /app)
-# Assumes backend/package.json "start" script points to "dist/server.js"
+# Assumes backend/package.json "start" script points to "node dist/server.js"
 CMD ["npm", "start"]
