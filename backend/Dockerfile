@@ -3,22 +3,22 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Copy only package files first for better caching
+# Copy package files from backend directory
 COPY backend/package.json backend/package-lock.json ./
 
 # Install all dependencies (including devDependencies)
 RUN npm ci
 
-# Copy shared types needed for build
+# Copy tsconfig from backend directory to /app
+COPY backend/tsconfig.json ./
+
+# Copy shared types from root src to /app/types
 COPY src/types ./types/
 
-# Copy the entire backend source into a subdirectory
-COPY backend ./backend_src/
+# Copy backend source code to /app/src
+COPY backend/src ./src/
 
-# Set working directory to the backend source
-WORKDIR /app/backend_src
-
-# Run the build script (tsc should resolve ../types relative to backend_src/tsconfig.json)
+# Run the build script (tsc will use tsconfig.json in /app)
 RUN npm run build
 
 # Stage 2: Create the production image
@@ -29,23 +29,20 @@ WORKDIR /app
 # Set NODE_ENV to production for the final stage
 ENV NODE_ENV=production
 
-# Copy package files for production dependencies
+# Copy package files from backend directory
 COPY backend/package.json backend/package-lock.json ./
 
 # Install only production dependencies
 RUN npm ci --only=production
 
-# Copy the compiled code from the build stage's subdirectory
-COPY --from=build /app/backend_src/dist ./dist
+# Copy the compiled code from the build stage
+COPY --from=build /app/dist ./dist
 
-# Copy runtime assets like scenes from the original context's backend directory
+# Copy runtime assets like scenes from the backend directory
 COPY backend/scenes ./scenes
 
 # Make port 3000 available
 EXPOSE 3000
 
-# List files for debugging before starting
-RUN ls -la /app && ls -la /app/dist
-
-# Define the command to run the compiled app (still runs from /app)
+# Define the command to run the compiled app (runs from /app)
 CMD ["npm", "start"]

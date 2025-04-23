@@ -3,7 +3,11 @@
     "target": "ES2016",                     /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
     "module": "CommonJS",                  /* Specify what module code is generated. */
     "outDir": "./dist",                    /* Specify an output folder for all emitted files. */
-    "rootDir": "./src",                    /* Specify the root folder within your source files. */
+    // "rootDir": "./src",                 /* Removed: Let baseUrl handle resolution */
+    "baseUrl": ".",                        /* Base directory to resolve non-relative module names. */
+    "paths": {                             /* Specify paths mapping. */
+      "types/*": ["types/*"]                /* Map 'types/*' to './types/*' relative to baseUrl */
+    },
     "strict": true,                        /* Enable all strict type-checking options. */
     "esModuleInterop": true,               /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
     "skipLibCheck": true,                  /* Skip type checking all .d.ts files. */
@@ -12,6 +16,6 @@
     "resolveJsonModule": true,             /* Enable importing .json files */
     "sourceMap": true                      /* Create source map files for emitted JavaScript files. */
   },
-  "include": ["src/**/*"],                 /* Specifies an array of filenames or patterns to include in the program. */
+  "include": ["src/**/*", "types/**/*"],   /* Include both src and the copied types directory */
   "exclude": ["node_modules", "**/*.spec.ts"] /* Specifies an array of filenames or patterns that should be skipped when resolving include. */
 }
