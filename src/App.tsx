@@ -36,6 +36,13 @@ function App() {
   const [loadedScene, setLoadedScene] = useState<Scene | null>(null); // Data of the scene loaded for editing
   // --- End Scene State ---
 
+  // --- Authentication State ---
+  const [oidcEnabled] = useState<boolean>(import.meta.env.VITE_OIDC_ENABLED === 'true');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authChecked, setAuthChecked] = useState<boolean>(false); // To prevent rendering before check
+  const [userInfo, setUserInfo] = useState<any>(null); // Store basic user info if needed
+  // --- End Authentication State ---
+
 
   // Update draft text when display text changes (e.g., from backend or initial load)
   useEffect(() => {
@@ -384,23 +391,53 @@ function App() {
 
   // --- Mode Change Handler ---
   const handleSetMode = (mode: ControlMode) => {
-      if (isConnectedToBackend) {
+      // Add check for authentication if OIDC is enabled
+      if (isConnectedToBackend && (!oidcEnabled || isAuthenticated)) {
           socketService.emitSetMode(mode);
           // Note: The actual state update (setCurrentMode) happens
           // when the backend confirms via the 'modeUpdate' event.
-      } else {
+      } else if (!isConnectedToBackend) {
           console.warn("Cannot change mode: Disconnected from backend.");
-          // Optionally provide user feedback here
+          setBackendError("Cannot change mode: Disconnected"); // Provide feedback
+      } else {
+          // OIDC enabled but not authenticated
+          console.warn("Cannot change mode: Authentication required.");
+          setBackendError("Cannot change mode: Please login"); // Provide feedback
       }
   };
   // --- End Mode Change Handler ---
 
 
   return (
-    <div className="app-container">
+    <div className="app-container"> {/* Removed govuk-width-container if you don't want width limit */}
       <h1>Split-Flap Controller</h1>
 
-      {/* Display Backend Connection Status - No longer needs wrapper div */}
+      {/* --- Auth Controls --- */}
+      {oidcEnabled && authChecked && ( // Only show if OIDC enabled and check complete
+          <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10, padding: '5px' }}>
+              {isAuthenticated ? (
+                  <>
+                      <span style={{ marginRight: '10px', verticalAlign: 'middle' }}>
+                          {/* Display user info if available */}
+                          {userInfo?.displayName || userInfo?.emails?.[0]?.value || 'Authenticated'}
+                      </span>
+                      {/* Use VITE_API_BASE_URL for logout link */}
+                      <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/logout`} className="govuk-button govuk-button--warning govuk-button--small">
+                          Logout
+                      </a>
+                  </>
+              ) : (
+                  /* Use VITE_API_BASE_URL for login link */
+                  <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/login`} className="govuk-button govuk-button--small">
+                      Login
+                  </a>
+              )}
+          </div>
+      )}
+      {/* --- End Auth Controls --- */}
+
+
+      {/* Display Backend Connection Status */}
       <p className={`status-indicator ${isConnectedToBackend ? 'connected' : 'disconnected'}`}>
           Backend: {isConnectedToBackend ? 'Connected' : 'Disconnected'}
           {backendError && <span className="error-text"> ({backendError})</span>}
@@ -413,85 +450,111 @@ function App() {
       {/* Removed Settings Panel and connection error display */}
 
 
-      {/* Split Flap Display - Now Interactive */}
-      <SplitFlapDisplay
-        // Show draft text only when in text mode, otherwise show last published text
-        text={currentMode === 'text' ? draftText : displayText}
-        caretPosition={caretPosition} // Caret position is only relevant in text mode
-        onKeyDown={handleDisplayKeyDown} // Handler checks for mode internally
-        isConnected={isConnectedToBackend} // Pass backend connection status
-        onClick={handleDisplayClick} // Handler checks for mode internally
-        isInteractive={currentMode === 'text'} // Explicitly pass if display should be interactive
-      />
+      {/* --- Main Content --- */}
+      {/* Wait for auth check before rendering main content if OIDC is enabled */}
+      {(!oidcEnabled || authChecked) ? (
+          <>
+              {/* Conditionally render based on authentication */}
+              {isAuthenticated ? (
+                  <>
+                      {/* Split Flap Display - Now Interactive */}
+                      <SplitFlapDisplay
+                          text={currentMode === 'text' ? draftText : displayText}
+                          caretPosition={caretPosition}
+                          onKeyDown={handleDisplayKeyDown}
+                          // Display might depend on socket connection primarily
+                          isConnected={isConnectedToBackend}
+                          onClick={handleDisplayClick}
+                          // Interactivity might depend on both connection and auth (if OIDC enabled)
+                          isInteractive={currentMode === 'text' && isConnectedToBackend && (!oidcEnabled || isAuthenticated)}
+                      />
 
-      {/* Mode Selector */}
-      <div className="mode-selector govuk-button-group"> {/* Add GDS button group class */}
-          {/* Use handleSetMode to request change via backend */}
-          <button onClick={() => handleSetMode('text')} disabled={currentMode === 'text'} className={`govuk-button ${currentMode !== 'text' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Text Input</button>
-          <button onClick={() => handleSetMode('train')} disabled={currentMode === 'train'} className={`govuk-button ${currentMode !== 'train' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Train Times</button>
-          <button onClick={() => handleSetMode('sequence')} disabled={currentMode === 'sequence'} className={`govuk-button ${currentMode !== 'sequence' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Sequence</button>
-          <button onClick={() => handleSetMode('clock')} disabled={currentMode === 'clock'} className={`govuk-button ${currentMode !== 'clock' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Clock</button>
-          <button onClick={() => handleSetMode('stopwatch')} disabled={currentMode === 'stopwatch'} className={`govuk-button ${currentMode !== 'stopwatch' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Stopwatch</button>
-          {/* Add Timer Button */}
-          <button onClick={() => handleSetMode('timer')} disabled={currentMode === 'timer'} className={`govuk-button ${currentMode !== 'timer' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Timer</button>
-      </div>
+                      {/* Mode Selector */}
+                      <div className="mode-selector govuk-button-group">
+                          {/* Disable buttons if not connected OR if OIDC requires auth and not authenticated */}
+                          <button onClick={() => handleSetMode('text')} disabled={currentMode === 'text' || !isConnectedToBackend || (oidcEnabled && !isAuthenticated)} className={`govuk-button ${currentMode !== 'text' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Text Input</button>
+                          <button onClick={() => handleSetMode('train')} disabled={currentMode === 'train' || !isConnectedToBackend || (oidcEnabled && !isAuthenticated)} className={`govuk-button ${currentMode !== 'train' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Train Times</button>
+                          <button onClick={() => handleSetMode('sequence')} disabled={currentMode === 'sequence' || !isConnectedToBackend || (oidcEnabled && !isAuthenticated)} className={`govuk-button ${currentMode !== 'sequence' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Sequence</button>
+                          <button onClick={() => handleSetMode('clock')} disabled={currentMode === 'clock' || !isConnectedToBackend || (oidcEnabled && !isAuthenticated)} className={`govuk-button ${currentMode !== 'clock' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Clock</button>
+                          <button onClick={() => handleSetMode('stopwatch')} disabled={currentMode === 'stopwatch' || !isConnectedToBackend || (oidcEnabled && !isAuthenticated)} className={`govuk-button ${currentMode !== 'stopwatch' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Stopwatch</button>
+                          <button onClick={() => handleSetMode('timer')} disabled={currentMode === 'timer' || !isConnectedToBackend || (oidcEnabled && !isAuthenticated)} className={`govuk-button ${currentMode !== 'timer' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Timer</button>
+                      </div>
 
-      {/* Mode Specific Controls */}
-      <div className="mode-controls">
-          {currentMode === 'train' && (
-              <TrainTimetableMode
-                  isConnected={isConnectedToBackend}
-                  onSendMessage={handleSendText}
-                  onStartUpdates={handleStartTrainUpdates}
-                  departures={currentDepartures}
-              />
-          )}
-          {currentMode === 'sequence' && (
-             <SequenceMode
-                isConnected={isConnectedToBackend}
-                onPlay={handlePlaySequence}
-                onStop={handleStopSequence}
-                // --- Pass Scene Props ---
-                sceneNames={sceneNames}
-                loadedScene={loadedScene}
-                onGetSceneList={handleGetSceneList}
-                onLoadScene={handleLoadSceneRequest}
-                onSaveScene={handleSaveSceneRequest}
-                onDeleteScene={handleDeleteSceneRequest}
-                // --- End Scene Props ---
-             />
-          )}
-          {currentMode === 'clock' && (
-             <ClockMode isConnectedToBackend={isConnectedToBackend} />
-          )}
-          {currentMode === 'stopwatch' && (
-             <StopwatchMode
-                isConnectedToBackend={isConnectedToBackend}
-                displayTime={displayText}
-                isRunningBackend={stopwatchIsRunningBackend}
-                onStart={handleStartStopwatch}
-                onStop={handleStopStopwatch}
-                onReset={handleResetStopwatch}
-             />
-          )}
-          {/* --- UNCOMMENT AND UPDATE TimerMode --- */}
-          {currentMode === 'timer' && (
-             <TimerMode
-                isConnectedToBackend={isConnectedToBackend}
-                isRunningBackend={timerIsRunningBackend}
-                remainingMsBackend={timerRemainingMs}
-                targetMsBackend={timerTargetMs}
-                onSetTimer={handleSetTimer}
-                onStartTimer={handleStartTimer}
-                onStopTimer={handleStopTimer}
-             />
-          )}
-          {/* --- END TimerMode --- */}
-      </div>
-      {/* END OF BLOCK TO UNCOMMENT */}
-
-
-      {/* Final conditional paragraph removed */}
+                      {/* Mode Specific Controls */}
+                      {/* Pass isConnectedToBackend and potentially isAuthenticated down */}
+                      {/* Components should internally handle disabling based on these props */}
+                      <div className="mode-controls">
+                          {currentMode === 'train' && (
+                              <TrainTimetableMode
+                                  isConnected={isConnectedToBackend} // Pass socket status
+                                  // Add isAuthenticated prop if TrainTimetableMode needs to disable parts based on auth
+                                  // isAuthenticated={isAuthenticated}
+                                  onSendMessage={handleSendText}
+                                  onStartUpdates={handleStartTrainUpdates}
+                                  departures={currentDepartures}
+                              />
+                          )}
+                          {currentMode === 'sequence' && (
+                              <SequenceMode
+                                  isConnected={isConnectedToBackend} // Pass socket status
+                                  // isAuthenticated={isAuthenticated} // Add if needed
+                                  onPlay={handlePlaySequence}
+                                  onStop={handleStopSequence}
+                                  sceneNames={sceneNames}
+                                  loadedScene={loadedScene}
+                                  onGetSceneList={handleGetSceneList}
+                                  onLoadScene={handleLoadSceneRequest}
+                                  onSaveScene={handleSaveSceneRequest}
+                                  onDeleteScene={handleDeleteSceneRequest}
+                              />
+                          )}
+                          {currentMode === 'clock' && (
+                              <ClockMode
+                                  isConnectedToBackend={isConnectedToBackend} // Pass socket status
+                                  // isAuthenticated={isAuthenticated} // Add if needed
+                              />
+                          )}
+                          {currentMode === 'stopwatch' && (
+                              <StopwatchMode
+                                  isConnectedToBackend={isConnectedToBackend} // Pass socket status
+                                  // isAuthenticated={isAuthenticated} // Add if needed
+                                  displayTime={displayText}
+                                  isRunningBackend={stopwatchIsRunningBackend}
+                                  onStart={handleStartStopwatch}
+                                  onStop={handleStopStopwatch}
+                                  onReset={handleResetStopwatch}
+                              />
+                          )}
+                          {currentMode === 'timer' && (
+                              <TimerMode
+                                  isConnectedToBackend={isConnectedToBackend} // Pass socket status
+                                  // isAuthenticated={isAuthenticated} // Add if needed
+                                  isRunningBackend={timerIsRunningBackend}
+                                  remainingMsBackend={timerRemainingMs}
+                                  targetMsBackend={timerTargetMs}
+                                  onSetTimer={handleSetTimer}
+                                  onStartTimer={handleStartTimer}
+                                  onStopTimer={handleStopTimer}
+                              />
+                          )}
+                      </div>
+                  </>
+              ) : (
+                  // OIDC is enabled, auth check done, but user is not authenticated
+                  oidcEnabled && <div className="govuk-warning-text">
+                      <span className="govuk-warning-text__icon" aria-hidden="true">!</span>
+                      <strong className="govuk-warning-text__text">
+                          <span className="govuk-warning-text__assistive">Warning</span>
+                          Please <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/login`}>login</a> to control the display.
+                      </strong>
+                  </div>
+              )}
+          </>
+      ) : (
+          // Optional: Show a loading indicator while auth check is in progress
+          <p className="govuk-body">Checking authentication status...</p>
+      )}
+      {/* --- End Main Content --- */}
 
     </div>
   );
