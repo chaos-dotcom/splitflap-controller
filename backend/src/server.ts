@@ -863,6 +863,13 @@ app.get('/api/departures', async (req: Request, res: Response) => {
     }
 });
 
+// --- ADD PING ROUTE ---
+app.get('/ping', (req: Request, res: Response) => {
+    console.log('--- GET /ping route hit ---'); // Log when hit
+    res.status(200).send('pong');
+});
+// --- END PING ROUTE ---
+
 // Basic root route
 app.get('/', (req: Request, res: Response) => {
   res.send('Split-Flap Backend Service is running');
