@@ -35,7 +35,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     // const [departures, setDepartures] = useState<Departure[]>([]);
     // const [selectedDepartureIds, setSelectedDepartureIds] = useState<Set<string>>(new Set()); // Removed - Not used
     const [savedPresets, setSavedPresets] = useState<TrainRoutePreset[]>([]); // State for presets
-    const [isLoading, setIsLoading] = useState<boolean>(false); // Keep loading state for manual refresh - NOTE: This might need syncing with backend state
+    // const [isLoading, setIsLoading] = useState<boolean>(false); // Removed - Loading state not used locally
     const [error, setError] = useState<string | null>(null);
     // const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null); // Removed - Backend handles polling
     // Removed formattedDisplayStrings state
@@ -332,25 +332,25 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                         console.log('[TrainTimetableMode] Refresh Now button clicked.'); // <-- ADD LOG
                         onStartUpdates(fromStation, toStation);
                     }}
-                    // Re-added isLoading check which might have been accidentally removed
-                    disabled={!isConnected || !fromStation || fromStation.length !== 3 || isLoading}
+                    // Removed isLoading check
+                    disabled={!isConnected || !fromStation || fromStation.length !== 3}
                 >
-                    {isLoading ? 'Refreshing...' : 'Refresh Now'}
+                    {'Refresh Now'} {/* Removed isLoading ternary */}
                 </button>
             </div>
 
             {/* Preset Management */}
             <div className="preset-management">
-                <select id="presetSelector" onChange={handleSelectPreset} disabled={isLoading}>
+                <select id="presetSelector" onChange={handleSelectPreset} disabled={!isConnected}> {/* Disable if not connected */}
                     <option value="">-- Select Preset --</option>
                     {savedPresets.map(preset => (
                         <option key={preset.name} value={preset.name}>{preset.name}</option>
                     ))}
                 </select>
-                <button onClick={handleSavePreset} disabled={!isConnected || !fromStation || fromStation.length !== 3 || isLoading} title="Save current From/To as a preset">
+                <button onClick={handleSavePreset} disabled={!isConnected || !fromStation || fromStation.length !== 3} title="Save current From/To as a preset"> {/* Removed isLoading check */}
                     💾 Save Preset
                 </button>
-                <button onClick={handleDeletePreset} disabled={!isConnected || isLoading} title="Delete selected preset">
+                <button onClick={handleDeletePreset} disabled={!isConnected} title="Delete selected preset"> {/* Removed isLoading check */}
                     🗑️ Delete Preset
                 </button>
             </div>
@@ -359,10 +359,10 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
 
             <div className="departures-list">
                 <h5>Departures</h5>
-                {isLoading && <p>Loading departures...</p>}
-                {!isLoading && !error && departures.length === 0 && fromStation && <p>No departures found for {fromStation}{toStation ? ` to ${toStation}` : ''}.</p>}
-                {!isLoading && !error && departures.length === 0 && !fromStation && <p>Enter a 'From' station code and click Refresh.</p>}
- 
+                {/* Removed isLoading check */}
+                {!error && departures.length === 0 && fromStation && <p>No departures found for {fromStation}{toStation ? ` to ${toStation}` : ''}.</p>}
+                {!error && departures.length === 0 && !fromStation && <p>Enter a 'From' station code and click Refresh.</p>}
+
                 {departures.length > 0 && (
                     <table>
                        <thead>
