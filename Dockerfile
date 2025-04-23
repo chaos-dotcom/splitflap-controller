@@ -2,7 +2,7 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 # Set NODE_ENV to production for build stage
-ENV NODE_ENV=production
+# ENV NODE_ENV=production # Removed: devDependencies (like typescript) are needed for build
 
 # Copy package files and install dependencies
 COPY package.json package-lock.json ./
