@@ -4,9 +4,9 @@
     "target": "ES2016",                     /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
     "module": "CommonJS",                  /* Specify what module code is generated. */
     "outDir": "./dist",                    /* Specify an output folder for all emitted files. */
-    // "rootDir": "./src",                 /* Let root tsconfig handle resolution if needed */
-    "baseUrl": ".",                        /* Base directory is the backend directory itself */
-    "paths": {                             /* Define paths relative to this file's location */
+    "rootDir": "..",                       /* Set rootDir to project root to include shared types */
+    "baseUrl": ".",                        /* Keep baseUrl relative to this tsconfig's location (backend/) */
+    "paths": {                             /* Keep paths relative to this tsconfig's location */
         "types": ["../src/types/index"],   /* Map 'types' to the index file relative to backend/ */
         "types/*": ["../src/types/*"]      /* Map 'types/*' to the directory relative to backend/ */
     },
@@ -18,6 +18,7 @@
     "resolveJsonModule": true,             /* Enable importing .json files */
     "sourceMap": true                      /* Create source map files for emitted JavaScript files. */
   },
-  "include": ["src/**/*"],                 /* Only include backend source files for compilation */
+  // Include pattern relative to the NEW rootDir ('..')
+  "include": ["backend/src/**/*"],         /* Include backend source relative to project root */
   "exclude": ["node_modules", "**/*.spec.ts"] /* Specifies an array of filenames or patterns that should be skipped when resolving include. */
 }
