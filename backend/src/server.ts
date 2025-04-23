@@ -514,13 +514,6 @@ let timerRemainingMs: number = 0; // How much time is left
 let timerIsRunning: boolean = false;
 let haDiscoveryPublished = false; // Flag to track if discovery config has been sent
 
-// --- Initial Mode Start ---
-// If the default mode is clock, start its interval immediately.
-if (currentAppMode === 'clock') {
-    startBackendClock();
-}
-// --- End Initial Mode Start ---
-
 // --- End Application State ---
 
 // --- Middleware ---
@@ -752,6 +745,15 @@ const io = new SocketIOServer(httpServer, {
         methods: ["GET", "POST"]
     }
 });
+
+// --- Initial Mode Start ---
+// Moved here to ensure 'io' is initialized before startBackendClock -> updateDisplayAndBroadcast is called
+// If the default mode is clock, start its interval immediately.
+if (currentAppMode === 'clock') {
+    startBackendClock();
+}
+// --- End Initial Mode Start ---
+
 
 // --- Refactored Mode Setting Logic ---
 const setBackendMode = (newMode: ControlMode, source: 'socket' | 'mqtt') => {
