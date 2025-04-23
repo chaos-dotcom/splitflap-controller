@@ -1,0 +1,50 @@
+# Git files
+.git
+.gitignore
+
+# Docker related files within the context
+Dockerfile
+Dockerfile.*
+.dockerignore
+
+# Node modules (already ignored by root, but good practice here too)
+node_modules
+
+# Build output (if you build locally before docker build, otherwise not strictly needed)
+# dist
+
+# Logs (if not mounted as a volume)
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+report.*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Environment files (keep templates if they exist)
+.env
+.env.*
+!.env.template
+!.env.example
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Development tools config
+nodemon.json
+
+# TypeScript config and source files (if only copying dist)
+# tsconfig.json
+# src/
+
+# Test files
+*.spec.ts
+*.test.ts

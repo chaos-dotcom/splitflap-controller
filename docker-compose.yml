@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # No build args needed if socketService connects relatively
+    ports:
+      # Map host port 8080 to container port 80 (Nginx)
+      # Access frontend via http://localhost:8080
+      - "8080:80"
+    restart: unless-stopped
+    depends_on:
+      - backend # Ensures backend starts before frontend attempts connection
+    networks:
+      - splitflap-net
+    container_name: splitflap-frontend # Optional: Assign a specific container name
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      # Map host port 3001 to container port 3000 (Node app)
+      # This is mainly for direct access/debugging if needed,
+      # frontend connects via Nginx proxy internally.
+      - "3001:3000"
+    env_file:
+      # Load environment variables from .env file in backend directory
+      # Make sure this file exists and contains necessary variables (MQTT_BROKER_URL, etc.)
+      - ./backend/.env
+    volumes:
+      # Mount scenes directory for persistence and easy editing
+      - ./backend/scenes:/app/scenes
+      # Optional: Mount logs directory if your app writes logs to a specific folder
+      # - ./backend/logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - splitflap-net
+    container_name: splitflap-backend # Optional: Assign a specific container name
+
+networks:
+  splitflap-net:
+    driver: bridge

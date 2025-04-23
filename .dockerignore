@@ -1,0 +1,57 @@
+# Git files
+.git
+.gitignore
+
+# Docker related files within the context
+Dockerfile
+Dockerfile.*
+docker-compose.yml
+.dockerignore
+nginx.conf
+
+# Node modules and build output
+node_modules
+dist
+build
+out
+coverage
+.nyc_output
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+report.*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Environment files (keep templates if they exist)
+.env
+.env.*
+!.env.template
+!.env.example
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE/editor files
+.vscode/
+.idea/
+
+# Other caches/outputs
+.eslintcache
+.parcel-cache
+.cache
+*.tgz
+
+# Ignore backend directory from frontend build context
+# This is crucial to avoid sending backend code to the frontend build
+backend/

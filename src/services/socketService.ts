@@ -65,8 +65,11 @@ type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 let socket: AppSocket | null = null;
 
-// Ensure this points to your running backend server
-const BACKEND_URL = 'http://localhost:3001';
+// Remove the hardcoded BACKEND_URL.
+// When running inside Docker behind Nginx, the client will connect
+// to the same origin it was served from (e.g., http://localhost:8080).
+// We specify the path '/socket.io/' which Nginx proxies to the backend.
+// const BACKEND_URL = 'http://localhost:3001'; // REMOVED
 
 export const socketService = {
     connect: (
@@ -110,13 +113,16 @@ export const socketService = {
         // --- REMOVE RECONNECTION OPTIONS TEMPORARILY ---
         // --- ADD WEBSOCKET TRANSPORT OPTION ---
         try { // <-- Add try block around io() call
-            socket = io(BACKEND_URL, {
-                 // withCredentials: true, // Keep removed
+            // Connect without specifying URL, letting it default to origin.
+            // Specify the path that Nginx proxies.
+            socket = io({ // REMOVED BACKEND_URL
+                 // withCredentials: true, // Keep removed if not needed
                  autoConnect: false,
-                 // transports: ['websocket'] // <-- REMOVE THIS LINE to allow negotiation
+                 path: '/socket.io/' // Specify the path for Nginx proxy
+                 // transports: ['websocket'] // Keep commented to allow negotiation
             });
             // --- ADD LOG ---
-            console.log('[Socket.IO Service] io instance created successfully (forcing websocket, autoConnect: false).'); // Update log
+            console.log('[Socket.IO Service] io instance created successfully (connecting to origin with path /socket.io/, autoConnect: false).'); // Update log
             // --- END LOG ---
         } catch (error) { // <-- Add catch block
             console.error('[Socket.IO Service] Error creating io instance:', error);
