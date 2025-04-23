@@ -6,7 +6,7 @@
     // "rootDir": "./src",                 /* Removed: Let baseUrl handle resolution */
     "baseUrl": ".",                        /* Base directory to resolve non-relative module names. */
     "paths": {                             /* Specify paths mapping. */
-      "types/*": ["types/*"]                /* Map 'types/*' to './types/*' relative to baseUrl */
+      "types/*": ["../src/types/*"]         /* Map 'types/*' to '../src/types/*' relative to baseUrl */
     },
     "strict": true,                        /* Enable all strict type-checking options. */
     "esModuleInterop": true,               /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
