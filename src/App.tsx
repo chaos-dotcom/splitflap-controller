@@ -36,12 +36,7 @@ function App() {
   const [loadedScene, setLoadedScene] = useState<Scene | null>(null); // Data of the scene loaded for editing
   // --- End Scene State ---
 
-  // --- Authentication State ---
-  const [oidcEnabled] = useState<boolean>(import.meta.env.VITE_OIDC_ENABLED === 'true');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [authChecked, setAuthChecked] = useState<boolean>(false); // To prevent rendering before check
-  const [userInfo, setUserInfo] = useState<any>(null); // Store basic user info if needed
-  // --- End Authentication State ---
+  // --- Removed Authentication State ---
 
 
   // Update draft text when display text changes (e.g., from backend or initial load)
@@ -216,92 +211,39 @@ function App() {
     // --- End Define Callbacks ---
 
 
-    // --- ADD THIS NEW useEffect BLOCK for Auth Check and Socket Connection ---
+    // --- Restored Original Socket Connection useEffect ---
     useEffect(() => {
-        // Define connection logic inside effect to use latest state/handlers
-        const connectSocket = () => {
-            if (!socketService.isConnected()) {
-                 console.log('[App] Attempting to connect socket...');
-                 socketService.connect(
-                     handleInitialState,
-                     handleDisplayUpdate,
-                     handleModeUpdate,
-                     handleMqttStatus,
-                     handleStopwatchUpdate,
-                     handleTimerUpdate,
-                     handleTrainDataUpdate,
-                     handleSequenceStopped,
-                     handleSceneListUpdate,
-                     handleSceneLoaded,
-                     handleConnect,
-                     handleDisconnect,
-                     handleError
-                 );
-            } else {
-                 console.log('[App] Socket connection requested, but already connected.');
-            }
-        };
+        console.log('[App] Component mounted. Connecting socket...');
+        // Ensure all the handler functions are defined before this point
+        socketService.connect(
+            handleInitialState,
+            handleDisplayUpdate,
+            handleModeUpdate,
+            handleMqttStatus,
+            handleStopwatchUpdate,
+            handleTimerUpdate,
+            handleTrainDataUpdate,
+            handleSequenceStopped,
+            handleSceneListUpdate,
+            handleSceneLoaded,
+            handleConnect,
+            handleDisconnect,
+            handleError
+        );
 
-        if (oidcEnabled) {
-            console.log("[App] OIDC enabled. Checking auth status...");
-            // Use VITE_API_BASE_URL which should point to your backend (e.g., http://localhost:3001)
-            const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
-            fetch(`${apiUrl}/api/auth/status`)
-                .then(res => {
-                    if (!res.ok) {
-                        throw new Error(`Auth status check failed: ${res.status} ${res.statusText}`);
-                    }
-                    return res.json();
-                })
-                .then(data => {
-                    console.log("[App] Auth status received:", data);
-                    setIsAuthenticated(data.isAuthenticated);
-                    setUserInfo(data.user || null);
-                    setAuthChecked(true);
-                    if (data.isAuthenticated) {
-                        console.log("[App] User authenticated via session, connecting socket...");
-                        connectSocket(); // Connect socket now
-                    } else {
-                        console.log("[App] User not authenticated via session.");
-                        if (socketService.isConnected()) {
-                            socketService.disconnect(); // Disconnect if somehow connected
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error("[App] Error checking auth status:", error);
-                    setIsAuthenticated(false);
-                    setUserInfo(null);
-                    setAuthChecked(true); // Mark check complete even on error
-                    setBackendError(`Failed to check auth status: ${error.message}`);
-                    if (socketService.isConnected()) {
-                        socketService.disconnect();
-                    }
-                });
-        } else {
-            console.log("[App] OIDC disabled. Assuming authenticated and connecting socket...");
-            setIsAuthenticated(true); // Treat as authenticated for UI purposes
-            setAuthChecked(true);
-            connectSocket(); // Connect socket immediately
-        }
-
-        // Cleanup function
+        // Cleanup on unmount
         return () => {
-            if (socketService.isConnected()) {
-                console.log("[App] Cleanup: Disconnecting socket...");
-                socketService.disconnect();
-            }
+            console.log('[App] Component unmounting. Disconnecting socket...');
+            socketService.disconnect();
         };
-        // Add all handlers used by connectSocket to dependency array
+        // Add all handlers as dependencies
     }, [
-        oidcEnabled, // Re-run if OIDC status changes (unlikely at runtime)
         handleInitialState, handleDisplayUpdate, handleModeUpdate, handleMqttStatus,
         handleStopwatchUpdate, handleTimerUpdate, handleTrainDataUpdate, handleSequenceStopped,
         handleSceneListUpdate, handleSceneLoaded,
         handleConnect, handleDisconnect, handleError
-        // Note: connectSocket is defined inside, so doesn't need to be a dependency itself
     ]);
-    // --- END NEW useEffect BLOCK ---
+    // --- END Restored useEffect ---
 
 
   // --- Handlers for Interactive Display ---
@@ -445,18 +387,14 @@ function App() {
 
   // --- Mode Change Handler ---
   const handleSetMode = (mode: ControlMode) => {
-      // Add check for authentication if OIDC is enabled
-      if (isConnectedToBackend && (!oidcEnabled || isAuthenticated)) {
+      // Removed authentication check
+      if (isConnectedToBackend) {
           socketService.emitSetMode(mode);
           // Note: The actual state update (setCurrentMode) happens
           // when the backend confirms via the 'modeUpdate' event.
-      } else if (!isConnectedToBackend) {
+      } else {
           console.warn("Cannot change mode: Disconnected from backend.");
           setBackendError("Cannot change mode: Disconnected"); // Provide feedback
-      } else {
-          // OIDC enabled but not authenticated
-          console.warn("Cannot change mode: Authentication required.");
-          setBackendError("Cannot change mode: Please login"); // Provide feedback
       }
   };
   // --- End Mode Change Handler ---
@@ -466,29 +404,7 @@ function App() {
     <div className="app-container"> {/* Removed govuk-width-container if you don't want width limit */}
       <h1>Split-Flap Controller</h1>
 
-      {/* --- Auth Controls --- */}
-      {oidcEnabled && authChecked && ( // Only show if OIDC enabled and check complete
-          <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10, padding: '5px' }}>
-              {isAuthenticated ? (
-                  <>
-                      <span style={{ marginRight: '10px', verticalAlign: 'middle' }}>
-                          {/* Display user info if available */}
-                          {userInfo?.displayName || userInfo?.emails?.[0]?.value || 'Authenticated'}
-                      </span>
-                      {/* Use VITE_API_BASE_URL for logout link */}
-                      <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/logout`} className="govuk-button govuk-button--warning govuk-button--small">
-                          Logout
-                      </a>
-                  </>
-              ) : (
-                  /* Use VITE_API_BASE_URL for login link */
-                  <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/login`} className="govuk-button govuk-button--small">
-                      Login
-                  </a>
-              )}
-          </div>
-      )}
-      {/* --- End Auth Controls --- */}
+      {/* --- Removed Auth Controls --- */}
 
 
       {/* Display Backend Connection Status */}
@@ -503,38 +419,35 @@ function App() {
       </p>
       {/* Removed Settings Panel and connection error display */}
 
-
       {/* --- Main Content --- */}
-      {/* Wait for auth check before rendering main content if OIDC is enabled */}
-      {(!oidcEnabled || authChecked) ? (
+      {/* Removed outer conditional rendering based on authChecked */}
+      <>
+          {/* Removed inner conditional rendering based on isAuthenticated */}
           <>
-              {/* Conditionally render based on authentication */}
-              {isAuthenticated ? (
-                  <>
-                      {/* Split Flap Display - Now Interactive */}
-                      <SplitFlapDisplay
-                          text={currentMode === 'text' ? draftText : displayText}
-                          caretPosition={caretPosition}
-                          onKeyDown={handleDisplayKeyDown}
-                          // Display might depend on socket connection primarily
-                          isConnected={isConnectedToBackend}
-                          onClick={handleDisplayClick}
-                          // Interactivity might depend on both connection and auth (if OIDC enabled)
-                          isInteractive={currentMode === 'text' && isConnectedToBackend && (!oidcEnabled || isAuthenticated)}
-                      />
+              {/* Split Flap Display - Now Interactive */}
+              <SplitFlapDisplay
+                  text={currentMode === 'text' ? draftText : displayText}
+                  caretPosition={caretPosition}
+                  onKeyDown={handleDisplayKeyDown}
+                  // Display might depend on socket connection primarily
+                  isConnected={isConnectedToBackend}
+                  onClick={handleDisplayClick}
+                  // Interactivity depends only on mode and connection now
+                  isInteractive={currentMode === 'text' && isConnectedToBackend}
+              />
 
-                      {/* Mode Selector */}
-                      <div className="mode-selector govuk-button-group">
-                          {/* Disable buttons if not connected OR if OIDC requires auth and not authenticated */}
-                          <button onClick={() => handleSetMode('text')} disabled={currentMode === 'text' || !isConnectedToBackend || (oidcEnabled && !isAuthenticated)} className={`govuk-button ${currentMode !== 'text' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Text Input</button>
-                          <button onClick={() => handleSetMode('train')} disabled={currentMode === 'train' || !isConnectedToBackend || (oidcEnabled && !isAuthenticated)} className={`govuk-button ${currentMode !== 'train' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Train Times</button>
-                          <button onClick={() => handleSetMode('sequence')} disabled={currentMode === 'sequence' || !isConnectedToBackend || (oidcEnabled && !isAuthenticated)} className={`govuk-button ${currentMode !== 'sequence' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Sequence</button>
-                          <button onClick={() => handleSetMode('clock')} disabled={currentMode === 'clock' || !isConnectedToBackend || (oidcEnabled && !isAuthenticated)} className={`govuk-button ${currentMode !== 'clock' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Clock</button>
-                          <button onClick={() => handleSetMode('stopwatch')} disabled={currentMode === 'stopwatch' || !isConnectedToBackend || (oidcEnabled && !isAuthenticated)} className={`govuk-button ${currentMode !== 'stopwatch' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Stopwatch</button>
-                          <button onClick={() => handleSetMode('timer')} disabled={currentMode === 'timer' || !isConnectedToBackend || (oidcEnabled && !isAuthenticated)} className={`govuk-button ${currentMode !== 'timer' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Timer</button>
-                      </div>
+              {/* Mode Selector */}
+              <div className="mode-selector govuk-button-group">
+                  {/* Disable buttons only if not connected */}
+                  <button onClick={() => handleSetMode('text')} disabled={currentMode === 'text' || !isConnectedToBackend} className={`govuk-button ${currentMode !== 'text' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Text Input</button>
+                  <button onClick={() => handleSetMode('train')} disabled={currentMode === 'train' || !isConnectedToBackend} className={`govuk-button ${currentMode !== 'train' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Train Times</button>
+                  <button onClick={() => handleSetMode('sequence')} disabled={currentMode === 'sequence' || !isConnectedToBackend} className={`govuk-button ${currentMode !== 'sequence' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Sequence</button>
+                  <button onClick={() => handleSetMode('clock')} disabled={currentMode === 'clock' || !isConnectedToBackend} className={`govuk-button ${currentMode !== 'clock' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Clock</button>
+                  <button onClick={() => handleSetMode('stopwatch')} disabled={currentMode === 'stopwatch' || !isConnectedToBackend} className={`govuk-button ${currentMode !== 'stopwatch' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Stopwatch</button>
+                  <button onClick={() => handleSetMode('timer')} disabled={currentMode === 'timer' || !isConnectedToBackend} className={`govuk-button ${currentMode !== 'timer' ? 'govuk-button--secondary' : ''}`} data-module="govuk-button">Timer</button>
+              </div>
 
-                      {/* Mode Specific Controls */}
+              {/* Mode Specific Controls */}
                       {/* Pass isConnectedToBackend and potentially isAuthenticated down */}
                       {/* Components should internally handle disabling based on these props */}
                       <div className="mode-controls">
@@ -593,21 +506,9 @@ function App() {
                           )}
                       </div>
                   </>
-              ) : (
-                  // OIDC is enabled, auth check done, but user is not authenticated
-                  oidcEnabled && <div className="govuk-warning-text">
-                      <span className="govuk-warning-text__icon" aria-hidden="true">!</span>
-                      <strong className="govuk-warning-text__text">
-                          <span className="govuk-warning-text__assistive">Warning</span>
-                          Please <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/login`}>login</a> to control the display.
-                      </strong>
-                  </div>
-              )}
+              {/* Removed the 'else' part for non-authenticated users */}
           </>
-      ) : (
-          // Optional: Show a loading indicator while auth check is in progress
-          <p className="govuk-body">Checking authentication status...</p>
-      )}
+      {/* Removed the 'else' part for auth check loading */}
       {/* --- End Main Content --- */}
 
     </div>

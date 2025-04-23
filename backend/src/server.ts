@@ -5,7 +5,7 @@ import { createClientAsync, Client } from 'soap';
 import { createServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import * as mqttClient from './mqttClient';
-import axios from 'axios';
+// Removed axios import as it's not used after removing OIDC status check
 import fs from 'fs/promises'; // Import file system promises API
 import path from 'path'; // Import path module
 import yaml from 'js-yaml'; // Import YAML library
@@ -13,6 +13,8 @@ import yaml from 'js-yaml'; // Import YAML library
 // Assuming types are now defined ONLY in the frontend's src/types
 // If you create a shared types package later, adjust this import
 import { ControlMode, Scene, SceneLine, Departure } from '../../src/types';
+
+// Removed OIDC/Session related imports
 
 // Load environment variables from .env file
 dotenv.config();
@@ -650,18 +652,13 @@ let haDiscoveryPublished = false; // Flag to track if discovery config has been 
 // --- End Application State ---
 
 // --- Middleware ---
-app.use(cors()); // For HTTP requests like NRE API proxy
+// Use simple CORS setup - allow all origins by default
+app.use(cors());
 app.use(express.json());
 
 // --- NRE API Endpoint (Existing Code) ---
 // NRE LDBWS WSDL URL - Use the latest version
 const NRE_LDBWS_WSDL_URL = 'https://lite.realtime.nationalrail.co.uk/OpenLDBWS/wsdl.aspx?ver=2021-11-01';
-
-// Enable CORS for HTTP and WebSockets
-app.use(cors()); // For HTTP requests like NRE API proxy
-
-// Middleware to parse JSON bodies (though not strictly needed for this GET endpoint)
-app.use(express.json());
 
 // API endpoint for departures
 app.get('/api/departures', async (req: Request, res: Response) => {
@@ -876,6 +873,7 @@ const io = new SocketIOServer(httpServer, {
     cors: {
         origin: "*", // Allow all origins for now, restrict in production
         methods: ["GET", "POST"]
+        // Removed credentials: true
     }
 });
 
@@ -1496,6 +1494,8 @@ const handleMqttMessage = (topic: string, message: Buffer) => {
 
 // --- Socket.IO Connection Handling ---
 io.on('connection', (socket: Socket) => {
+    // Removed OIDC authentication check block
+
     console.log(`[Socket.IO] Client connected: ${socket.id}. Setting up listeners...`); // Added detail
 
     try { // Add try block
