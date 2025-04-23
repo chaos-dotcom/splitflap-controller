@@ -10,8 +10,7 @@ import fs from 'fs/promises'; // Import file system promises API
 import path from 'path'; // Import path module
 import yaml from 'js-yaml'; // Import YAML library
 // Import types using the path alias defined in tsconfig.json
-// import { ControlMode, Scene, SceneLine, Departure } from 'types'; // Use path alias - Reverted due to resolution issues
-import { ControlMode, Scene, SceneLine, Departure } from '../../src/types/index'; // Use direct relative path
+import { ControlMode, Scene, SceneLine, Departure } from 'types'; // Use path alias
 
 // Removed OIDC/Session related imports
 
