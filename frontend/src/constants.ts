@@ -5,9 +5,22 @@ export const ALLOWED_CHARS: ReadonlyArray<string> = [
   '3', '4', '5', '6', '7', '8', '9', '.', '=', '?','$','&', '!',
 ];
 
-// Use a more specific name
-export const SPLITFLAP_DISPLAY_LENGTH = parseInt(import.meta.env.SPLITFLAP_DISPLAY_LENGTH || '14', 10);
-console.log(`[Config] Using display length: ${SPLITFLAP_DISPLAY_LENGTH} characters`);
+// Use a dynamic value that can be updated from the backend
+let _splitflapDisplayLength = parseInt(import.meta.env.VITE_SPLITFLAP_DISPLAY_LENGTH || '14', 10);
+
+export const setSplitflapDisplayLength = (length: number) => {
+  _splitflapDisplayLength = length;
+  console.log(`[Config] Updated display length: ${_splitflapDisplayLength} characters`);
+};
+
+export const getSplitflapDisplayLength = () => _splitflapDisplayLength;
+
+// For backward compatibility, export SPLITFLAP_DISPLAY_LENGTH as a getter
+Object.defineProperty(exports, 'SPLITFLAP_DISPLAY_LENGTH', {
+  get: () => _splitflapDisplayLength
+});
+
+console.log(`[Config] Using initial display length: ${_splitflapDisplayLength} characters`);
 
 // Map lowercase color codes to actual colors for potential styling
 export const COLOR_MAP: { [key: string]: string } = {

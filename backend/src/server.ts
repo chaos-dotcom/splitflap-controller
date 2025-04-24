@@ -1553,10 +1553,11 @@ io.on('connection', (socket: Socket) => {
             sequence: { // Restore sequence state
                 isPlaying: isSequencePlaying,
             },
-        train: { // Restore train state
-            route: currentTrainRoute,
-            departures: lastFetchedDepartures,
-        }
+            train: { // Restore train state
+                route: currentTrainRoute,
+                departures: lastFetchedDepartures,
+            },
+            splitflapDisplayLength: SPLITFLAP_DISPLAY_LENGTH // Send display length to frontend
         });
         console.log(`[Socket.IO] Successfully emitted initialState for ${socket.id}.`); // <-- ADD THIS LOG
 
