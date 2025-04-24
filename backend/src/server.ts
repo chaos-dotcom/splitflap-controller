@@ -878,14 +878,24 @@ app.get('/', (req: Request, res: Response) => {
   res.send('Split-Flap Backend Service is running');
 });
 
+// Health check endpoint
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({ 
+    status: 'ok',
+    socketio: io ? 'initialized' : 'not initialized',
+    mode: currentAppMode,
+    uptime: process.uptime()
+  });
+});
+
 // --- WebSocket Server Setup ---
 const io = new SocketIOServer(httpServer, {
     cors: {
-        origin: "http://localhost:5173", // Keep specific frontend origin
+        origin: "*", // Allow all origins during development
         methods: ["GET", "POST"], // Methods needed by Socket.IO
         allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"], // Explicitly allow headers
-        // credentials: true // <-- REMOVE THIS LINE
-    }
+    },
+    transports: ['polling', 'websocket'] // Explicitly enable both transports
 });
 
 // --- Initial Mode Start ---
