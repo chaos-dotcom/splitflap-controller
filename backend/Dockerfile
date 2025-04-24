@@ -5,13 +5,13 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json ./
+COPY backend/package.json backend/package-lock.json ./
 
 # Copy tsconfig
-COPY tsconfig.json ./
+COPY backend/tsconfig.json ./
 
 # Copy source code
-COPY src ./src/
+COPY backend/src ./src/
 
 # Install ALL dependencies (including devDependencies needed for build)
 RUN npm ci
@@ -31,7 +31,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Copy package files for production install
-COPY package.json package-lock.json ./
+COPY backend/package.json backend/package-lock.json ./
 
 # Install only production dependencies and explicitly add js-yaml globally
 RUN npm ci --ignore-scripts && npm install -g js-yaml
@@ -42,7 +42,7 @@ RUN mkdir -p /app/node_modules && ln -s /usr/local/lib/node_modules/js-yaml /app
 COPY --from=build /app/dist ./dist
 
 # Copy runtime assets like scenes
-COPY scenes ./scenes
+COPY backend/scenes ./scenes
 
 # --- Diagnostics: List the final contents of /app/dist ---
 RUN echo "--- Final Stage: Contents of /app/dist ---" && ls -R ./dist || echo "--- Final Stage: /app/dist not found or empty ---"
