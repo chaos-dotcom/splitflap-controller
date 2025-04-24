@@ -33,8 +33,10 @@ ENV NODE_ENV=production
 # Copy package files for production install
 COPY backend/package.json backend/package-lock.json ./
 
-# Install only production dependencies and explicitly add js-yaml
-RUN npm ci --ignore-scripts && npm install js-yaml
+# Install only production dependencies and explicitly add js-yaml globally
+RUN npm ci --ignore-scripts && npm install -g js-yaml
+# Create a symlink to ensure the module is found
+RUN mkdir -p /app/node_modules && ln -s /usr/local/lib/node_modules/js-yaml /app/node_modules/js-yaml
 
 # Copy the compiled code from the build stage
 COPY --from=build /app/dist ./dist
