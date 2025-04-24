@@ -35,7 +35,6 @@ A modern web application for controlling split-flap displays via MQTT. This proj
 
    Edit `.env` to set:
    - `VITE_API_BASE_URL` - URL of your backend server
-   - `VITE_OIDC_ENABLED` - Authentication flag (if applicable)
 
    **For the backend:**
    ```
