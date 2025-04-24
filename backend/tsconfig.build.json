@@ -4,9 +4,7 @@
   "compilerOptions": {
     "composite": true,          // Required for project references (tsc -b)
     "rootDir": "..",            // Set rootDir to project root to include shared types
-    // Remove options that might conflict or are not needed for build output path resolution
-    "baseUrl": undefined,       // Let module resolution be standard Node for build
-    "paths": undefined          // Paths alias not needed for build output
+    // baseUrl and paths are removed to rely on standard Node resolution for build
   },
   // Include pattern relative to the NEW rootDir ('..')
   "include": [
