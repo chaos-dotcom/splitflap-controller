@@ -11,8 +11,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      - VITE_SPLITFLAP_DISPLAY_LENGTH=${SPLITFLAP_DISPLAY_LENGTH:-12}
     depends_on:
       - backend # Ensures backend starts before frontend attempts connection
     networks:
