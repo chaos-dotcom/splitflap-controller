@@ -1,6 +1,6 @@
 {
-  "watch": ["src"],
-  "ext": "ts,json",
-  "ignore": ["src/**/*.spec.ts"],
-  "exec": "ts-node ./src/server.ts"
+  "watch": ["src", "../src/types"], // Watch backend source and shared types
+  "ext": "ts,json,yaml",            // Include yaml if scenes change
+  "ignore": ["src/**/*.spec.ts", "dist"],
+  "exec": "ts-node --project tsconfig.dev.json ./src/server.ts" // Use the dedicated dev config
 }
