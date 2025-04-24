@@ -1,7 +1,7 @@
 services:
   frontend:
     build:
-      context: ./frontend
+      context: .
       dockerfile: ./frontend/Dockerfile
       # No build args needed if socketService connects relatively
     ports:
@@ -21,10 +21,8 @@ services:
 
   backend:
     build:
-      # Change context to the project root
       context: .
-      # Specify the Dockerfile path relative to the new context
-      dockerfile: backend/Dockerfile
+      dockerfile: ./backend/Dockerfile
     expose:
       - "3001"
     ports:
