@@ -24,7 +24,7 @@ services:
       # Specify the Dockerfile path relative to the new context
       dockerfile: backend/Dockerfile
     expose:
-      - "3000"
+      - "3001"
     ports:
       - "127.0.0.1:3001:3000" # For debugging - access backend directly
     networks:

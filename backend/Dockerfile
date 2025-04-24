@@ -48,12 +48,12 @@ COPY backend/scenes ./scenes
 RUN echo "--- Final Stage: Contents of /app/dist ---" && ls -R ./dist || echo "--- Final Stage: /app/dist not found or empty ---"
 
 # Expose the port the app listens on
-ENV PORT=3000
-EXPOSE 3000
+ENV PORT=3001
+EXPOSE 3001
 
 # Add healthcheck to verify the server is running
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
 
 # Define the command to run the compiled app (runs from /app)
 # Assumes backend/package.json "start" script points to "node dist/server.js"
