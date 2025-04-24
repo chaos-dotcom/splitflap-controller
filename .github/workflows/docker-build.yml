@@ -25,7 +25,8 @@ jobs:
       - name: Build Backend Image
         uses: docker/build-push-action@v4
         with:
-          context: ./backend
+          context: .
+          file: ./backend/Dockerfile
           push: false
           platforms: linux/amd64,linux/arm64
           tags: splitflap-backend:latest
@@ -35,7 +36,8 @@ jobs:
       - name: Build Frontend Image
         uses: docker/build-push-action@v4
         with:
-          context: ./frontend
+          context: .
+          file: ./frontend/Dockerfile
           push: false
           platforms: linux/amd64,linux/arm64
           tags: splitflap-frontend:latest
