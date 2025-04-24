@@ -650,12 +650,11 @@ let haDiscoveryPublished = false; // Flag to track if discovery config has been 
 // --- End Application State ---
 
 // --- Middleware ---
-// Use more specific CORS setup
+// Use more permissive CORS setup for Docker environment
 app.use(cors({
-    origin: "http://localhost:5173", // <-- CHANGE: Specify frontend origin
+    origin: "*", // Allow all origins in Docker environment
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Explicitly allow methods
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"], // Allow common headers
-    // credentials: true // <-- REMOVE THIS LINE
 }));
 app.use(express.json());
 
