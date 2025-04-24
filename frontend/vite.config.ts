@@ -5,6 +5,7 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  envPrefix: 'VITE_', // Ensure VITE_ prefixed env vars are loaded
   resolve: {
     alias: {
       // Define explicit aliases to prevent confusion with backend paths

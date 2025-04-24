@@ -219,7 +219,8 @@ const haTimerSetCommandTopic = `${HA_DISCOVERY_PREFIX}/button/${HA_TIMER_SET_ID}
 const HA_MODES: ControlMode[] = ['text', 'train', 'sequence', 'clock', 'stopwatch', 'timer'];
 
 // --- Constants ---
-const SPLITFLAP_DISPLAY_LENGTH = 12; // Use consistent naming
+const SPLITFLAP_DISPLAY_LENGTH = parseInt(process.env.SPLITFLAP_DISPLAY_LENGTH || '12', 10);
+console.log(`[Config] Using display length: ${SPLITFLAP_DISPLAY_LENGTH} characters`);
 // Sequence of colors to use as separators (copied from frontend constants)
 const SEPARATOR_COLORS: ReadonlyArray<string> = ['r', 'o', 'y', 'g', 'b', 'v', 'p', 't', 'w'];
 

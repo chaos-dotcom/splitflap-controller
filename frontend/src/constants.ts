@@ -6,7 +6,8 @@ export const ALLOWED_CHARS: ReadonlyArray<string> = [
 ];
 
 // Use a more specific name
-export const SPLITFLAP_DISPLAY_LENGTH = 12;
+export const SPLITFLAP_DISPLAY_LENGTH = parseInt(import.meta.env.VITE_SPLITFLAP_DISPLAY_LENGTH || '12', 10);
+console.log(`[Config] Using display length: ${SPLITFLAP_DISPLAY_LENGTH} characters`);
 
 // Map lowercase color codes to actual colors for potential styling
 export const COLOR_MAP: { [key: string]: string } = {

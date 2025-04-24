@@ -11,6 +11,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      - VITE_SPLITFLAP_DISPLAY_LENGTH=${SPLITFLAP_DISPLAY_LENGTH:-12}
     depends_on:
       - backend # Ensures backend starts before frontend attempts connection
     networks:
@@ -42,6 +44,8 @@ services:
       # Load environment variables from .env file in backend directory
       # Make sure this file exists and contains necessary variables (MQTT_BROKER_URL, etc.)
       - ./backend/.env
+    environment:
+      - SPLITFLAP_DISPLAY_LENGTH=${SPLITFLAP_DISPLAY_LENGTH:-12}
     volumes:
       # Mount scenes directory for persistence and easy editing
       - ./backend/scenes:/app/scenes
