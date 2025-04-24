@@ -1769,8 +1769,8 @@ io.engine.on("connection_error", (err) => {
 
 // --- Start Servers ---
 console.log(`[Server] Attempting to start HTTP server on port ${port}...`);
-// Use options object for listen() and force IPv4 loopback '127.0.0.1'
-httpServer.listen({ port: port, host: '127.0.0.1' }, async () => {
+// Use options object for listen() and bind to all interfaces with '0.0.0.0'
+httpServer.listen({ port: port, host: '0.0.0.0' }, async () => {
     const address = httpServer.address(); // Get the actual bound address info
     const bindAddress = typeof address === 'string' ? address : address ? `${address.address}:${address.port}` : 'unknown';
     console.log(`[Server] HTTP & WebSocket server listening on ${bindAddress}`); // Log the actual bound address
