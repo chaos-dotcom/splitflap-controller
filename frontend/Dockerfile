@@ -5,12 +5,12 @@ WORKDIR /app
 # ENV NODE_ENV=production # Removed: devDependencies (like typescript) are needed for build
 
 # Copy package files and install dependencies
-COPY package.json package-lock.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 # Use ci for clean installs, ensure it includes devDependencies needed for build
 RUN npm ci
 
 # Copy the rest of the application source code
-COPY ./ ./
+COPY frontend/ ./
 
 # Build the application (uses vite build as defined in package.json)
 RUN npm run build
@@ -27,7 +27,7 @@ RUN rm -rf ./*
 COPY --from=build /app/dist .
 
 # Copy custom Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80
 EXPOSE 80
