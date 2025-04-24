@@ -37,9 +37,16 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
     if (isInteractive && isConnected) {
       // Focus the hidden input to show keyboard on mobile
       if (hiddenInputRef.current) {
-        hiddenInputRef.current.focus({
-          preventScroll: true // Prevent page from scrolling when focusing
-        });
+        // Force blur and then focus to ensure keyboard appears on iOS
+        hiddenInputRef.current.blur();
+        // Small timeout to ensure the blur completes
+        setTimeout(() => {
+          if (hiddenInputRef.current) {
+            hiddenInputRef.current.focus();
+            // On iOS, we may need to trigger a click on the input
+            hiddenInputRef.current.click();
+          }
+        }, 10);
       }
       
       // Call the original onClick handler if provided
@@ -112,13 +119,13 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
           autoCapitalize="characters"
           style={{
             position: 'absolute',
-            opacity: 0,
+            opacity: 0.01, // Very slight opacity instead of 0
             height: '100%', // Make it cover the entire display area
             width: '100%',  // Make it cover the entire display area
             left: 0,
             top: 0,
-            pointerEvents: 'none', // This allows clicks to pass through to the display
-            zIndex: -1
+            zIndex: 1, // Place above the display
+            background: 'transparent'
           }}
           onInput={handleHiddenInput}
           onKeyDown={(e) => {
@@ -133,6 +140,11 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
               
               onKeyDown(simulatedEvent);
             }
+          }}
+          // Add click handler directly to the input
+          onClick={(e) => {
+            // Stop propagation to prevent double-handling with the div's click
+            e.stopPropagation();
           }}
         />
       )}
