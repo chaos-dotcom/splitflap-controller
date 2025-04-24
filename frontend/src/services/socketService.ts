@@ -20,6 +20,7 @@ export interface ServerToClientEvents { // Export the interface
                 route: { fromCRS: string; toCRS?: string } | null;
                 departures: Departure[];
             };
+            splitflapDisplayLength?: number; // Add display length from backend
             // Note: Initial scene list/data might be better fetched explicitly after connect
         }) => void;
         displayUpdate: (data: { text: string }) => void;
