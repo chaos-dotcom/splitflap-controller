@@ -650,12 +650,7 @@ let haDiscoveryPublished = false; // Flag to track if discovery config has been 
 // --- End Application State ---
 
 // --- Middleware ---
-// Use more permissive CORS setup for Docker environment
-app.use(cors({
-    origin: "*", // Allow all origins in Docker environment
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Explicitly allow methods
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"], // Allow common headers
-}));
+// CORS configuration removed as it's handled by Nginx
 app.use(express.json());
 
 // --- NRE API Endpoint (Existing Code) ---
