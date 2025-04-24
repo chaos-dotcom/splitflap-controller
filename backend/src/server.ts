@@ -12,8 +12,6 @@ import yaml from 'js-yaml'; // Import YAML library
 // Import types from local types file
 import { ControlMode, Scene, SceneLine, Departure } from './types';
 
-// Removed OIDC/Session related imports
-
 // Load environment variables from .env file
 dotenv.config();
 
