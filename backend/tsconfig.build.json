@@ -3,13 +3,13 @@
   "extends": "./tsconfig.json", // Inherit common settings
   "compilerOptions": {
     "composite": true,          // Required for project references (tsc -b)
-    "rootDir": "..",            // Set rootDir to project root to include shared types
+    // "rootDir": "..",         // REMOVED - Let tsc infer from includes relative to this file
     // baseUrl and paths are removed to rely on standard Node resolution for build
   },
-  // Include pattern relative to the NEW rootDir ('..')
+  // Include patterns relative to this tsconfig file (backend/)
   "include": [
-    "backend/src/**/*"        // Only include backend source relative to project root
-    // Shared types are implicitly included via imports from backend/src
+    "src/**/*",               // Include backend source relative to backend/
+    "../src/types/**/*"       // Include shared types relative to backend/
   ],
   "exclude": [
     "node_modules",
