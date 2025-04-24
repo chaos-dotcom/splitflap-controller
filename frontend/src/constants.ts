@@ -15,10 +15,11 @@ export const setSplitflapDisplayLength = (length: number) => {
 
 export const getSplitflapDisplayLength = () => _splitflapDisplayLength;
 
-// For backward compatibility, export SPLITFLAP_DISPLAY_LENGTH as a getter
-Object.defineProperty(exports, 'SPLITFLAP_DISPLAY_LENGTH', {
-  get: () => _splitflapDisplayLength
-});
+// Export a function that returns the current display length
+// This works better with TypeScript and ES modules
+export function SPLITFLAP_DISPLAY_LENGTH() {
+  return _splitflapDisplayLength;
+}
 
 console.log(`[Config] Using initial display length: ${_splitflapDisplayLength} characters`);
 

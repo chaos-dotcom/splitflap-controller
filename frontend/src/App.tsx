@@ -7,15 +7,15 @@ import SequenceMode from './components/SequenceMode'; // Import SequenceMode
 import ClockMode from './components/ClockMode';
 import StopwatchMode from './components/StopwatchMode';
 import TimerMode from './components/TimerMode'; // <-- IMPORT TimerMode
-import { SPLITFLAP_DISPLAY_LENGTH, ALLOWED_CHARS, setSplitflapDisplayLength } from './constants';
+import { SPLITFLAP_DISPLAY_LENGTH, ALLOWED_CHARS, setSplitflapDisplayLength, getSplitflapDisplayLength } from './constants';
 import { socketService, ServerToClientEvents } from './services/socketService'; // Import ServerToClientEvents
 import { ControlMode, Scene, Departure } from './types';
 
 
 function App() {
   // --- State for Frontend ---
-  const [displayText, setDisplayText] = useState<string>(' '.repeat(SPLITFLAP_DISPLAY_LENGTH)); // What the display *should* show
-  const [draftText, setDraftText] = useState<string>(' '.repeat(SPLITFLAP_DISPLAY_LENGTH)); // State for inline editing in text mode
+  const [displayText, setDisplayText] = useState<string>(' '.repeat(SPLITFLAP_DISPLAY_LENGTH())); // What the display *should* show
+  const [draftText, setDraftText] = useState<string>(' '.repeat(SPLITFLAP_DISPLAY_LENGTH())); // State for inline editing in text mode
   // --- State related to Backend Connection & Status ---
   const [isConnectedToBackend, setIsConnectedToBackend] = useState<boolean>(false);
   const [backendError, setBackendError] = useState<string | null>(null);
@@ -41,7 +41,7 @@ function App() {
 
   // Update draft text when display text changes (e.g., from backend or initial load)
   useEffect(() => {
-    setDraftText(displayText.padEnd(SPLITFLAP_DISPLAY_LENGTH)); // Ensure draft matches length
+    setDraftText(displayText.padEnd(SPLITFLAP_DISPLAY_LENGTH())); // Ensure draft matches length
     // Optionally reset caret, or try to maintain position if practical
     // setCaretPosition(0); // Reset caret when display updates externally for simplicity
   }, [displayText]);
@@ -276,7 +276,7 @@ function App() {
         handled = true;
       }
     } else if (key === 'Delete') {
-       if (newCaretPos < SPLITFLAP_DISPLAY_LENGTH) {
+       if (newCaretPos < SPLITFLAP_DISPLAY_LENGTH()) {
            newDraft[newCaretPos] = ' '; // Replace char at caret with space
            // Caret position doesn't move on delete
            handled = true;
@@ -288,7 +288,7 @@ function App() {
       }
     } else if (key === 'ArrowRight') {
       // Allow moving caret up to the position *after* the last character
-      if (newCaretPos < SPLITFLAP_DISPLAY_LENGTH) {
+      if (newCaretPos < SPLITFLAP_DISPLAY_LENGTH()) {
           newCaretPos++;
           handled = true;
       }
@@ -305,9 +305,9 @@ function App() {
       }
 
       // If we determined a valid character to insert and there's space
-      if (charToInsert !== null && newCaretPos < SPLITFLAP_DISPLAY_LENGTH) {
+      if (charToInsert !== null && newCaretPos < SPLITFLAP_DISPLAY_LENGTH()) {
          newDraft[newCaretPos] = charToInsert;
-         if (newCaretPos < SPLITFLAP_DISPLAY_LENGTH) { // Move caret forward after typing if not at the very end
+         if (newCaretPos < SPLITFLAP_DISPLAY_LENGTH()) { // Move caret forward after typing if not at the very end
            newCaretPos++;
          }
          handled = true;
@@ -329,9 +329,9 @@ function App() {
       // This needs refinement for accuracy based on actual element positions/widths
       const displayRect = event.currentTarget.getBoundingClientRect();
       const clickX = event.clientX - displayRect.left;
-      const approxCharWidth = displayRect.width / SPLITFLAP_DISPLAY_LENGTH;
+      const approxCharWidth = displayRect.width / SPLITFLAP_DISPLAY_LENGTH();
       const clickedIndex = Math.floor(clickX / approxCharWidth);
-      setCaretPosition(Math.max(0, Math.min(SPLITFLAP_DISPLAY_LENGTH, clickedIndex))); // Clamp index
+      setCaretPosition(Math.max(0, Math.min(SPLITFLAP_DISPLAY_LENGTH(), clickedIndex))); // Clamp index
       event.currentTarget.focus(); // Ensure display gets focus on click
   };
 
