@@ -41,9 +41,8 @@ services:
       retries: 3
       start_period: 5s
     env_file:
-      # Load environment variables from .env file in backend directory
-      # Make sure this file exists and contains necessary variables (MQTT_BROKER_URL, etc.)
-      - ./backend/.env
+      # Load environment variables from .env file in root directory
+      - .env
     environment:
       - SPLITFLAP_DISPLAY_LENGTH=${SPLITFLAP_DISPLAY_LENGTH:-12}
     volumes:
