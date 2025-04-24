@@ -1,7 +1,7 @@
 services:
   frontend:
     build:
-      context: .
+      context: ./frontend
       dockerfile: ./frontend/Dockerfile
       # No build args needed if socketService connects relatively
     ports:
