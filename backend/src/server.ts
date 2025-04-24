@@ -598,7 +598,7 @@ const startBackendClock = () => {
 // --- Express App Setup ---
 const app: Express = express();
 const httpServer = createServer(app);
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3000;
 
 // --- Core Logic ---
 // Moved updateDisplayAndBroadcast here to be available for initial clock start

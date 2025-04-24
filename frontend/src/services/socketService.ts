@@ -115,15 +115,12 @@ export const socketService = {
         try { // <-- Add try block around io() call
             // Connect without specifying URL, letting it default to origin.
             // Specify the path that Nginx proxies.
-            socket = io({ // REMOVED BACKEND_URL
-                 // withCredentials: true, // Keep removed if not needed
+            socket = io({ 
                  autoConnect: false,
-                 path: '/socket.io/', // Specify the path for Nginx proxy
                  reconnectionAttempts: 5, // Limit reconnection attempts
                  reconnectionDelay: 1000, // Start with 1s delay
                  reconnectionDelayMax: 5000, // Max 5s delay
                  timeout: 20000, // Increase connection timeout
-                 // Force polling first, then try websocket - helps with some proxy setups
                  transports: ['polling', 'websocket']
             });
             // --- ADD LOG ---
