@@ -9,8 +9,8 @@ import * as mqttClient from './mqttClient';
 import fs from 'fs/promises'; // Import file system promises API
 import path from 'path'; // Import path module
 import yaml from 'js-yaml'; // Import YAML library
-// Import types using path alias defined in backend/tsconfig.json
-import { ControlMode, Scene, SceneLine, Departure } from 'types'; // Use 'types' alias
+// Import types from local types file
+import { ControlMode, Scene, SceneLine, Departure } from './types';
 
 // Removed OIDC/Session related imports
 
