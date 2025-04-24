@@ -33,9 +33,8 @@ ENV NODE_ENV=production
 # Copy package files for production install
 COPY backend/package.json backend/package-lock.json ./
 
-# Install only production dependencies
-# Note: We're not using --omit=dev to ensure all required dependencies are installed
-RUN npm ci --ignore-scripts
+# Install only production dependencies and explicitly add js-yaml
+RUN npm ci --ignore-scripts && npm install js-yaml
 
 # Copy the compiled code from the build stage
 COPY --from=build /app/dist ./dist
