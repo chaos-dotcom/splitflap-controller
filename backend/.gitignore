@@ -106,3 +106,9 @@ dist
 dist/
 build/
 out/
+
+# Ignore all files in scenes directory
+scenes/*
+
+# But keep Trans Rights.yaml
+!scenes/Trans Rights.yaml
