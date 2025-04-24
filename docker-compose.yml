@@ -4,13 +4,15 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ./frontend/Dockerfile
       # No build args needed if socketService connects relatively
     ports:
       # Map host port 8080 to container port 80 (Nginx)
       # Access frontend via http://localhost:8080
       - "8080:80"
     restart: unless-stopped
+    env_file:
+      - .env
     depends_on:
       - backend # Ensures backend starts before frontend attempts connection
     networks:
