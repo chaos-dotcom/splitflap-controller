@@ -4,9 +4,9 @@
   "description": "Backend service for Split-Flap Controller to fetch external data.",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json", // Build uses the main tsconfig.json
+    "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "dev": "nodemon"                 // Dev uses nodemon, which will use tsconfig.dev.json (see nodemon.json)
+    "dev": "nodemon"
   },
   "keywords": [
     "splitflap",

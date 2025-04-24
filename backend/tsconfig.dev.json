@@ -1,23 +1,17 @@
-// tsconfig.dev.json - Dedicated config for local development (ts-node / nodemon)
 {
-  "extends": "./tsconfig.json", // Inherit build settings BUT override conflicting ones
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    // --- Overrides/Settings for ts-node ---
-    "composite": false,         // Not needed for ts-node execution
-    // rootDir is removed; ts-node resolves relative to this file
-    "baseUrl": ".",             // Base for path aliases is the backend directory
-    "paths": {                  // Path alias for shared types
+    "composite": false,
+    "baseUrl": ".",
+    "paths": {
       "types": ["../src/types/index"],
       "types/*": ["../src/types/*"]
     },
-    "sourceMap": true           // Ensure sourcemaps for debugging
-    // Other options like target, module, strict are inherited
+    "sourceMap": true
   },
-  // Include patterns relative to this tsconfig file (backend/)
-  // These might be slightly different from build if needed, but usually align
   "include": [
-    "src/**/*",               // Include backend source relative to backend/
-    "../src/types/**/*"       // Include shared types relative to backend/
+    "src/**/*",
+    "../src/types/**/*"
   ],
   "exclude": [
     "node_modules",
