@@ -1,15 +1,26 @@
 // tsconfig.build.json - Dedicated config for building the backend (tsc -b / Docker)
+// NOTE: Does NOT extend base tsconfig.json to avoid pathing conflicts with tsc -b
 {
-  "extends": "./tsconfig.json", // Inherit common settings
   "compilerOptions": {
-    "composite": true,          // Required for project references (tsc -b)
-    // "rootDir": "..",         // REMOVED - Let tsc infer from includes relative to this file
-    // baseUrl and paths are removed to rely on standard Node resolution for build
+    // --- Settings essential for build ---
+    "composite": true,                     // Required for project references (tsc -b)
+    "outDir": "./dist",                    // Output directory relative to this file (backend/dist)
+    "rootDir": "..",                       // Project root, necessary to include shared types
+    "target": "ES2016",                    // Match base config
+    "module": "CommonJS",                 // Match base config
+    "strict": true,                        // Match base config
+    "esModuleInterop": true,               // Match base config
+    "skipLibCheck": true,                  // Match base config
+    "forceConsistentCasingInFileNames": true,// Match base config
+    "moduleResolution": "node",            // Match base config
+    "resolveJsonModule": true,             // Match base config
+    "sourceMap": true                      // Match base config
+    // baseUrl and paths are intentionally omitted for build
   },
-  // Include patterns relative to this tsconfig file (backend/)
+  // Include patterns relative to the rootDir ('..')
   "include": [
-    "src/**/*",               // Include backend source relative to backend/
-    "../src/types/**/*"       // Include shared types relative to backend/
+    "backend/src/**/*",                  // Backend source relative to project root
+    "src/types/**/*"                     // Shared types relative to project root
   ],
   "exclude": [
     "node_modules",
