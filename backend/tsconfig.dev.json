@@ -4,7 +4,7 @@
   "compilerOptions": {
     // --- Overrides/Settings for ts-node ---
     "composite": false,         // Not needed for ts-node execution
-    "rootDir": undefined,       // Let ts-node resolve relative to this file
+    // rootDir is removed; ts-node resolves relative to this file
     "baseUrl": ".",             // Base for path aliases is the backend directory
     "paths": {                  // Path alias for shared types
       "types": ["../src/types/index"],
