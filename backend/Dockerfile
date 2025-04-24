@@ -31,7 +31,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Copy package files for production install
-COPY package.json package-lock.json ./
+COPY backend/package.json backend/package-lock.json ./
 
 # Install only production dependencies
 RUN npm ci --omit=dev --ignore-scripts
@@ -47,6 +47,10 @@ EXPOSE 3001
 
 # --- Diagnostics: List the final contents of /app/dist ---
 RUN echo "--- Final Stage: Contents of /app/dist ---" && ls -R ./dist || echo "--- Final Stage: /app/dist not found or empty ---"
+
+# Expose the port the app listens on
+ENV PORT=3000
+EXPOSE 3000
 
 # Define the command to run the compiled app (runs from /app)
 # Assumes backend/package.json "start" script points to "node dist/server.js"
