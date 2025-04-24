@@ -31,7 +31,7 @@ services:
           - backend # Ensure this hostname is accessible in the network
     # Add healthcheck to ensure the service is running properly
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/health"]
       interval: 10s
       timeout: 5s
       retries: 3
