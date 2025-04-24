@@ -1,4 +1,4 @@
-import React, { KeyboardEvent, MouseEvent, useRef } from 'react'; // Import event types and useRef
+import React, { KeyboardEvent, MouseEvent, useRef, useEffect } from 'react'; // Import event types, useRef, and useEffect
 import SplitFlapChar from './SplitFlapChar';
 import { SPLITFLAP_DISPLAY_LENGTH } from '../constants'; // Use renamed constant
 import './SplitFlapDisplay.css';
@@ -39,12 +39,24 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
       if (hiddenInputRef.current) {
         // Force blur and then focus to ensure keyboard appears on iOS
         hiddenInputRef.current.blur();
+        
+        // Clear any existing value
+        hiddenInputRef.current.value = '';
+        
         // Small timeout to ensure the blur completes
         setTimeout(() => {
           if (hiddenInputRef.current) {
+            // Try multiple focus techniques
             hiddenInputRef.current.focus();
-            // On iOS, we may need to trigger a click on the input
             hiddenInputRef.current.click();
+            
+            // For iOS, sometimes we need to set readonly first, then remove it
+            hiddenInputRef.current.setAttribute('readonly', 'readonly');
+            setTimeout(() => {
+              if (hiddenInputRef.current) {
+                hiddenInputRef.current.removeAttribute('readonly');
+              }
+            }, 10);
           }
         }, 10);
       }
@@ -55,6 +67,29 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
       }
     }
   };
+
+  // Add useEffect to handle mode changes and re-focus
+  useEffect(() => {
+    // When isInteractive changes to true (switching to text mode), 
+    // we need to reset the input state
+    if (isInteractive && isConnected && hiddenInputRef.current) {
+      // Small delay to ensure the DOM has updated
+      setTimeout(() => {
+        if (hiddenInputRef.current) {
+          // Reset the input value
+          hiddenInputRef.current.value = '';
+          // Force blur first
+          hiddenInputRef.current.blur();
+          // Then focus after a small delay
+          setTimeout(() => {
+            if (hiddenInputRef.current) {
+              hiddenInputRef.current.focus();
+            }
+          }, 50);
+        }
+      }, 100);
+    }
+  }, [isInteractive, isConnected]);
 
   // Handle input from the hidden input field (for mobile keyboards)
   const handleHiddenInput = (e: React.FormEvent<HTMLInputElement>) => {
@@ -117,17 +152,27 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
           enterKeyHint="done"
           autoComplete="off"
           autoCapitalize="characters"
+          // Make it slightly more visible for debugging if needed
           style={{
             position: 'absolute',
             opacity: 0.01, // Very slight opacity instead of 0
-            height: '100%', // Make it cover the entire display area
-            width: '100%',  // Make it cover the entire display area
+            height: '100%',
+            width: '100%',
             left: 0,
             top: 0,
-            zIndex: 1, // Place above the display
-            background: 'transparent'
+            zIndex: 2, // Increase z-index to ensure it's on top
+            background: 'transparent',
+            fontSize: '16px', // iOS won't zoom in if font size is at least 16px
+            border: 'none',
+            outline: 'none'
           }}
           onInput={handleHiddenInput}
+          onFocus={() => {
+            console.log('Hidden input focused');
+          }}
+          onBlur={() => {
+            console.log('Hidden input blurred');
+          }}
           onKeyDown={(e) => {
             // Handle special keys like backspace, delete, arrows
             if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key) && onKeyDown) {
