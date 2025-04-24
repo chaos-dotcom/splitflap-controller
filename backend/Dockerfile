@@ -5,13 +5,13 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json ./
+COPY backend/package.json backend/package-lock.json ./
 
 # Copy tsconfig
-COPY tsconfig.json ./
+COPY backend/tsconfig.json ./
 
 # Copy source code
-COPY src ./src/
+COPY backend/src ./src/
 
 # Install ALL dependencies (including devDependencies needed for build)
 RUN npm ci
@@ -40,7 +40,7 @@ RUN npm ci --omit=dev --ignore-scripts
 COPY --from=build /app/dist ./dist
 
 # Copy runtime assets like scenes
-COPY scenes ./scenes
+COPY backend/scenes ./scenes
 
 # Expose the port the backend server listens on
 EXPOSE 3001
