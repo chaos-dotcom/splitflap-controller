@@ -37,7 +37,9 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
     if (isInteractive && isConnected) {
       // Focus the hidden input to show keyboard on mobile
       if (hiddenInputRef.current) {
-        hiddenInputRef.current.focus();
+        hiddenInputRef.current.focus({
+          preventScroll: true // Prevent page from scrolling when focusing
+        });
       }
       
       // Call the original onClick handler if provided
@@ -111,11 +113,11 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
           style={{
             position: 'absolute',
             opacity: 0,
-            height: 1,
-            width: 1,
+            height: '100%', // Make it cover the entire display area
+            width: '100%',  // Make it cover the entire display area
             left: 0,
-            bottom: 0,
-            pointerEvents: 'none',
+            top: 0,
+            pointerEvents: 'none', // This allows clicks to pass through to the display
             zIndex: -1
           }}
           onInput={handleHiddenInput}
