@@ -118,8 +118,13 @@ export const socketService = {
             socket = io({ // REMOVED BACKEND_URL
                  // withCredentials: true, // Keep removed if not needed
                  autoConnect: false,
-                 path: '/socket.io/' // Specify the path for Nginx proxy
-                 // transports: ['websocket'] // Keep commented to allow negotiation
+                 path: '/socket.io/', // Specify the path for Nginx proxy
+                 reconnectionAttempts: 5, // Limit reconnection attempts
+                 reconnectionDelay: 1000, // Start with 1s delay
+                 reconnectionDelayMax: 5000, // Max 5s delay
+                 timeout: 20000, // Increase connection timeout
+                 // Force polling first, then try websocket - helps with some proxy setups
+                 transports: ['polling', 'websocket']
             });
             // --- ADD LOG ---
             console.log('[Socket.IO Service] io instance created successfully (connecting to origin with path /socket.io/, autoConnect: false).'); // Update log

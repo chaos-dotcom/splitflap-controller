@@ -28,6 +28,13 @@ services:
       # This is mainly for direct access/debugging if needed,
       # frontend connects via Nginx proxy internally.
       - "3001:3000"
+    # Add healthcheck to ensure the service is running properly
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     env_file:
       # Load environment variables from .env file in backend directory
       # Make sure this file exists and contains necessary variables (MQTT_BROKER_URL, etc.)
