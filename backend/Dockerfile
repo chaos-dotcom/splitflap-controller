@@ -34,7 +34,8 @@ ENV NODE_ENV=production
 COPY backend/package.json backend/package-lock.json ./
 
 # Install only production dependencies
-RUN npm ci --omit=dev --ignore-scripts
+# Note: We're not using --omit=dev to ensure all required dependencies are installed
+RUN npm ci --ignore-scripts
 
 # Copy the compiled code from the build stage
 COPY --from=build /app/dist ./dist
