@@ -1,4 +1,4 @@
-# Split-Flap Display Controller
+# 🚉 Split-Flap Display Controller
 
 A modern web application for controlling split-flap displays via MQTT. This project consists of a React frontend and Node.js backend that work together to provide various display modes including:
 
@@ -9,22 +9,22 @@ A modern web application for controlling split-flap displays via MQTT. This proj
 - Stopwatch functionality
 - Timer functionality
 
-## Project Structure
+## 📁 Project Structure
 
 - `/frontend` - React TypeScript application built with Vite
 - `/backend` - Node.js server with Socket.IO and MQTT integration
 - `/backend/scenes` - YAML files defining scene sequences for playback
 
-## Getting Started
+## 🚀 Getting Started
 
-### Prerequisites
+### 📋 Prerequisites
 
 - Node.js (v16+)
 - npm or yarn
 - MQTT broker (for physical display control)
 - National Rail Enquiries API token (optional, for train timetable functionality)
 
-### Configuration
+### ⚙️ Configuration
 
 1. Copy environment template files and configure them:
 
@@ -52,7 +52,7 @@ A modern web application for controlling split-flap displays via MQTT. This proj
      - `DISPLAY_MQTT_USERNAME` (if required)
      - `DISPLAY_MQTT_PASSWORD` (if required)
 
-### Development Setup
+### 💻 Development Setup
 
 1. Clone the repository
 2. Install dependencies:
@@ -76,7 +76,7 @@ A modern web application for controlling split-flap displays via MQTT. This proj
    npm run dev
    ```
 
-### Docker Deployment
+### 🐳 Docker Deployment
 
 The project includes Docker configuration for easy deployment:
 
@@ -91,9 +91,9 @@ This will:
 - Mount the `backend/scenes` directory for persistence
 - Restart containers automatically unless explicitly stopped
 
-## Features
+## ✨ Features
 
-### Display Modes
+### 🖥️ Display Modes
 
 - **Text Mode**: Directly input and send text to the display
 - **Train Timetable**: Show real-time train departure information
@@ -102,10 +102,10 @@ This will:
 - **Stopwatch Mode**: Count up from zero
 - **Timer Mode**: Count down from a set time
 
-### MQTT Integration
+### 📡 MQTT Integration
 
 The application connects to an MQTT broker to control physical split-flap displays. Configure the connection settings in the Settings panel of the application or via environment variables.
 
-## Scene Files
+## 📝 Scene Files
 
 Scene sequences are stored as YAML files in the `backend/scenes` directory. When using Docker, this directory is mounted as a volume for persistence.
