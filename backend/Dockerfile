@@ -17,7 +17,7 @@ COPY backend/tsconfig.json ./
 COPY backend/src ./src/
 
 # Copy shared types source code into /app/src/types
-# This matches the paths expected by backend/tsconfig.json (baseUrl: ".", paths: {"types": ["./src/types/index"]})
+# This location is now expected by the updated tsconfig.json path: ../src/types relative to baseUrl .
 COPY src/types ./src/types/
 
 # Run the build command (tsc) from the /app directory
