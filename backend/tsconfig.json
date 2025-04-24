@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
-    "composite": true,                     /* Enable project compilation */
+    // "composite": true,                  /* REMOVED - No longer needed for dev config */
     "target": "ES2016",                     /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
     "module": "CommonJS",                  /* Using CommonJS for backend runtime */
     "outDir": "./dist",                    /* Specify an output folder for all emitted files. */
-    // "rootDir": "..",                    /* REMOVED - Let include paths be relative to this file */
+    // "rootDir": "..",                    /* REMOVED - Not needed for dev */
     "baseUrl": ".",                        /* Keep baseUrl relative to this tsconfig location */
     "paths": {                             /* Keep paths relative to this tsconfig location */
       "types": ["../src/types/index"],     /* Map 'types' alias relative to backend dir (../src/types) */

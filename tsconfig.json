@@ -11,7 +11,7 @@
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" },
-    // Add reference to the backend project
-    { "path": "./backend/tsconfig.json" }
+    // Update reference to the backend's build config
+    { "path": "./backend/tsconfig.build.json" }
   ]
 }

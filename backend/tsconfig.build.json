@@ -1,0 +1,21 @@
+// tsconfig.build.json - Dedicated config for building the backend (tsc -b / Docker)
+{
+  "extends": "./tsconfig.json", // Inherit common settings
+  "compilerOptions": {
+    "composite": true,          // Required for project references (tsc -b)
+    "rootDir": "..",            // Set rootDir to project root to include shared types
+    // Remove options that might conflict or are not needed for build output path resolution
+    "baseUrl": undefined,       // Let module resolution be standard Node for build
+    "paths": undefined          // Paths alias not needed for build output
+  },
+  // Include pattern relative to the NEW rootDir ('..')
+  "include": [
+    "backend/src/**/*"        // Only include backend source relative to project root
+    // Shared types are implicitly included via imports from backend/src
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts",
+    "dist" // Exclude the output directory
+  ]
+}
