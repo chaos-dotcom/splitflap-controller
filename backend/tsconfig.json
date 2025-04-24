@@ -3,7 +3,7 @@
     "target": "ES2016",                     /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
     "module": "CommonJS",                  /* Using CommonJS for backend runtime */
     "outDir": "./dist",                    /* Specify an output folder for all emitted files. */
-    "rootDir": "./src",                    /* Specify the root directory of input files. */
+    "rootDir": "..",                       /* Set rootDir to the project root to include frontend types */
     "baseUrl": ".",                        /* Keep baseUrl relative to this tsconfig location */
     "paths": {                             /* Keep paths relative to this tsconfig location */
       "types": ["../src/types/index"],     /* Map 'types' alias relative to backend dir (../src/types) */
@@ -18,7 +18,8 @@
     "sourceMap": true                      /* Create source map files for emitted JavaScript files. */
   },
   "include": [
-    "src/**/*"                           /* Include backend source relative to backend/ */
+    "src/**/*",                           /* Include backend source relative to backend/ */
+    "../src/types/**/*"                   /* Include shared types from frontend */
   ],
   "exclude": ["node_modules", "**/*.spec.ts"] /* Specifies an array of filenames or patterns that should be skipped when resolving include. */
 }
