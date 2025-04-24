@@ -106,7 +106,7 @@ const SortableLineItem: React.FC<SortableLineItemProps> = ({
                             onChange={(newText) => handleLineTextChange(line.id, newText)}
                             onEnter={finishEditing}
                             onBlur={finishEditing}
-                            maxLength={SPLITFLAP_DISPLAY_LENGTH}
+                            maxLength={SPLITFLAP_DISPLAY_LENGTH()}
                             disabled={isPlaying}
                             autoFocus
                             // Assuming InteractiveTextInput internally uses govuk-input or similar styling
@@ -302,7 +302,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({
 
     const handleLineTextChange = (idToUpdate: string, newText: string) => {
         // Ensure text is always padded/truncated correctly during edit
-        const formattedText = newText.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH);
+        const formattedText = newText.padEnd(SPLITFLAP_DISPLAY_LENGTH()).substring(0, SPLITFLAP_DISPLAY_LENGTH());
         setCurrentLines(currentLines.map(line =>
             line.id === idToUpdate ? { ...line, text: formattedText } : line
         ));
