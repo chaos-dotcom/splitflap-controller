@@ -51,8 +51,6 @@ services:
       # Optional: Mount logs directory if your app writes logs to a specific folder
       # - ./backend/logs:/app/logs
     restart: unless-stopped
-    networks:
-      - splitflap-net
     container_name: splitflap-backend # Optional: Assign a specific container name
 
 networks:
