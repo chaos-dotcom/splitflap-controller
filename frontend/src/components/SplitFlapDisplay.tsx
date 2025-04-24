@@ -1,4 +1,4 @@
-import React, { KeyboardEvent, MouseEvent } from 'react'; // Import event types
+import React, { KeyboardEvent, MouseEvent, useRef } from 'react'; // Import event types and useRef
 import SplitFlapChar from './SplitFlapChar';
 import { SPLITFLAP_DISPLAY_LENGTH } from '../constants'; // Use renamed constant
 import './SplitFlapDisplay.css';
@@ -24,18 +24,60 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
   onKeyDown, // Can be undefined now
   onClick,   // Can be undefined now
 }) => {
+  // Add refs for the display and hidden input
+  const displayRef = useRef<HTMLDivElement>(null);
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
   // Ensure text is exactly SPLITFLAP_DISPLAY_LENGTH characters long, padding with spaces if needed
   // This should ideally be handled by the parent state management (draftText)
   const displayText = text.padEnd(SPLITFLAP_DISPLAY_LENGTH()).substring(0, SPLITFLAP_DISPLAY_LENGTH());
   const chars = displayText.split('');
 
+  // Handle click on the display - focus the hidden input to trigger mobile keyboard
+  const handleDisplayClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (isInteractive && isConnected) {
+      // Focus the hidden input to show keyboard on mobile
+      if (hiddenInputRef.current) {
+        hiddenInputRef.current.focus();
+      }
+      
+      // Call the original onClick handler if provided
+      if (onClick) {
+        onClick(event);
+      }
+    }
+  };
+
+  // Handle input from the hidden input field (for mobile keyboards)
+  const handleHiddenInput = (e: React.FormEvent<HTMLInputElement>) => {
+    if (isInteractive && isConnected && onKeyDown) {
+      const inputValue = e.currentTarget.value;
+      
+      // Process each character as a separate keydown event
+      for (const char of inputValue) {
+        const simulatedEvent = {
+          key: char,
+          preventDefault: () => {},
+          ctrlKey: false,
+          metaKey: false,
+          altKey: false
+        } as unknown as KeyboardEvent<HTMLDivElement>;
+        
+        onKeyDown(simulatedEvent);
+      }
+      
+      // Clear the input for next use
+      e.currentTarget.value = '';
+    }
+  };
+
   return (
     <div
+      ref={displayRef}
       className={`split-flap-display ${size} ${isInteractive && isConnected ? 'interactive' : ''}`} // Add size class
       // Only make focusable and attach handlers if interactive, connected, AND handlers are provided
-      tabIndex={isInteractive && isConnected && onKeyDown ? 0 : -1}
+      tabIndex={isInteractive && isConnected ? 0 : -1}
       onKeyDown={isInteractive && isConnected && onKeyDown ? onKeyDown : undefined}
-      onClick={isInteractive && isConnected && onClick ? onClick : undefined}
+      onClick={handleDisplayClick}
       // Role and aria attributes might only make sense when truly interactive
       role={isInteractive ? "textbox" : undefined}
       aria-label={isInteractive ? "Split flap display input" : "Split flap display"}
@@ -56,6 +98,42 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
        {/* {isConnected && caretPosition === DISPLAY_LENGTH && (
          <span className="explicit-caret" style={{ left: `${caretPosition * CHAR_WIDTH}px` }}></span>
        )} */}
+       
+      {/* Hidden input element to capture mobile keyboard input */}
+      {isInteractive && isConnected && (
+        <input
+          ref={hiddenInputRef}
+          type="text"
+          inputMode="text"
+          enterKeyHint="done"
+          autoComplete="off"
+          autoCapitalize="characters"
+          style={{
+            position: 'absolute',
+            opacity: 0,
+            height: 1,
+            width: 1,
+            left: 0,
+            bottom: 0,
+            pointerEvents: 'none',
+            zIndex: -1
+          }}
+          onInput={handleHiddenInput}
+          onKeyDown={(e) => {
+            // Handle special keys like backspace, delete, arrows
+            if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key) && onKeyDown) {
+              const simulatedEvent = {
+                ...e,
+                preventDefault: () => {
+                  e.preventDefault();
+                }
+              } as unknown as KeyboardEvent<HTMLDivElement>;
+              
+              onKeyDown(simulatedEvent);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
