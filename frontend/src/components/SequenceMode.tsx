@@ -250,7 +250,7 @@ const SequenceMode: React.FC<SequenceModeProps> = ({
         const textToAdd = newLineText; // Already managed by InteractiveTextInput
         const newLine: SceneLine = {
             id: Date.now().toString() + Math.random(), // Simple unique ID
-            text: textToAdd.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH), // Ensure padding/length
+            text: textToAdd.padEnd(SPLITFLAP_DISPLAY_LENGTH()).substring(0, SPLITFLAP_DISPLAY_LENGTH()), // Ensure padding/length
             durationMs: 1000, // Default duration for new lines
         };
         setCurrentLines([...currentLines, newLine]);
@@ -483,8 +483,8 @@ const SequenceMode: React.FC<SequenceModeProps> = ({
                         value={newLineText}
                         onChange={setNewLineText}
                         onEnter={handleAddLine}
-                        maxLength={SPLITFLAP_DISPLAY_LENGTH}
-                        placeholder={`Enter new line text (max ${SPLITFLAP_DISPLAY_LENGTH} chars)`}
+                        maxLength={SPLITFLAP_DISPLAY_LENGTH()}
+                        placeholder={`Enter new line text (max ${SPLITFLAP_DISPLAY_LENGTH()} chars)`}
                         disabled={isPlaying || !!editingLineId} // Disable if playing or editing any line
                         // Pass ID for label association if InteractiveTextInput supports it
                         // id={addLineInputId}

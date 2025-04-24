@@ -7,7 +7,7 @@ import SequenceMode from './components/SequenceMode'; // Import SequenceMode
 import ClockMode from './components/ClockMode';
 import StopwatchMode from './components/StopwatchMode';
 import TimerMode from './components/TimerMode'; // <-- IMPORT TimerMode
-import { SPLITFLAP_DISPLAY_LENGTH, ALLOWED_CHARS, setSplitflapDisplayLength, getSplitflapDisplayLength } from './constants';
+import { SPLITFLAP_DISPLAY_LENGTH, ALLOWED_CHARS, setSplitflapDisplayLength } from './constants';
 import { socketService, ServerToClientEvents } from './services/socketService'; // Import ServerToClientEvents
 import { ControlMode, Scene, Departure } from './types';
 

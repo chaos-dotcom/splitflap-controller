@@ -207,7 +207,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
         }
 
         // Send the condensed 12-character string to the backend/display
-        onSendMessage(output.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH));
+        onSendMessage(output.padEnd(SPLITFLAP_DISPLAY_LENGTH()).substring(0, SPLITFLAP_DISPLAY_LENGTH()));
     };
 
     // --- Preset Handlers ---

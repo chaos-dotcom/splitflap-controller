@@ -26,7 +26,7 @@ const SplitFlapDisplay: React.FC<SplitFlapDisplayProps> = ({
 }) => {
   // Ensure text is exactly SPLITFLAP_DISPLAY_LENGTH characters long, padding with spaces if needed
   // This should ideally be handled by the parent state management (draftText)
-  const displayText = text.padEnd(SPLITFLAP_DISPLAY_LENGTH).substring(0, SPLITFLAP_DISPLAY_LENGTH);
+  const displayText = text.padEnd(SPLITFLAP_DISPLAY_LENGTH()).substring(0, SPLITFLAP_DISPLAY_LENGTH());
   const chars = displayText.split('');
 
   return (

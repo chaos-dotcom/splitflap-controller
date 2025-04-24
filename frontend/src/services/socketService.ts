@@ -1,6 +1,5 @@
 import { io, Socket } from 'socket.io-client';
 import { ControlMode, Scene, Departure } from '../types'; // Removed TrainRoutePreset
-import { SPLITFLAP_DISPLAY_LENGTH } from '../constants';
 
 // Define the structure of events from the backend
 export interface ServerToClientEvents { // Export the interface
