@@ -26,30 +26,25 @@ A modern web application for controlling split-flap displays via MQTT. This proj
 
 ### ⚙️ Configuration
 
-1. Copy environment template files and configure them:
+1. Copy the environment template file and configure it:
 
-   **For the frontend:**
    ```
    cp .env.template .env
    ```
 
    Edit `.env` to set:
-   - `VITE_API_BASE_URL` - URL of your backend server
-
-   **For the backend:**
-   ```
-   cp backend/.env.template backend/.env
-   ```
-
-   Edit `backend/.env` to set:
+   - `SPLITFLAP_DISPLAY_LENGTH` - Number of characters in your physical display
    - `PORT` - Backend server port
    - `NODE_ENV` - Environment (development/production)
    - `NRE_API_TOKEN` - National Rail Enquiries API token (for train mode)
    - MQTT broker details for your physical display:
-     - `DISPLAY_MQTT_BROKER_URL`
-     - `DISPLAY_MQTT_TOPIC`
-     - `DISPLAY_MQTT_USERNAME` (if required)
-     - `DISPLAY_MQTT_PASSWORD` (if required)
+     - `MQTT_BROKER_URL`
+     - `MQTT_PUBLISH_TOPIC`
+     - `MQTT_SUBSCRIBE_TOPIC`
+     - `MQTT_USERNAME` (if required)
+     - `MQTT_PASSWORD` (if required)
+
+   The single `.env` file is used by both frontend and backend containers.
 
 ### 💻 Development Setup
 
@@ -103,8 +98,25 @@ This will:
 
 ### 📡 MQTT Integration
 
-The application connects to an MQTT broker to control physical split-flap displays. Configure the connection settings in the Settings panel of the application or via environment variables.
+The application connects to an MQTT broker to control physical split-flap displays. Configure the connection settings in the `.env` file.
+
+### 🏠 Home Assistant Integration
+
+The backend automatically publishes MQTT discovery configuration for Home Assistant, allowing you to control the display modes and settings directly from your Home Assistant dashboard.
 
 ## 📝 Scene Files
 
 Scene sequences are stored as YAML files in the `backend/scenes` directory. When using Docker, this directory is mounted as a volume for persistence.
+
+## 🔄 Environment Variables
+
+The application uses a single `.env` file in the project root for both frontend and backend configuration. This ensures consistency between the services and simplifies deployment.
+
+Key environment variables:
+- `SPLITFLAP_DISPLAY_LENGTH`: Number of characters in your physical display
+- `MQTT_BROKER_URL`: URL of your MQTT broker
+- `MQTT_PUBLISH_TOPIC`: Topic to publish display commands to
+- `MQTT_SUBSCRIBE_TOPIC`: Topic to subscribe for status updates
+- `NRE_API_TOKEN`: National Rail Enquiries API token (for train timetable functionality)
+
+See `.env.template` for a complete list of available configuration options.
