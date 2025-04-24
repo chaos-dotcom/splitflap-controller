@@ -25,6 +25,8 @@ services:
       dockerfile: backend/Dockerfile
     expose:
       - "3000"
+    ports:
+      - "127.0.0.1:3001:3000" # For debugging - access backend directly
     networks:
       splitflap-net:
         aliases:

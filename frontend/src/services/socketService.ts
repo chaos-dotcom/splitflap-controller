@@ -126,6 +126,8 @@ export const socketService = {
             });
             // --- ADD LOG ---
             console.log('[Socket.IO Service] io instance created successfully (connecting to origin with path /api/socket.io/, autoConnect: false).'); // Update log
+            // --- ADD LOG ---
+            console.log('[Socket.IO Service] io instance created successfully (connecting to origin with path /api/socket.io/, autoConnect: false).'); // Update log
             // --- END LOG ---
         } catch (error) { // <-- Add catch block
             console.error('[Socket.IO Service] Error creating io instance:', error);

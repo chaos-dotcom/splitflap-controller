@@ -51,6 +51,10 @@ RUN echo "--- Final Stage: Contents of /app/dist ---" && ls -R ./dist || echo "-
 ENV PORT=3000
 EXPOSE 3000
 
+# Add healthcheck to verify the server is running
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+
 # Define the command to run the compiled app (runs from /app)
 # Assumes backend/package.json "start" script points to "node dist/server.js"
 CMD ["npm", "start"]
