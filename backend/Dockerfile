@@ -44,9 +44,6 @@ COPY --from=build /app/dist ./dist
 # Copy runtime assets like scenes
 COPY backend/scenes ./scenes
 
-# Expose the port the backend server listens on
-EXPOSE 3001
-
 # --- Diagnostics: List the final contents of /app/dist ---
 RUN echo "--- Final Stage: Contents of /app/dist ---" && ls -R ./dist || echo "--- Final Stage: /app/dist not found or empty ---"
 
