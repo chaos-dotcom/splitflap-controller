@@ -38,11 +38,11 @@ A modern web application for controlling split-flap displays via MQTT. This proj
    - `NODE_ENV` - Environment (development/production)
    - `NRE_API_TOKEN` - National Rail Enquiries API token (for train mode)
    - MQTT broker details for your physical display:
-     - `MQTT_BROKER_URL`
-     - `MQTT_PUBLISH_TOPIC`
-     - `MQTT_SUBSCRIBE_TOPIC`
-     - `MQTT_USERNAME` (if required)
-     - `MQTT_PASSWORD` (if required)
+     - `DISPLAY_MQTT_BROKER_URL`
+     - `DISPLAY_MQTT_PUBLISH_TOPIC`
+     - `DISPLAY_MQTT_SUBSCRIBE_TOPIC`
+     - `DISPLAY_MQTT_USERNAME` (if required)
+     - `DISPLAY_MQTT_PASSWORD` (if required)
 
    The single `.env` file is used by both frontend and backend containers.
 
@@ -114,9 +114,9 @@ The application uses a single `.env` file in the project root for both frontend 
 
 Key environment variables:
 - `SPLITFLAP_DISPLAY_LENGTH`: Number of characters in your physical display
-- `MQTT_BROKER_URL`: URL of your MQTT broker
-- `MQTT_PUBLISH_TOPIC`: Topic to publish display commands to
-- `MQTT_SUBSCRIBE_TOPIC`: Topic to subscribe for status updates
+- `DISPLAY_MQTT_BROKER_URL`: URL of your MQTT broker
+- `DISPLAY_MQTT_PUBLISH_TOPIC`: Topic to publish display commands to
+- `DISPLAY_MQTT_SUBSCRIBE_TOPIC`: Topic to subscribe for status updates
 - `NRE_API_TOKEN`: National Rail Enquiries API token (for train timetable functionality)
 
 See `.env.template` for a complete list of available configuration options.
