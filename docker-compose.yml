@@ -30,6 +30,10 @@ services:
       - "3001:3000"
     expose:
       - "3000"
+    networks:
+      splitflap-net:
+        aliases:
+          - backend # Ensure this hostname is accessible in the network
     # Add healthcheck to ensure the service is running properly
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/health"]
