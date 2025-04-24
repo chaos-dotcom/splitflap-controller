@@ -121,10 +121,11 @@ export const socketService = {
                  reconnectionDelay: 1000, // Start with 1s delay
                  reconnectionDelayMax: 5000, // Max 5s delay
                  timeout: 20000, // Increase connection timeout
-                 transports: ['polling', 'websocket']
+                 transports: ['polling', 'websocket'],
+                 path: '/api/socket.io/' // Use /api prefix for socket.io
             });
             // --- ADD LOG ---
-            console.log('[Socket.IO Service] io instance created successfully (connecting to origin with path /socket.io/, autoConnect: false).'); // Update log
+            console.log('[Socket.IO Service] io instance created successfully (connecting to origin with path /api/socket.io/, autoConnect: false).'); // Update log
             // --- END LOG ---
         } catch (error) { // <-- Add catch block
             console.error('[Socket.IO Service] Error creating io instance:', error);
