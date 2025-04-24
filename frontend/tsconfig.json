@@ -1,17 +1,13 @@
 {
   "compilerOptions": {
-    // baseUrl and paths REMOVED - Resolution via project references ONLY
-    // Add common options needed for resolution/interop if not present elsewhere
-    "esModuleInterop": true, // Keep common options if needed by root/other configs
+    "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node" // Or "bundler", ensure consistency if used elsewhere
+    "moduleResolution": "node"
   },
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" },
-    // Reference points to the backend's main tsconfig (which is now the build config)
-    { "path": "./backend/tsconfig.json" }
+    { "path": "./tsconfig.node.json" }
   ]
 }
