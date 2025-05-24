@@ -7,6 +7,10 @@ const brokerUrl = process.env.DISPLAY_MQTT_BROKER_URL;
 const publishTopic = process.env.DISPLAY_MQTT_TOPIC;
 const username = process.env.DISPLAY_MQTT_USERNAME;
 const password = process.env.DISPLAY_MQTT_PASSWORD;
+const calibrationString = process.env.CALIBRATION_STRING;
+
+// The flap sequence used by the display
+const FLAP_SEQUENCE = ' roygbvptABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.=?$&!';
 
 let client: MqttClient | null = null;
 let connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'error' = 'disconnected';
@@ -105,16 +109,55 @@ export const connectToDisplayBroker = (handler: MessageHandler, availTopic: stri
     });
 };
 
+// Function to apply calibration offset to a message
+const applyCalibration = (message: string): string => {
+    // If no calibration string is set, return the original message
+    if (!calibrationString) {
+        return message;
+    }
+
+    return message.split('').map(char => {
+        // If character isn't in the flap sequence, return it unchanged
+        if (!FLAP_SEQUENCE.includes(char)) {
+            return char;
+        }
+        
+        // Find the position in the flap sequence
+        const charIndex = FLAP_SEQUENCE.indexOf(char);
+        
+        // Get the calibration offset for this character
+        // If calibration string is shorter than message, wrap around
+        const calibrationOffset = parseInt(calibrationString[charIndex % calibrationString.length], 10);
+        
+        // If calibration value isn't a valid number, return original character
+        if (isNaN(calibrationOffset)) {
+            return char;
+        }
+        
+        // Apply the offset to get the new character
+        const newIndex = (charIndex + calibrationOffset) % FLAP_SEQUENCE.length;
+        return FLAP_SEQUENCE[newIndex];
+    }).join('');
+};
+
 export const publishToDisplay = (message: string): boolean => {
     if (!client || !client.connected || !publishTopic) {
         console.warn('[MQTT Client] Cannot publish: Not connected or topic not set.');
         return false;
     }
-    client.publish(publishTopic, message, { qos: 0, retain: false }, (err) => {
+    
+    // Apply calibration if needed
+    const calibratedMessage = applyCalibration(message);
+    
+    client.publish(publishTopic, calibratedMessage, { qos: 0, retain: false }, (err) => {
         if (err) {
             console.error(`[MQTT Client] Failed to publish message to topic "${publishTopic}":`, err);
         } else {
-             console.log(`[MQTT Client] Published "${message}" to ${publishTopic}`);
+            if (calibrationString && calibratedMessage !== message) {
+                console.log(`[MQTT Client] Published "${message}" (calibrated to "${calibratedMessage}") to ${publishTopic}`);
+            } else {
+                console.log(`[MQTT Client] Published "${message}" to ${publishTopic}`);
+            }
         }
     });
     return true;
