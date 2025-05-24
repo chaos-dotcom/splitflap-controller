@@ -116,31 +116,32 @@ const applyCalibration = (message: string): string => {
         return message;
     }
 
-    return message.split('').map(char => {
+    return message.split('').map((char, position) => {
         // If character isn't in the flap sequence, return it unchanged
         if (!FLAP_SEQUENCE.includes(char)) {
             return char;
         }
         
-        // Find the position in the flap sequence
-        const charIndex = FLAP_SEQUENCE.indexOf(char);
-        
-        // Calculate the offset needed for this character position
-        // Each position in the calibrationString represents what character
-        // should be at the "home" position for that module
-        const calibrationChar = calibrationString[charIndex % calibrationString.length];
+        // Get the calibration character for this position in the message
+        // If calibration string is shorter than message, wrap around
+        const calibrationChar = calibrationString[position % calibrationString.length];
         
         // If calibration character isn't in the flap sequence, return original
         if (!FLAP_SEQUENCE.includes(calibrationChar)) {
             return char;
         }
         
-        // Calculate the offset between the calibration char and the desired char
+        // Find the positions in the flap sequence
+        const targetIndex = FLAP_SEQUENCE.indexOf(char);
         const calibrationIndex = FLAP_SEQUENCE.indexOf(calibrationChar);
-        const offset = (calibrationIndex - 0 + FLAP_SEQUENCE.length) % FLAP_SEQUENCE.length;
+        
+        // Calculate the offset needed
+        // If calibration char is 'A' and we want to display ' ', we need to rotate
+        // backward by the distance from ' ' to 'A' in the sequence
+        const offset = (targetIndex - calibrationIndex + FLAP_SEQUENCE.length) % FLAP_SEQUENCE.length;
         
         // Apply the offset to get the new character
-        const newIndex = (charIndex + offset) % FLAP_SEQUENCE.length;
+        const newIndex = (targetIndex + offset) % FLAP_SEQUENCE.length;
         return FLAP_SEQUENCE[newIndex];
     }).join('');
 };
