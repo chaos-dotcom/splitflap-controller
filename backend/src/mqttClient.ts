@@ -122,7 +122,7 @@ const applyCalibration = (message: string): string => {
             return char;
         }
         
-        // Get the calibration character for this position in the message
+        // Get the calibration character for this position in the display
         // If calibration string is shorter than message, wrap around
         const calibrationChar = calibrationString[position % calibrationString.length];
         
@@ -135,14 +135,13 @@ const applyCalibration = (message: string): string => {
         const targetIndex = FLAP_SEQUENCE.indexOf(char);
         const calibrationIndex = FLAP_SEQUENCE.indexOf(calibrationChar);
         
-        // Calculate the offset needed
-        // If calibration char is 'A' and we want to display ' ', we need to rotate
-        // backward by the distance from ' ' to 'A' in the sequence
+        // Calculate the offset:
+        // If the module shows 'A' when at home position (calibrationChar = 'A'),
+        // and we want to show 'C', we need to find what character is actually
+        // at position 'C' - 'A' steps in the sequence
         const offset = (targetIndex - calibrationIndex + FLAP_SEQUENCE.length) % FLAP_SEQUENCE.length;
         
-        // Apply the offset to get the new character
-        const newIndex = (targetIndex + offset) % FLAP_SEQUENCE.length;
-        return FLAP_SEQUENCE[newIndex];
+        return FLAP_SEQUENCE[offset];
     }).join('');
 };
 
