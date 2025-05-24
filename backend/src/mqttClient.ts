@@ -125,17 +125,22 @@ const applyCalibration = (message: string): string => {
         // Find the position in the flap sequence
         const charIndex = FLAP_SEQUENCE.indexOf(char);
         
-        // Get the calibration offset for this character
-        // If calibration string is shorter than message, wrap around
-        const calibrationOffset = parseInt(calibrationString[charIndex % calibrationString.length], 10);
+        // Calculate the offset needed for this character position
+        // Each position in the calibrationString represents what character
+        // should be at the "home" position for that module
+        const calibrationChar = calibrationString[charIndex % calibrationString.length];
         
-        // If calibration value isn't a valid number, return original character
-        if (isNaN(calibrationOffset)) {
+        // If calibration character isn't in the flap sequence, return original
+        if (!FLAP_SEQUENCE.includes(calibrationChar)) {
             return char;
         }
         
+        // Calculate the offset between the calibration char and the desired char
+        const calibrationIndex = FLAP_SEQUENCE.indexOf(calibrationChar);
+        const offset = (calibrationIndex - 0 + FLAP_SEQUENCE.length) % FLAP_SEQUENCE.length;
+        
         // Apply the offset to get the new character
-        const newIndex = (charIndex + calibrationOffset) % FLAP_SEQUENCE.length;
+        const newIndex = (charIndex + offset) % FLAP_SEQUENCE.length;
         return FLAP_SEQUENCE[newIndex];
     }).join('');
 };
