@@ -129,14 +129,14 @@ const applyCalibration = (text: string): string => {
         }
         
         // Find the character in the character set
-        const charIndex = SPLIT_FLAP_CHARSET.indexOf(char);
+        const charIndex = FLAP_SEQUENCE.indexOf(char);
         if (charIndex === -1) {
             return char; // Character not in set, return unchanged
         }
         
         // Apply the offset and wrap around the character set
-        const newIndex = (charIndex + offsets[index] + SPLIT_FLAP_CHARSET.length) % SPLIT_FLAP_CHARSET.length;
-        return SPLIT_FLAP_CHARSET[newIndex];
+        const newIndex = (charIndex + offsets[index] + FLAP_SEQUENCE.length) % FLAP_SEQUENCE.length;
+        return FLAP_SEQUENCE[newIndex];
     }).join('');
 };
 
