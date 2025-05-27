@@ -80,7 +80,7 @@ docker-compose up -d
 
 This will:
 - Build and start both frontend and backend containers
-- Make the frontend available at http://localhost:8080
+- Make the frontend available at http://localhost:2001
 - Connect the backend to the frontend via an internal Docker network
 - Mount the `backend/scenes` directory for persistence
 - Restart containers automatically unless explicitly stopped
