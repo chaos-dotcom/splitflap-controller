@@ -208,3 +208,6 @@ export const disconnectFromDisplayBroker = (): void => {
 export const getDisplayConnectionStatus = (): { status: string; error: string | null } => {
     return { status: connectionStatus, error: lastError };
 };
+    // Apply calibration to the message
+>>>>>>> main
+    const calibratedMessage = applyCalibration(message);
