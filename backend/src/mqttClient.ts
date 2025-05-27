@@ -10,7 +10,8 @@ const password = process.env.DISPLAY_MQTT_PASSWORD;
 const calibrationString = process.env.CALIBRATION_STRING;
 
 // The flap sequence used by the display
-const FLAP_SEQUENCE = ' roygbvptABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.=?$&!';
+// Use the environment variable if defined, otherwise use the default sequence
+const FLAP_SEQUENCE = process.env.FLAP_SEQUENCE || ' roygbvptABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.=?$&!';
 
 let client: MqttClient | null = null;
 let connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'error' = 'disconnected';
