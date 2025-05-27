@@ -136,8 +136,6 @@ const applyCalibration = (text: string): string => {
         }
         
         // Apply the offset and wrap around the character set
-        const newIndex = (charIndex + offsets[index] + SPLIT_FLAP_CHARSET.length) % SPLIT_FLAP_CHARSET.length;
-        return SPLIT_FLAP_CHARSET[newIndex];
     // Apply calibration to the message
 >>>>>>> main
     const calibratedMessage = applyCalibration(message);
