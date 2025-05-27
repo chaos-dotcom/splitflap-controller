@@ -1,6 +1,5 @@
 import mqtt, { MqttClient, IClientOptions } from 'mqtt';
 import dotenv from 'dotenv';
-import { SPLIT_FLAP_CHARSET } from '../shared/constants';
 
 dotenv.config(); // Load .env variables
 
@@ -136,24 +135,28 @@ const applyCalibration = (text: string): string => {
         }
         
         // Apply the offset and wrap around the character set
+        const newIndex = (charIndex + offsets[index] + SPLIT_FLAP_CHARSET.length) % SPLIT_FLAP_CHARSET.length;
+        return SPLIT_FLAP_CHARSET[newIndex];
+    }).join('');
+};
+
+export const publishToDisplay = (message: string): boolean => {
+    if (!client || !client.connected || !publishTopic) {
+        console.warn('[MQTT Client] Cannot publish: Not connected or topic not set.');
+        return false;
+    }
+    
     // Apply calibration to the message
->>>>>>> main
     const calibratedMessage = applyCalibration(message);
-=======
-    // Apply calibration to the message
->>>>>>> main
-    const calibratedMessage = applyCalibration(message);
+    
+    client.publish(publishTopic, calibratedMessage, { qos: 0, retain: false }, (err) => {
+        if (err) {
+            console.error(`[MQTT Client] Failed to publish message to topic "${publishTopic}":`, err);
+        } else {
              console.log(`[MQTT Client] Published "${message}" to ${publishTopic}`);
              if (message !== calibratedMessage) {
                  console.log(`[MQTT Client] Calibrated message: "${calibratedMessage}"`);
              }
->>>>>>> main
-=======
-             console.log(`[MQTT Client] Published "${message}" to ${publishTopic}`);
-             if (message !== calibratedMessage) {
-                 console.log(`[MQTT Client] Calibrated message: "${calibratedMessage}"`);
-             }
->>>>>>> main
         }
     });
     return true;
@@ -206,6 +209,3 @@ export const disconnectFromDisplayBroker = (): void => {
 export const getDisplayConnectionStatus = (): { status: string; error: string | null } => {
     return { status: connectionStatus, error: lastError };
 };
-    // Apply calibration to the message
->>>>>>> main
-    const calibratedMessage = applyCalibration(message);
