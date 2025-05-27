@@ -278,6 +278,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
             setToStation(selectedPreset.toCRS || ''); // Update local state
             // Trigger backend update for the new route
             onStartUpdates(selectedPreset.fromCRS, selectedPreset.toCRS);
+            lastMqttUpdateTimeRef.current = Date.now(); // Update last MQTT time
             setError(null); // Clear previous errors
         } else {
             // Clear inputs and results if "-- Select Preset --" is chosen
@@ -336,12 +337,16 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     const pendingFromValueRef = useRef<string | null>(null);
     const pendingToValueRef = useRef<string | null>(null);
     const changeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastMqttUpdateTimeRef = useRef<number>(0);
+    const MQTT_RATE_LIMIT_MS = 2000; // 2 seconds between MQTT updates
 
     // Process any pending CRS changes with rate limiting
     const processPendingChanges = () => {
         const now = Date.now();
         // Only process if at least 1000ms (1 second) has passed since last change
         if (now - lastChangeTimeRef.current >= 1000) {
+            const hadPendingChanges = pendingFromValueRef.current !== null || pendingToValueRef.current !== null;
+            
             if (pendingFromValueRef.current !== null) {
                 setFromStation(pendingFromValueRef.current);
                 pendingFromValueRef.current = null;
@@ -351,6 +356,17 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                 pendingToValueRef.current = null;
             }
             lastChangeTimeRef.current = now;
+            
+            // If we had pending changes and enough time has passed since last MQTT update,
+            // trigger an update to the backend
+            if (hadPendingChanges && now - lastMqttUpdateTimeRef.current >= MQTT_RATE_LIMIT_MS) {
+                // Only update if we have a valid from station
+                if (fromStation && fromStation.length === 3) {
+                    console.log(`[TrainTimetableMode] Rate-limited MQTT update with From=${fromStation}, To=${toStation || undefined}`);
+                    onStartUpdates(fromStation, toStation);
+                    lastMqttUpdateTimeRef.current = now;
+                }
+            }
         }
 
         // Clear any existing timeout
@@ -444,6 +460,7 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                         
                         // Now refresh with the updated values
                         onStartUpdates(fromStation, toStation);
+                        lastMqttUpdateTimeRef.current = Date.now(); // Update last MQTT time
                     }}
                     // Removed isLoading check
                     disabled={!isConnected || !fromStation || fromStation.length !== 3}
