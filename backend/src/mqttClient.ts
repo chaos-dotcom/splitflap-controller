@@ -142,7 +142,35 @@ const applyCalibration = (message: string): string => {
         // at position 'C' - 'A' steps in the sequence
         const offset = (targetIndex - calibrationIndex + FLAP_SEQUENCE.length) % FLAP_SEQUENCE.length;
         
-        return FLAP_SEQUENCE[offset];
+// Function to apply calibration offsets to the display text
+const applyCalibration = (text: string): string => {
+    const calibrationString = process.env.CALIBRATION_STRING;
+    
+    // If no calibration string is provided, return the original text
+    if (!calibrationString || calibrationString.trim() === '') {
+        return text;
+    }
+    
+    // Parse the calibration string into an array of offsets
+    const offsets = calibrationString.split(',').map(offset => parseInt(offset.trim(), 10));
+    
+    // Apply the offsets to each character
+    return text.split('').map((char, index) => {
+        // If we don't have an offset for this position, don't change it
+        if (index >= offsets.length || isNaN(offsets[index])) {
+            return char;
+        }
+        
+        // Find the character in the character set
+        const charIndex = SPLIT_FLAP_CHARSET.indexOf(char);
+        if (charIndex === -1) {
+            return char; // Character not in set, return unchanged
+        }
+        
+        // Apply the offset and wrap around the character set
+        const newIndex = (charIndex + offsets[index] + SPLIT_FLAP_CHARSET.length) % SPLIT_FLAP_CHARSET.length;
+        return SPLIT_FLAP_CHARSET[newIndex];
+>>>>>>> main
 =======
 // Function to apply calibration offsets to the display text
 const applyCalibration = (text: string): string => {
@@ -173,9 +201,6 @@ const applyCalibration = (text: string): string => {
         const newIndex = (charIndex + offsets[index] + SPLIT_FLAP_CHARSET.length) % SPLIT_FLAP_CHARSET.length;
         return SPLIT_FLAP_CHARSET[newIndex];
 >>>>>>> main
-    }).join('');
-};
-
     // Apply calibration to the message
 >>>>>>> main
     const calibratedMessage = applyCalibration(message);
@@ -183,7 +208,6 @@ const applyCalibration = (text: string): string => {
     // Apply calibration to the message
 >>>>>>> main
     const calibratedMessage = applyCalibration(message);
-    
              console.log(`[MQTT Client] Published "${message}" to ${publishTopic}`);
              if (message !== calibratedMessage) {
                  console.log(`[MQTT Client] Calibrated message: "${calibratedMessage}"`);
