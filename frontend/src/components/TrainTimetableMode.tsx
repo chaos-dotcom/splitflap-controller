@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // Removed useRef
+import React, { useState, useEffect, useRef } from 'react'; // Added useRef back
 import { SPLITFLAP_DISPLAY_LENGTH } from '../constants'; // Use renamed constant
 import './TrainTimetableMode.css';
 import { Departure, TrainRoutePreset } from '../types'; // Import types
@@ -213,6 +213,24 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     // --- Preset Handlers ---
     const handleSavePreset = () => {
         console.log('[TrainTimetableMode] handleSavePreset called.'); // <-- ADD LOG
+        
+        // Process any pending changes immediately before saving
+        if (pendingFromValueRef.current !== null) {
+            setFromStation(pendingFromValueRef.current);
+            pendingFromValueRef.current = null;
+        }
+        if (pendingToValueRef.current !== null) {
+            setToStation(pendingToValueRef.current);
+            pendingToValueRef.current = null;
+        }
+        // Clear any scheduled processing
+        if (changeTimeoutRef.current) {
+            clearTimeout(changeTimeoutRef.current);
+            changeTimeoutRef.current = null;
+        }
+        // Update last change time
+        lastChangeTimeRef.current = Date.now();
+        
         if (!fromStation || fromStation.length !== 3) {
             alert("Please enter a valid 3-letter 'From' station code first.");
             return;
@@ -243,6 +261,17 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     const handleSelectPreset = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const selectedName = event.target.value;
         const selectedPreset = savedPresets.find(p => p.name === selectedName);
+        
+        // Clear any pending changes and scheduled processing
+        pendingFromValueRef.current = null;
+        pendingToValueRef.current = null;
+        if (changeTimeoutRef.current) {
+            clearTimeout(changeTimeoutRef.current);
+            changeTimeoutRef.current = null;
+        }
+        // Update last change time
+        lastChangeTimeRef.current = Date.now();
+        
         if (selectedPreset) {
             // ONLY update the state fields, do not fetch automatically
             setFromStation(selectedPreset.fromCRS);
@@ -261,6 +290,24 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
 
     const handleDeletePreset = () => {
         console.log('[TrainTimetableMode] handleDeletePreset called.'); // <-- ADD LOG
+        
+        // Process any pending changes immediately
+        if (pendingFromValueRef.current !== null) {
+            setFromStation(pendingFromValueRef.current);
+            pendingFromValueRef.current = null;
+        }
+        if (pendingToValueRef.current !== null) {
+            setToStation(pendingToValueRef.current);
+            pendingToValueRef.current = null;
+        }
+        // Clear any scheduled processing
+        if (changeTimeoutRef.current) {
+            clearTimeout(changeTimeoutRef.current);
+            changeTimeoutRef.current = null;
+        }
+        // Update last change time
+        lastChangeTimeRef.current = Date.now();
+        
         const selectElement = document.getElementById('presetSelector') as HTMLSelectElement;
         const selectedName = selectElement?.value;
         if (!selectedName || !savedPresets.some(p => p.name === selectedName)) {
@@ -284,15 +331,63 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     };
     // --- End Preset Handlers ---
 
+    // Rate limiting for CRS input changes
+    const lastChangeTimeRef = useRef<number>(0);
+    const pendingFromValueRef = useRef<string | null>(null);
+    const pendingToValueRef = useRef<string | null>(null);
+    const changeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Process any pending CRS changes with rate limiting
+    const processPendingChanges = () => {
+        const now = Date.now();
+        // Only process if at least 1000ms (1 second) has passed since last change
+        if (now - lastChangeTimeRef.current >= 1000) {
+            if (pendingFromValueRef.current !== null) {
+                setFromStation(pendingFromValueRef.current);
+                pendingFromValueRef.current = null;
+            }
+            if (pendingToValueRef.current !== null) {
+                setToStation(pendingToValueRef.current);
+                pendingToValueRef.current = null;
+            }
+            lastChangeTimeRef.current = now;
+        }
+
+        // Clear any existing timeout
+        if (changeTimeoutRef.current) {
+            clearTimeout(changeTimeoutRef.current);
+            changeTimeoutRef.current = null;
+        }
+
+        // If there are still pending changes, schedule another check
+        if (pendingFromValueRef.current !== null || pendingToValueRef.current !== null) {
+            changeTimeoutRef.current = setTimeout(processPendingChanges, 1000);
+        }
+    };
+
     // --- Input Change Handlers ---
     const handleFromStationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFromStation(e.target.value.toUpperCase());
+        const newValue = e.target.value.toUpperCase();
+        pendingFromValueRef.current = newValue;
         setError(null); // Clear error on input change
+        
+        // Schedule processing if not already scheduled
+        if (!changeTimeoutRef.current) {
+            const delay = Math.max(0, 1000 - (Date.now() - lastChangeTimeRef.current));
+            changeTimeoutRef.current = setTimeout(processPendingChanges, delay);
+        }
     };
 
     const handleToStationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setToStation(e.target.value.toUpperCase());
+        const newValue = e.target.value.toUpperCase();
+        pendingToValueRef.current = newValue;
         setError(null); // Clear error on input change
+        
+        // Schedule processing if not already scheduled
+        if (!changeTimeoutRef.current) {
+            const delay = Math.max(0, 1000 - (Date.now() - lastChangeTimeRef.current));
+            changeTimeoutRef.current = setTimeout(processPendingChanges, delay);
+        }
     };
     // --- End Input Change Handlers ---
 
@@ -330,6 +425,24 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                <button
                     onClick={() => {
                         console.log('[TrainTimetableMode] Refresh Now button clicked.'); // <-- ADD LOG
+                        // Process any pending changes immediately before refreshing
+                        if (pendingFromValueRef.current !== null) {
+                            setFromStation(pendingFromValueRef.current);
+                            pendingFromValueRef.current = null;
+                        }
+                        if (pendingToValueRef.current !== null) {
+                            setToStation(pendingToValueRef.current);
+                            pendingToValueRef.current = null;
+                        }
+                        // Clear any scheduled processing
+                        if (changeTimeoutRef.current) {
+                            clearTimeout(changeTimeoutRef.current);
+                            changeTimeoutRef.current = null;
+                        }
+                        // Update last change time
+                        lastChangeTimeRef.current = Date.now();
+                        
+                        // Now refresh with the updated values
                         onStartUpdates(fromStation, toStation);
                     }}
                     // Removed isLoading check
