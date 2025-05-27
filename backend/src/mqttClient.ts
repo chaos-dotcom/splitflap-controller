@@ -110,38 +110,6 @@ export const connectToDisplayBroker = (handler: MessageHandler, availTopic: stri
     });
 };
 
-// Function to apply calibration offset to a message
-const applyCalibration = (message: string): string => {
-    // If no calibration string is set, return the original message
-    if (!calibrationString) {
-        return message;
-    }
-
-    return message.split('').map((char, position) => {
-        // If character isn't in the flap sequence, return it unchanged
-        if (!FLAP_SEQUENCE.includes(char)) {
-            return char;
-        }
-        
-        // Get the calibration character for this position in the display
-        // If calibration string is shorter than message, wrap around
-        const calibrationChar = calibrationString[position % calibrationString.length];
-        
-        // If calibration character isn't in the flap sequence, return original
-        if (!FLAP_SEQUENCE.includes(calibrationChar)) {
-            return char;
-        }
-        
-        // Find the positions in the flap sequence
-        const targetIndex = FLAP_SEQUENCE.indexOf(char);
-        const calibrationIndex = FLAP_SEQUENCE.indexOf(calibrationChar);
-        
-        // Calculate the offset:
-        // If the module shows 'A' when at home position (calibrationChar = 'A'),
-        // and we want to show 'C', we need to find what character is actually
-        // at position 'C' - 'A' steps in the sequence
-        const offset = (targetIndex - calibrationIndex + FLAP_SEQUENCE.length) % FLAP_SEQUENCE.length;
-        
 // Function to apply calibration offsets to the display text
 const applyCalibration = (text: string): string => {
     const calibrationString = process.env.CALIBRATION_STRING;
@@ -170,7 +138,6 @@ const applyCalibration = (text: string): string => {
         // Apply the offset and wrap around the character set
         const newIndex = (charIndex + offsets[index] + SPLIT_FLAP_CHARSET.length) % SPLIT_FLAP_CHARSET.length;
         return SPLIT_FLAP_CHARSET[newIndex];
->>>>>>> main
 =======
 // Function to apply calibration offsets to the display text
 const applyCalibration = (text: string): string => {
@@ -200,7 +167,6 @@ const applyCalibration = (text: string): string => {
         // Apply the offset and wrap around the character set
         const newIndex = (charIndex + offsets[index] + SPLIT_FLAP_CHARSET.length) % SPLIT_FLAP_CHARSET.length;
         return SPLIT_FLAP_CHARSET[newIndex];
->>>>>>> main
     // Apply calibration to the message
 >>>>>>> main
     const calibratedMessage = applyCalibration(message);
