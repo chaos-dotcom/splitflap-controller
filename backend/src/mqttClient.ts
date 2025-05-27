@@ -138,7 +138,6 @@ const applyCalibration = (text: string): string => {
         // Apply the offset and wrap around the character set
         const newIndex = (charIndex + offsets[index] + SPLIT_FLAP_CHARSET.length) % SPLIT_FLAP_CHARSET.length;
         return SPLIT_FLAP_CHARSET[newIndex];
-=======
 // Function to apply calibration offsets to the display text
 const applyCalibration = (text: string): string => {
     const calibrationString = process.env.CALIBRATION_STRING;
