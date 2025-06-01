@@ -23,15 +23,13 @@ services:
       dockerfile: ./backend/Dockerfile
     expose:
       - "3001"
-    ports:
-      - "127.0.0.1:3001:3000" # For debugging - access backend directly
     networks:
       splitflap-net:
         aliases:
           - backend # Ensure this hostname is accessible in the network
     # Add healthcheck to ensure the service is running properly
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://backend:3001/health"]
       interval: 10s
       timeout: 5s
       retries: 3
