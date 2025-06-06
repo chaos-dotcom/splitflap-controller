@@ -48,8 +48,8 @@ COPY backend/scenes ./scenes
 RUN echo "--- Final Stage: Contents of /app/dist ---" && ls -R ./dist || echo "--- Final Stage: /app/dist not found or empty ---"
 
 # Expose the port the app listens on
-ENV PORT=3001
-EXPOSE 3001
+ENV PORT=2002
+EXPOSE 2002
 
 # Add healthcheck to verify the server is running
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

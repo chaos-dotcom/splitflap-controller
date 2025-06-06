@@ -22,7 +22,7 @@ services:
       context: .
       dockerfile: ./backend/Dockerfile
     expose:
-      - "3001"
+      - "2001"
     networks:
       splitflap-net:
         aliases:
