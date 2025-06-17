@@ -70,6 +70,13 @@ services:
       # - ./emqx/etc:/opt/emqx/etc # Uncomment to persist configuration
     environment:
       EMQX_LOADED_PLUGINS: "emqx_dashboard,emqx_management" # Ensure dashboard is enabled
+      # Disable anonymous authentication on default listeners
+      EMQX_LISTENERS__TCP__DEFAULT__ALLOW_ANONYMOUS: "false"
+      EMQX_LISTENERS__WS__DEFAULT__ALLOW_ANONYMOUS: "false"
+      # Bootstrap a default user for MQTT.
+      # IMPORTANT: Change 'mqttpassword' in your .env file and consider managing users via EMQX Dashboard.
+      EMQX_BOOTSTRAP_USERS__1__USERNAME: "splitflap_user"
+      EMQX_BOOTSTRAP_USERS__1__PASSWORD: "mqttpassword" # EMQX will hash this using its default algorithm.
     networks:
       - splitflap-net
     restart: unless-stopped
