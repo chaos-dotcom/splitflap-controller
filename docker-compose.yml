@@ -54,18 +54,29 @@ services:
         condition: service_started # Or service_healthy if you add a healthcheck to mqtt
 
   mqtt:
-    image: eclipse-mosquitto:latest
-    container_name: splitflap-mqtt
+    image: emqx/emqx:latest # Using latest EMQX image
+    container_name: splitflap-emqx
     ports:
-      - "1883:1883" # Standard MQTT port
-      - "9001:9001" # MQTT over WebSockets
+      - "1883:1883"    # MQTT
+      - "8083:8083"    # MQTT over WebSockets
+      - "8084:8084"    # MQTT over SSL/TLS WebSockets
+      - "8883:8883"    # MQTT over SSL/TLS
+      - "18083:18083"  # EMQX Dashboard
     volumes:
-      - ./mosquitto/config:/mosquitto/config
-      - ./mosquitto/data:/mosquitto/data
-      - ./mosquitto/log:/mosquitto/log
+      - ./emqx/data:/opt/emqx/data
+      - ./emqx/log:/opt/emqx/log
+      # - ./emqx/etc:/opt/emqx/etc # Uncomment to persist configuration
+    environment:
+      EMQX_LOADED_PLUGINS: "emqx_dashboard,emqx_management" # Ensure dashboard is enabled
     networks:
       - splitflap-net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx_ctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # EMQX can take a bit to start
 
 networks:
   splitflap-net:
