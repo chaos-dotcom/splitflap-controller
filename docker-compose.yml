@@ -19,7 +19,6 @@ services:
     networks:
       - splitflap-net
     container_name: splitflap-frontend # Optional: Assign a specific container name
-    user: "3000"
 
   backend:
     build:
