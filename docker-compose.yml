@@ -12,7 +12,10 @@ services:
     env_file:
       - .env
     depends_on:
-      - backend # Ensures backend starts before frontend attempts connection
+      backend: # Ensures backend starts before frontend attempts connection
+        condition: service_healthy
+      mqtt:
+        condition: service_started # Or service_healthy if mqtt has a healthcheck
     networks:
       - splitflap-net
     container_name: splitflap-frontend # Optional: Assign a specific container name
@@ -46,6 +49,23 @@ services:
       # - ./backend/logs:/app/logs
     restart: unless-stopped
     container_name: splitflap-backend # Optional: Assign a specific container name
+    depends_on:
+      mqtt:
+        condition: service_started # Or service_healthy if you add a healthcheck to mqtt
+
+  mqtt:
+    image: eclipse-mosquitto:latest
+    container_name: splitflap-mqtt
+    ports:
+      - "1883:1883" # Standard MQTT port
+      - "9001:9001" # MQTT over WebSockets
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    networks:
+      - splitflap-net
+    restart: unless-stopped
 
 networks:
   splitflap-net:
