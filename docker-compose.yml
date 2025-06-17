@@ -19,6 +19,7 @@ services:
     networks:
       - splitflap-net
     container_name: splitflap-frontend # Optional: Assign a specific container name
+    user: "3000"
 
   backend:
     build:
@@ -49,6 +50,7 @@ services:
       # - ./backend/logs:/app/logs
     restart: unless-stopped
     container_name: splitflap-backend # Optional: Assign a specific container name
+    user: "3000"
     depends_on:
       mqtt:
         condition: service_started # Or service_healthy if you add a healthcheck to mqtt
@@ -77,6 +79,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s # EMQX can take a bit to start
+    user: "3000"
 
 networks:
   splitflap-net:
