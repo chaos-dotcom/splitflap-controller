@@ -122,7 +122,7 @@ export const socketService = {
                  reconnectionDelay: 1000, // Start with 1s delay
                  reconnectionDelayMax: 5000, // Max 5s delay
                  timeout: 20000, // Increase connection timeout
-                 transports: ['polling', 'websocket'],
+                 transports: ['websocket', 'polling'], // Prioritize WebSocket
                  path: '/api/socket.io/' // Use /api prefix for socket.io
             });
             // --- ADD LOG ---
