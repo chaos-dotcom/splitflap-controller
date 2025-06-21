@@ -335,26 +335,12 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
                <button
                     onClick={() => {
                         console.log('[TrainTimetableMode] Refresh Now button clicked.'); // <-- ADD LOG
-                        // Process any pending changes immediately before refreshing
-                        if (pendingFromValueRef.current !== null) {
-                            setFromStation(pendingFromValueRef.current);
-                            pendingFromValueRef.current = null;
+                        // Now refresh with the current state values
+                        if (fromStation && fromStation.length === 3) {
+                            onStartUpdates(fromStation, toStation);
+                        } else {
+                            setError("Please enter a valid 3-letter 'From' station code.");
                         }
-                        if (pendingToValueRef.current !== null) {
-                            setToStation(pendingToValueRef.current);
-                            pendingToValueRef.current = null;
-                        }
-                        // Clear any scheduled processing
-                        if (changeTimeoutRef.current) {
-                            clearTimeout(changeTimeoutRef.current);
-                            changeTimeoutRef.current = null;
-                        }
-                        // Update last change time
-                        lastChangeTimeRef.current = Date.now();
-                        
-                        // Now refresh with the updated values
-                        onStartUpdates(fromStation, toStation);
-                        lastMqttUpdateTimeRef.current = Date.now(); // Update last MQTT time
                     }}
                     // Removed isLoading check
                     disabled={!isConnected || !fromStation || fromStation.length !== 3}
