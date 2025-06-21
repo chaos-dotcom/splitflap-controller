@@ -214,23 +214,6 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     const handleSavePreset = () => {
         console.log('[TrainTimetableMode] handleSavePreset called.'); // <-- ADD LOG
         
-        // Process any pending changes immediately before saving
-        if (pendingFromValueRef.current !== null) {
-            setFromStation(pendingFromValueRef.current);
-            pendingFromValueRef.current = null;
-        }
-        if (pendingToValueRef.current !== null) {
-            setToStation(pendingToValueRef.current);
-            pendingToValueRef.current = null;
-        }
-        // Clear any scheduled processing
-        if (changeTimeoutRef.current) {
-            clearTimeout(changeTimeoutRef.current);
-            changeTimeoutRef.current = null;
-        }
-        // Update last change time
-        lastChangeTimeRef.current = Date.now();
-        
         if (!fromStation || fromStation.length !== 3) {
             alert("Please enter a valid 3-letter 'From' station code first.");
             return;
@@ -262,23 +245,12 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
         const selectedName = event.target.value;
         const selectedPreset = savedPresets.find(p => p.name === selectedName);
         
-        // Clear any pending changes and scheduled processing
-        pendingFromValueRef.current = null;
-        pendingToValueRef.current = null;
-        if (changeTimeoutRef.current) {
-            clearTimeout(changeTimeoutRef.current);
-            changeTimeoutRef.current = null;
-        }
-        // Update last change time
-        lastChangeTimeRef.current = Date.now();
-        
         if (selectedPreset) {
             // ONLY update the state fields, do not fetch automatically
             setFromStation(selectedPreset.fromCRS);
             setToStation(selectedPreset.toCRS || ''); // Update local state
             // Trigger backend update for the new route
             onStartUpdates(selectedPreset.fromCRS, selectedPreset.toCRS);
-            lastMqttUpdateTimeRef.current = Date.now(); // Update last MQTT time
             setError(null); // Clear previous errors
         } else {
             // Clear inputs and results if "-- Select Preset --" is chosen
@@ -291,23 +263,6 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
 
     const handleDeletePreset = () => {
         console.log('[TrainTimetableMode] handleDeletePreset called.'); // <-- ADD LOG
-        
-        // Process any pending changes immediately
-        if (pendingFromValueRef.current !== null) {
-            setFromStation(pendingFromValueRef.current);
-            pendingFromValueRef.current = null;
-        }
-        if (pendingToValueRef.current !== null) {
-            setToStation(pendingToValueRef.current);
-            pendingToValueRef.current = null;
-        }
-        // Clear any scheduled processing
-        if (changeTimeoutRef.current) {
-            clearTimeout(changeTimeoutRef.current);
-            changeTimeoutRef.current = null;
-        }
-        // Update last change time
-        lastChangeTimeRef.current = Date.now();
         
         const selectElement = document.getElementById('presetSelector') as HTMLSelectElement;
         const selectedName = selectElement?.value;
@@ -332,78 +287,17 @@ const TrainTimetableMode: React.FC<TrainTimetableModeProps> = ({ isConnected, on
     };
     // --- End Preset Handlers ---
 
-    // Rate limiting for CRS input changes
-    const lastChangeTimeRef = useRef<number>(0);
-    const pendingFromValueRef = useRef<string | null>(null);
-    const pendingToValueRef = useRef<string | null>(null);
-    const changeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const lastMqttUpdateTimeRef = useRef<number>(0);
-    const MQTT_RATE_LIMIT_MS = 2000; // 2 seconds between MQTT updates
-
-    // Process any pending CRS changes with rate limiting
-    const processPendingChanges = () => {
-        const now = Date.now();
-        // Only process if at least 1000ms (1 second) has passed since last change
-        if (now - lastChangeTimeRef.current >= 1000) {
-            const hadPendingChanges = pendingFromValueRef.current !== null || pendingToValueRef.current !== null;
-            
-            if (pendingFromValueRef.current !== null) {
-                setFromStation(pendingFromValueRef.current);
-                pendingFromValueRef.current = null;
-            }
-            if (pendingToValueRef.current !== null) {
-                setToStation(pendingToValueRef.current);
-                pendingToValueRef.current = null;
-            }
-            lastChangeTimeRef.current = now;
-            
-            // If we had pending changes and enough time has passed since last MQTT update,
-            // trigger an update to the backend
-            if (hadPendingChanges && now - lastMqttUpdateTimeRef.current >= MQTT_RATE_LIMIT_MS) {
-                // Only update if we have a valid from station
-                if (fromStation && fromStation.length === 3) {
-                    console.log(`[TrainTimetableMode] Rate-limited MQTT update with From=${fromStation}, To=${toStation || undefined}`);
-                    onStartUpdates(fromStation, toStation);
-                    lastMqttUpdateTimeRef.current = now;
-                }
-            }
-        }
-
-        // Clear any existing timeout
-        if (changeTimeoutRef.current) {
-            clearTimeout(changeTimeoutRef.current);
-            changeTimeoutRef.current = null;
-        }
-
-        // If there are still pending changes, schedule another check
-        if (pendingFromValueRef.current !== null || pendingToValueRef.current !== null) {
-            changeTimeoutRef.current = setTimeout(processPendingChanges, 1000);
-        }
-    };
-
     // --- Input Change Handlers ---
     const handleFromStationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value.toUpperCase();
-        pendingFromValueRef.current = newValue;
+        setFromStation(newValue);
         setError(null); // Clear error on input change
-        
-        // Schedule processing if not already scheduled
-        if (!changeTimeoutRef.current) {
-            const delay = Math.max(0, 1000 - (Date.now() - lastChangeTimeRef.current));
-            changeTimeoutRef.current = setTimeout(processPendingChanges, delay);
-        }
     };
 
     const handleToStationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value.toUpperCase();
-        pendingToValueRef.current = newValue;
+        setToStation(newValue);
         setError(null); // Clear error on input change
-        
-        // Schedule processing if not already scheduled
-        if (!changeTimeoutRef.current) {
-            const delay = Math.max(0, 1000 - (Date.now() - lastChangeTimeRef.current));
-            changeTimeoutRef.current = setTimeout(processPendingChanges, delay);
-        }
     };
     // --- End Input Change Handlers ---
 
