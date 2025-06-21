@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'; // Added useRef back
+import React, { useState, useEffect } from 'react';
 import { SPLITFLAP_DISPLAY_LENGTH } from '../constants'; // Use renamed constant
 import './TrainTimetableMode.css';
 import { Departure, TrainRoutePreset } from '../types'; // Import types
